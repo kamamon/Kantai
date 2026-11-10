@@ -17,29 +17,6 @@ function alerts(){const a=[],pm=postMap();
   if(S.funds<0)a.push(['資金が赤字。続くと支持率が下がる','r']);
   return a;}
 function thrCol(i){const s=S.sectors[i],lv=thr(i);return !s.held||lv.c==='r'?'#ff6b5e':lv.c==='am'?'#f2b54a':'#63dba0';}
-// 作戦図。海の名は実在、陸地の形は架空
-function theaterSVG(){const P=i=>ZONES[i],fsel=ui.fsel!=null?FL(ui.fsel):null;
-  let s=`<svg viewBox="0 0 320 432" class="tmap" role="img" aria-label="作戦図"><rect width="320" height="432" fill="#081a2a"/>
-<path d="M0,0 L84,0 Q98,30 72,62 Q42,98 54,150 Q62,210 36,262 Q12,300 32,340 Q42,384 14,432 L0,432Z" fill="#33211f" stroke="#7a4f48"/>
-<path d="M210,98 Q238,122 228,160 Q220,202 188,224 Q162,238 148,220 Q168,200 180,168 Q184,126 210,98Z" fill="#2c4a37" stroke="#5c8c6b"/><text x="212" y="196" class="t2">本土</text>`;
-  for(let i=0;i<ZONES.length;i++)for(const j of ADJ[i])if(j>i){const a=P(i),b=P(j),en=a.enemy||b.enemy;s+=`<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="${en?'#7a3a36':'#28506a'}" stroke-width="${en?1:1.5}"${en?' stroke-dasharray="2 4"':''}/>`;}
-  for(const f of S.fleets)if(f.dest!=null){const p=zpath(f.zone,f.dest);if(p)s+=`<polyline points="${p.map(z=>P(z).x+','+P(z).y).join(' ')}" fill="none" stroke="#5fb0ff" stroke-width="2.5" stroke-dasharray="6 4" opacity=".85"/>`;}
-  ZONES.forEach((Z,i)=>{const sec=S.sectors[i],isI=ISLZ.includes(i),sel=ui.zsel===i,x=Z.x,y=Z.y;let col='#5fb0ff',st='';
-    if(Z.enemy){col='#ff6b5e';st=RIV.n;}else if(Z.home)st='母港';
-    else{col=thrCol(i);st=isI?(sec.held?'敵活動 '+thr(i).t:'占領下'):thr(i).v>=60?'通商妨害':'航路 '+thr(i).t;}
-    s+=`<g onclick="A.zone(${i})"><circle cx="${x}" cy="${y}" r="28" fill="#000" fill-opacity="0"/>`;
-    s+=Z.enemy?`<rect x="${x-13}" y="${y-13}" width="26" height="26" transform="rotate(45 ${x} ${y})" fill="${col}" fill-opacity="${sel?.3:.14}" stroke="${sel?'#fff':col}" stroke-opacity=".8"/>`
-      :`<circle cx="${x}" cy="${y}" r="22" fill="${col}" fill-opacity="${sel?.3:.1}" stroke="${sel?'#fff':col}" stroke-opacity="${sel?.95:.65}" stroke-width="${fsel?2:1}"${fsel?'':' stroke-dasharray="3 3"'}/>`;
-    if(isI)s+=`<path d="M${x-8},${y+3} q3,-9 9,-7 q8,-1 7,7 q-7,5 -16,0Z" fill="${sec.held?'#5c8c6b':'#a8584e'}" stroke="${sec.held?'#8fc09d':'#e08a80'}" stroke-width=".8"/>`;
-    else if(Z.home)s+=`<rect x="${x-4}" y="${y-4}" width="8" height="8" fill="#5fb0ff"/>`;
-    const ta=x<50?`x="${x-16}"`:`x="${x}" text-anchor="middle"`;
-    s+=`<text ${ta} y="${y+36}" class="t1">${Z.n}</text>${st?`<text ${ta} y="${y+47}" class="t2" fill="${col}">${st}${isI&&sec.held&&garrison(i).length?'・陸'+garrison(i).length:''}</text>`:''}</g>`;});
-  const cnt={};S.fleets.forEach((f,k)=>{const Z=P(f.zone),n=cnt[f.zone]=(cnt[f.zone]||0)+1,x=Z.x-20+((n-1)%3)*20,y=Z.y-28-Math.floor((n-1)/3)*19,sel=ui.fsel===f.id;
-    s+=`<g onclick="A.fsel(${f.id})"><circle cx="${x}" cy="${y}" r="13" fill="#000" fill-opacity="0"/><circle cx="${x}" cy="${y}" r="9" fill="${sel?'#fff':'#1d4e6b'}" stroke="#5fb0ff" stroke-width="1.5"/><text x="${x}" y="${y+3.6}" text-anchor="middle" style="font-size:10.5px;fill:${sel?'#0b1b2a':'#fff'}">${k+1}</text></g>`;});
-  for(const e of S.efl)if(e.known){const a=P(EBASE[e.z]),b=P(e.z),t=e.eta>=2?.16:.58,x=Math.round(a.x+(b.x-a.x)*t),y=Math.round(a.y+(b.y-a.y)*t);
-    s+=`<g style="pointer-events:none"><path d="M${x},${y-8} l8,8 l-8,8 l-8,-8Z" fill="#ff6b5e" stroke="#fff" stroke-width=".8"/><text x="${x+11}" y="${y+3.5}" class="t2" style="fill:#ffb3aa">侵攻部隊</text></g>`;}
-  for(const i of ISLZ)if(!S.sectors[i].held&&S.isl[i].cover){const Z=P(i);s+=`<path style="pointer-events:none" d="M${Z.x+15},${Z.y-9} l6,6 l-6,6 l-6,-6Z" fill="#ff6b5e"/>`;}
-  return s+'</svg>';}
 const gLoc=g=>g.loc==='home'?'本土':g.loc[0]==='i'?ISL[+g.loc.slice(1)]:(FL(+g.loc.slice(1))||{n:'艦隊'}).n+'に乗船';
 function gRow(g,act){const t=GT[g.type];return `<div class="unit ${g.loc==='home'?'':'away'}"><div class="uh"><span class="tag">${t.s}</span><b>${g.name}</b><span class="loc">${esc(gLoc(g))}</span></div>
   <div class="st3"><div><label>戦力 ${g.hp}/10</label>${bar(g.hp*10,g.hp<4?'r':g.hp<7?'am':'g')}</div><div><label>練度 ${Math.round(g.tr)}</label>${bar(g.tr,'b')}</div><div><label>攻${t.atk} 防${t.def} 移${t.mv}${t.rng>1?' 射'+t.rng:''}</label></div></div>${act||''}</div>`;}
@@ -69,12 +46,12 @@ VIEW.home=()=>{const inc=income(),cost=Math.round(monthCost()),al=alerts(),C=S.c
     h+=`<div class="sbox ${s.held?'':'occ'}" onclick="A.goz(${i})"><b>${ISL[i]}</b><span class="${s.held?lv.c:'r'}">${s.held?'敵活動 '+lv.t:'占領下'}</span>${bar(s.held?lv.v:100,s.held?lv.c:'r')}<small>${SECT[i]}<br>${fl.length?fl.map(f=>esc(f.n)).join('・'):'艦隊なし'}<br>守備隊 ${s.held?gn+'個':'―'}</small></div>`;}
   h+=`</div><p class="mut sm">島をタップすると作戦図が開く。</p></section>`;
   if(al.length)h+=`<section class="sec"><h2>要対処</h2>${al.map(a=>`<p class="al ${a[1]}">${a[0]}</p>`).join('')}</section>`;
-  h+=`<section class="sec"><h2>今月の見通し</h2><dl class="kv"><dt>防衛予算(月割)</dt><dd class="g">+${inc} 億円</dd><dt>維持費と各種経費</dt><dd>−${cost} 億円</dd><dt>差引</dt><dd class="${inc-cost<0?'r':'g'}">${sg(inc-cost)} 億円</dd><dt>国</dt><dd><i class="flag" style="${flagCSS(NAT,C.nat||0)}"></i> ${esc(C.nation)}</dd><dt>対峙する国</dt><dd>${RIV.f}</dd><dt>国柄</dt><dd>${NAT.tr[0]}<br><span class="sm mut">${NAT.tr[1]}</span></dd><dt>抑止力(我／敵)</dt><dd>${Math.round(fleetPower())}／${enemyPower()}</dd><dt>陸上部隊</dt><dd>${S.gnd.length}個</dd><dt>技術の蓄積</dt><dd>${totalLv()}段階</dd><dt>戦績</dt><dd>${S.stats.wins}勝 ${S.stats.loss}敗(うち無血 ${S.stats.blood0})</dd><dt>任期</dt><dd>${Math.floor(S.month/12)+1}年目／全${C.years}年</dd></dl></section>`;
+  h+=`<section class="sec"><h2>今月の見通し</h2><dl class="kv"><dt>防衛予算(月割)</dt><dd class="g">+${inc} 億円</dd><dt>維持費と各種経費</dt><dd>−${cost} 億円</dd><dt>差引</dt><dd class="${inc-cost<0?'r':'g'}">${sg(inc-cost)} 億円</dd><dt>国</dt><dd><i class="flag" style="${flagCSS(NAT)}"></i> ${esc(C.nation)}</dd><dt>対峙する国</dt><dd>${RIV.f}</dd><dt>国柄</dt><dd>${NAT.tr[0]}<br><span class="sm mut">${NAT.tr[1]}</span></dd><dt>抑止力(我／敵)</dt><dd>${Math.round(fleetPower())}／${enemyPower()}</dd><dt>陸上部隊</dt><dd>${S.gnd.length}個</dd><dt>技術の蓄積</dt><dd>${totalLv()}段階</dd><dt>戦績</dt><dd>${S.stats.wins}勝 ${S.stats.loss}敗(うち無血 ${S.stats.blood0})</dd><dt>任期</dt><dd>${Math.floor(S.month/12)+1}年目／全${C.years}年</dd></dl></section>`;
   h+=`<section class="sec"><h2>記録</h2>${S.log.length?S.log.slice(0,12).map(l=>`<p class="lg ${l.c}"><span>${dateStr(l.m)}</span>${l.msg}</p>`).join(''):'<p class="mut sm">まだ記録はない</p>'}</section>`;
   h+=`<section class="sec"><div class="brow"><button class="btn sm" onclick="A.drill()">図上演習(海戦)</button><button class="btn sm" onclick="A.gdrill()">図上演習(上陸戦)</button><button class="btn sm" onclick="A.help()">遊び方</button><button class="btn sm" onclick="A.reset()">新しく始める</button></div></section>`;
   return h;};
 VIEW.deploy=()=>{const fsel=ui.fsel!=null?FL(ui.fsel):null,T=reinTime();
-  let h=`<section class="sec"><h2>作戦図</h2>${fsel?`<p class="al am">${esc(fsel.n)}の行き先を選ぶ。作戦図の海域をタップ</p>`:''}${theaterSVG()}<p class="mut sm">艦隊は1か月に2海域ぶん進む。事案にはその海域の艦隊が当たり、隣の海域の艦は${T}分後、2つ先の海域の艦は${T*2}分後に増援として着く。海域をタップすると詳細、艦隊の番号をタップすると行き先を選べる。</p></section>`;
+  let h=`<section class="sec"><h2>作戦図</h2>${fsel?`<p class="al am">${esc(fsel.n)}の行き先を選ぶ。作戦図の海域をタップ</p>`:''}<canvas id="wth" class="wth"></canvas><div class="brow"><button class="btn sm" onclick="A.world()">世界地図を見る</button></div><p class="mut sm">艦隊は1か月に2海域ぶん進む。事案にはその海域の艦隊が当たり、隣の海域の艦は${T}分後、2つ先の海域の艦は${T*2}分後に増援として着く。海域をタップすると詳細、艦隊の番号をタップすると行き先を選べる。</p></section>`;
   if(ui.zsel!=null)h+=zonePanel(ui.zsel);
   h+=`<section class="sec"><h2>艦隊</h2>`;
   S.fleets.forEach((f,k)=>{const us=flUnits(f),cp=fleetCap(f),ld=fleetLoad(f),mv=f.dest!=null;
@@ -115,7 +92,18 @@ UV.gnd=()=>{let h=`<section class="sec"><h2>陸上部隊 ${S.gnd.length}個</h2>
   if(!S.gnd.length)h+='<p class="al am">陸上部隊がない</p>';
   for(const g of S.gnd)h+=gRow(g,gActs(g));
   return h+'</section>';};
-VIEW.units=()=>subtabs('units',[['ships','艦艇'],['fleets','艦隊編成'],['gnd','陸上部隊']])+(UV[ui.sub.units]||UV.ships)();
+// 装備の諸元。研究や国柄の補正を含めた、いまの値を出す
+UV.eq=()=>{const M=mods(),f=k=>M[k]||0,kt=v=>Math.round(v*60/1.852);
+  let h=`<section class="sec"><h2>${NAT.n}の装備</h2><p class="mut sm">研究・予算・国柄による補正を含めた現在の値。装備の型は国ごとに決まっていて、長所と短所がある。</p>${eqCards(NAT,f)}</section><section class="sec"><h2>艦艇</h2>`;
+  for(const k of SHIPK){const t=PT[k];if(t.lock&&!S.unlock[k])continue;const sub=t.cat==='sub',r=[['船体',Math.round(t.hp*(1+(sub?f('subHp'):f('hp'))))],['速力',kt(t.spd*(1+(sub?f('subSpd'):f('spd'))))+'ノット']];
+    if(t.dA)r.push(['対空レーダー',Math.round(t.dA*(1+f('radA')))+'km']);r.push(['対水上探知',Math.round(t.dS*(1+f('esm')))+'km']);if(t.so)r.push(['ソナー',Math.round(t.so*(1+(sub?f('sonarSub'):f('sonar'))))+'km']);
+    if(t.sam)r.push(['艦対空ミサイル',`${Math.round(t.sam*(1+f('samCap')))}発、射程${Math.round(t.samR*(1+(t.samR>=100?f('samRL'):f('samRS'))))}km`]);if(t.asm)r.push(['対艦ミサイル',`${Math.round(t.asm*(1+f('asmCap')))}発、射程${Math.round(t.asmR*(1+f('asmR')))}km`]);
+    if(t.torp)r.push(['魚雷・対潜弾',t.torp+'発']);if(t.fcap)r.push(['搭載機',`戦闘機${t.fcap}機、警戒機${t.acap}機`]);if(t.tcap)r.push(['輸送',`陸上部隊${t.tcap}個`]);r.push(['乗員',t.crew?t.crew+'名':'無人']);
+    h+=`<div class="eqc"><div class="uh"><b>${t.n}</b><span class="loc">${clsName(k)||t.s}</span></div><p class="sm mut">${t.d}</p><dl class="kv">${r.map(x=>`<dt>${x[0]}</dt><dd>${x[1]}</dd>`).join('')}</dl></div>`;}
+  h+=`</section><section class="sec"><h2>陸上部隊</h2>`;
+  for(const k of GTK){const t=GT[k];h+=`<div class="eqc"><div class="uh"><b>${t.n}</b><span class="loc">戦闘力 ${sg(Math.round(f('gndPow')*100))}%</span></div><p class="sm mut">${t.d}</p><dl class="kv"><dt>攻撃／防御</dt><dd>${t.atk}／${t.def}</dd><dt>移動／射程</dt><dd>${t.mv}マス／${t.rng}マス</dd></dl></div>`;}
+  return h+'</section>';};
+VIEW.units=()=>subtabs('units',[['ships','艦艇'],['fleets','艦隊編成'],['gnd','陸上部隊'],['eq','装備']])+(UV[ui.sub.units]||UV.ships)();
 VIEW.shop=()=>{
   let h=`<section class="sec"><h2>発注中</h2>${S.orders.length?S.orders.map(o=>`<div class="drow"><div style="flex:1">${o.n}</div><div class="mut">あと ${o.due-S.month} か月</div></div>`).join(''):'<p class="mut sm">発注中のものはない</p>'}</section><section class="sec"><h2>調達</h2><p class="mut sm">400億円以上のものは、一括払いか分割払いかを選べる。艦は母港で就役し、陸上部隊は本土で編成される。</p>`;
   const item=(k,n,d)=>{const c=price(k);return `<div class="item"><div class="uh"><b>${n}</b><span class="loc">${c.toLocaleString()}億円／${buildMo(k)}か月</span></div><p class="sm mut">${d}</p><button class="btn sm" ${canPay(c)||c>=400?'':'disabled'} onclick="A.buy('${k}')">発注する</button></div>`;};
@@ -179,7 +167,10 @@ Object.assign(A,{
     confirmM(`<b>${ISL[z]}への上陸作戦</b>を発動する。<br>上陸部隊：${emb.map(g=>g.name).join('、')}<br>敵の守備隊(推定)：${il.egar.length}個、陣地は「${FORT[il.fort]}」<br><span class="sm mut">司令部に乗り込んで敵の番を持ちこたえるか、敵を全滅させれば奪還できる。16ターンで決着がつかなければ艦へ引き揚げる。</span>`,()=>startGround('assault',z),'上陸を開始する');},
   gdrill(){startGround('drill',0);},
   csg(k,d,max){ui.cs.gnd[k]=clamp((ui.cs.gnd[k]||0)+d,0,max);showSetup();},
-  nsel(i){ui.nat=i;ui.riv=null;showNation();const c=$('#ncard');if(c)$('#mbox').scrollTop=Math.max(0,c.offsetTop-12);},
-  nriv(i){ui.riv=i;showNation();},
-  csnat(){closeModal();ui.nat=ui.cs.nat;ui.riv=ui.cs.riv;showNation();}
+  // 国の一覧 ⇄ 国の情報。戻ると、一覧と地図を見ていた位置に帰る
+  nsel(i){if(ui.nview!=='info'){ui.nsc=$('#mbox').scrollTop;const w=document.querySelector('#mbox .wscroll');if(w)ui.wsc=[w.scrollLeft,w.scrollTop];}ui.nat=i;ui.riv=null;ui.nview='info';showNation();$('#mbox').scrollTop=0;},
+  nback(){ui.nview='list';showNation();$('#mbox').scrollTop=ui.nsc||0;},
+  nriv(i){ui.riv=i;const sc=$('#mbox').scrollTop;showNation();$('#mbox').scrollTop=sc;},
+  csnat(){closeModal();ui.nat=ui.cs.nat;ui.riv=ui.cs.riv;ui.nview='list';ui.wsc=null;ui.nsc=0;showNation();},
+  world(){modal(`<div class="alert">惑星${PLANET}</div><h2>世界地図</h2><p class="sm mut">白が${NAT.n}、赤が${RIV.n}。地図は指で動かせる。</p><div class="wscroll"><canvas class="wmap" data-mode="view" data-hi="${S.cfg.nat||0}" data-ri="${NATS.indexOf(RIV)}"></canvas></div><div class="mbtn"><button class="btn pri" data-m="ok">閉じる</button></div>`);}
 });

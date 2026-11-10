@@ -74,3 +74,12 @@
 .nlist button.on{background:#1d4e6b;border-color:#3b88ad;color:#fff}
 .ncard{background:var(--pn);border-top:2px solid var(--cy);padding:10px 12px;margin-bottom:10px}
 .ncard .srow select{flex:1;min-width:0;background:var(--pn2);border:1px solid var(--ln);border-radius:3px;padding:6px;color:var(--tx)}
+
+/* 世界地図と装備の諸元 */
+.wscroll{overflow:auto;height:300px;border:1px solid var(--ln);margin:8px 0 10px;background:#06141f;-webkit-overflow-scrolling:touch}
+.wscroll canvas{display:block}
+canvas.wmap.loc{display:block;width:100%;border:1px solid var(--ln);margin:8px 0 4px}
+canvas.wth{display:block;width:100%;border:1px solid var(--ln);margin-bottom:8px;touch-action:manipulation;background:#06141f}
+.nnav{position:sticky;top:-18px;background:var(--pn2,#0f2233);padding:8px 0;margin:-8px 0 8px;z-index:2;border-bottom:1px solid var(--ln)}
+.eqc{background:var(--pn);border-left:2px solid var(--cy);padding:8px 10px;margin:8px 0}
+.eqc .kv{margin:4px 0 0}

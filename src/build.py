@@ -74,7 +74,7 @@ rep("o.occupied?'島嶼を占領された'","o.occupied?'敵の揚陸艦が島�
 rep("render();if(S.over)showOver();}","render();if(S.over)showOver();else if(S.gpend)groundPrompt();}")
 bt,n1=re.subn(r"(\w+)\.key==='cvl'",r"\1.cvf",bt);bt,n2=re.subn(r"(\w+)\.key!=='cvl'",r"!\1.cvf",bt)
 print('cvl patches',n1,n2)
-js=common+rd('data2.js')+'\n'+rd('nations.js')+'\n'+rd('state2.js')+'\n'+rd('hq2a.js')+'\n'+rd('hq2b.js')+'\n'+rd('theater.js')+'\n'+rd('theater_ui.js')+'\n'+bt+'\n'+rd('battle2.js')+'\n'+rd('ground.js')+'\n'+rd('view3d.js')
+js=common+rd('data2.js')+'\n'+rd('nations.js')+'\n'+rd('world.js')+'\n'+rd('state2.js')+'\n'+rd('hq2a.js')+'\n'+rd('hq2b.js')+'\n'+rd('theater.js')+'\n'+rd('theater_ui.js')+'\n'+bt+'\n'+rd('battle2.js')+'\n'+rd('ground.js')+'\n'+rd('view3d.js')
 for bad in ['tech(','S.officers','REIN_T','B.cec','su.cmd',"PT.cvl.",'A.sector','mapSVG']:
     if bad in js:print('STALE:',bad,[js[m.start()-60:m.start()+40].replace('\n',' ') for m in re.finditer(re.escape(bad),js)][:3])
 out=head+'<script>\n'+js+'</script>\n</body>\n</html>\n'
