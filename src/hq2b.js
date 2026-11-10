@@ -92,8 +92,6 @@ const A={
   of(k,v){ui.of[k]=v;if(k!=='page')ui.of.page=0;render();},
   bud(i,v){S.bud[i]=v;save();render();},
   budCat(c,L){BITEM.forEach((b,i)=>{if(b[1]===c)S.bud[i]=L;});save();render();},
-  sector(id,s){const u=U(id);if(!u||(u.mode!=='normal'&&s>0))return;u.sector=s;save();render();},
-  mode(id,m){const u=U(id);if(!u||u.refit)return;u.mode=m;if(m!=='normal')u.sector=0;save();render();},
   air(id,k,d){const u=U(id);if(!u)return;const mx=k==='ftr'?ftrCap(u):aewCap(u);
     if(d>0){if(S.pool[k]<1)return toast('予備機がない。「調達」で発注を');if(u[k]>=mx)return toast('これ以上は積めない');S.pool[k]--;u[k]++;}
     else{if(u[k]<1)return;u[k]--;S.pool[k]++;}save();render();},
@@ -110,7 +108,7 @@ const A={
     else if(!ks.length)h+=`<p class="sm mut">取り付けられるキットがない。「開発」の装備開発計画で改修キットを完成させると、ここに並ぶ。</p>`;
     else for(const k of ks){const K=KIT[k];cbs['k_'+k]=()=>{closeModal();A.refit(id,k);};h+=`<div class="item"><div class="uh"><b>${K.n}</b><span class="loc">${K.cost}億円／ドック${K.mo}か月</span></div><p class="sm mut">${K.d}</p><button class="btn sm" data-m="k_${k}" ${canPay(K.cost)?'':'disabled'}>取り付ける</button></div>`;}
     modal(h+`<div class="mbtn"><button class="btn warn" data-m="sc">この艦を除籍する</button><button class="btn pri" data-m="x">閉じる</button></div>`,cbs);},
-  refit(id,k){const u=U(id),K=KIT[k];if(!u||u.refit||!canPay(K.cost))return;spend(K.cost);u.refit={k,left:K.mo};u.mode='dock';u.sector=0;hlog(`${u.name}：${K.n}の改修に着手`,'');save();render();toast('ドックに入れた');},
+  refit(id,k){const u=U(id),K=KIT[k];if(!u||u.refit||!canPay(K.cost))return;spend(K.cost);u.refit={k,left:K.mo};u.mode='dock';hlog(`${u.name}：${K.n}の改修に着手`,'');save();render();toast('ドックに入れた');},
   // 開発
   labPick(id){const l=S.labs.find(x=>x.id===id);if(!l)return;const T=LABT[l.t],cbs={x:closeModal};let h=`<div class="alert">${Math.round(labRP(l))} RP／月</div><h2>${T.n}の課題</h2>`;
     for(const d of T.d){h+=`<h3 class="sub">${DOM[d]}</h3>`;for(const ln of LINE.filter(x=>x[2]===d)){const lv=lvOf(ln[0]),busy=S.labs.some(x=>x!==l&&x.cur===ln[0]);cbs['l_'+ln[0]]=()=>{closeModal();l.cur=ln[0];l.auto=false;save();render();};
@@ -155,13 +153,12 @@ const A={
   ask(a){closeModal();if(Math.random()<askChance(a)){S.budget=Math.round(S.budget*(1+a)/10)*10;hlog(`予算折衝：${Math.round(a*100)}%の増額を獲得`,'g');toast('増額が認められた');}
     else{S.budget=Math.round(S.budget*.98/10)*10;S.support=clamp(S.support-2,0,100);hlog('予算折衝：増額要求は退けられた','r');toast('増額要求は退けられた');}S.fyAsk=1;save();render();},
   supp(){if(S.fySupp)return;S.fySupp=1;if(Math.random()<suppChance()){const a=suppAmt();S.funds+=a;hlog(`補正予算 ${a}億円が成立`,'g');toast(`補正予算 ${a}億円が成立した`);}else{S.support=clamp(S.support-2,0,100);hlog('補正予算の要求は退けられた','r');toast('補正予算は退けられた');}save();render();},
-  retake(i){if(S.pending||S.over)return;S.pending=mkIncident(i,'retake');save();showIncident();},
   drill(){const L=1.6;startBattle({drill:true,sector:0,type:'landing',L,eT:eTech(),force:genForce('landing',L,0)});},
   reset(){confirmM('いまの任期を離れて、タイトルに戻る。進行は保存されている。',()=>showTitle(),'タイトルへ');},
   // カスタムスタート
   cs(k,d,min,max){ui.cs[k]=clamp(ui.cs[k]+d,min,max);showSetup();},
   csf(k,d,max){ui.cs.fleet[k]=clamp((ui.cs.fleet[k]||0)+d,0,max);showSetup();},
   css(k,v){ui.cs[k]=v;showSetup();},
-  csp(i){const keep={cmdr:ui.cs.cmdr,nation:ui.cs.nation,fleetName:ui.cs.fleetName},p=PRESET[i][1];ui.cs=Object.assign(JSON.parse(JSON.stringify(DEFCFG)),JSON.parse(JSON.stringify(p)),keep);ui.cs.fleet=Object.assign({},DEFCFG.fleet,p.fleet||{});showSetup();}
+  csp(i){const keep={cmdr:ui.cs.cmdr,nation:ui.cs.nation,fleetName:ui.cs.fleetName},p=PRESET[i][1];ui.cs=Object.assign(JSON.parse(JSON.stringify(DEFCFG)),JSON.parse(JSON.stringify(p)),keep);ui.cs.fleet=Object.assign({},DEFCFG.fleet,p.fleet||{});ui.cs.gnd=Object.assign({},DEFCFG.gnd,p.gnd||{});showSetup();}
 };
 window.A=A;

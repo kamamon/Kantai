@@ -1,5 +1,18 @@
 /* ================= データ ================= */
-const SECT=['母港','北方海域','中部海域','南嶺海域'],ISL=['演習島','雪見島','中之瀬島','南嶺本島'];
+// 作戦海域。海の名は実在、国と島は架空。adj=つながる海域、isl=島、lane=シーレーン、enemy=敵の泊地
+const ZONES=[
+  {n:'本土近海',x:178,y:172,adj:[2,3,4],home:1,isl:'演習島'},
+  {n:'オホーツク海',x:214,y:56,adj:[2,3,8],isl:'雪見島'},
+  {n:'日本海',x:98,y:130,adj:[0,1,4,8],lane:1},
+  {n:'北西太平洋',x:272,y:152,adj:[0,1,5],lane:1},
+  {n:'東シナ海',x:90,y:240,adj:[0,2,5,6,9],isl:'中之瀬島'},
+  {n:'フィリピン海',x:242,y:270,adj:[3,4,6],lane:1},
+  {n:'バシー海峡',x:152,y:320,adj:[4,5,7],lane:1},
+  {n:'南シナ海',x:80,y:374,adj:[6,9],isl:'南嶺本島'},
+  {n:'敵 北方泊地',x:62,y:48,adj:[1,2],enemy:1},
+  {n:'敵 南方泊地',x:24,y:306,adj:[4,7],enemy:1}
+];
+const ISLZ=[1,4,7],ADJ=ZONES.map(z=>z.adj),SECT=ZONES.map(z=>z.n),ISL=ZONES.map(z=>z.isl||z.n);
 const LV=['停止','低','標準','高','最大'],LVM=[0,.5,1,1.6,2.4],COSTK=.7;
 // 自軍の艦種。距離はkm、速度はkm/分
 const PT={
@@ -15,14 +28,18 @@ const PT={
   ddgx:{n:'次世代ミサイル護衛艦',s:'DDGX',cat:'ship',hp:165,spd:.92,dA:520,dS:45,dM:52,so:18,sam:96,samR:180,samPk:.76,samRate:.16,ciws:.55,ecm:.32,asm:12,asmR:160,asmDmg:58,torp:6,torpR:20,crew:280,cost:2600,up:22,build:22,val:150,d:'SAM 96発。艦隊防空の決定版',lock:1},
   cv:{n:'多用途航空母艦',s:'CV',cat:'ship',hp:340,spd:.9,dA:280,dS:42,dM:32,so:8,sam:24,samR:15,samPk:.62,samRate:.3,ciws:.55,ecm:.28,aam:96,aasm:40,fcap:24,acap:2,crew:1200,cost:6800,up:60,build:36,val:260,d:'戦闘機24機を積む正規空母',lock:1},
   ssx:{n:'次世代潜水艦',s:'SSX',cat:'sub',hp:85,spd:.7,dA:0,dS:40,dM:0,so:65,asm:8,asmR:150,asmDmg:58,torp:18,torpR:30,quiet:.25,crew:65,cost:1000,up:9,build:16,val:85,d:'静粛性と兵装搭載量を高めた新世代艦',lock:1},
-  usv:{n:'無人ミサイル艇',s:'USV',cat:'ship',hp:35,spd:1,dA:60,dS:30,dM:15,so:0,sam:16,samR:50,samPk:.55,samRate:.3,ecm:.1,asm:8,asmR:150,asmDmg:55,crew:0,cost:260,up:2,build:6,val:30,d:'無人の弾庫。自前のセンサーは弱く、僚艦の探知に頼る',lock:1}
+  usv:{n:'無人ミサイル艇',s:'USV',cat:'ship',hp:35,spd:1,dA:60,dS:30,dM:15,so:0,sam:16,samR:50,samPk:.55,samRate:.3,ecm:.1,asm:8,asmR:150,asmDmg:55,crew:0,cost:260,up:2,build:6,val:30,d:'無人の弾庫。自前のセンサーは弱く、僚艦の探知に頼る',lock:1},
+  lst:{n:'輸送艦',s:'LST',cat:'ship',hp:120,spd:.7,dA:90,dS:35,dM:20,so:0,ciws:.4,ecm:.1,tcap:2,crew:120,cost:520,up:5,build:10,val:6,d:'陸上部隊を2個まで運び、上陸させる。戦闘力はない'},
+  lhd:{n:'強襲揚陸艦',s:'LHD',cat:'ship',hp:200,spd:.8,dA:200,dS:42,dM:28,so:0,sam:16,samR:12,samPk:.58,samRate:.35,ciws:.5,ecm:.2,tcap:4,crew:420,cost:1900,up:16,build:18,val:20,d:'陸上部隊を4個運び、1ターンに上陸できる数も増える',lock:1}
 };
-const SHIPK=['ffm','dd','ddg','ss','cvl','opv','aoe','ffm2','dd2','ddgx','ssx','usv','cv'];
+const FLEETK=['cv','cvl','ddg','dd','ffm','ss','lst','opv','aoe'];
+const SHIPK=['ffm','dd','ddg','ss','cvl','lst','opv','aoe','ffm2','dd2','ddgx','ssx','usv','lhd','cv'];
 const ET={
   eddg:{n:'ミサイル駆逐艦',s:'DDG',cat:'ship',hp:130,spd:.9,dA:350,dS:42,dM:35,so:12,sam:40,samR:100,samPk:.6,samRate:.3,ciws:.42,ecm:.2,asm:8,asmR:180,asmDmg:55,torp:4,torpR:12,val:90},
   ecg:{n:'巡洋艦',s:'CG',cat:'ship',hp:185,spd:.9,dA:420,dS:42,dM:42,so:14,sam:80,samR:150,samPk:.66,samRate:.22,ciws:.48,ecm:.26,asm:16,asmR:250,asmDmg:60,torp:4,torpR:12,val:150},
   eff:{n:'フリゲート',s:'FF',cat:'ship',hp:80,spd:.9,dA:180,dS:65,dM:30,so:20,sam:16,samR:40,samPk:.5,samRate:.35,ciws:.4,ecm:.15,asm:8,asmR:150,asmDmg:45,torp:4,torpR:12,val:50},
   elst:{n:'揚陸艦',s:'LST',cat:'ship',hp:130,spd:.65,dA:100,dS:35,dM:22,so:0,sam:8,samR:8,samPk:.4,samRate:.5,ciws:.3,ecm:.1,val:70},
+  eshore:{n:'地対艦ミサイル陣地',s:'SSM',cat:'ship',hp:90,spd:0,dA:200,dS:70,dM:25,so:0,ciws:.2,ecm:.1,asm:8,asmR:160,asmDmg:50,val:30},
   ecv:{n:'空母',s:'CV',cat:'ship',hp:260,spd:.85,dA:260,dS:42,dM:30,so:8,sam:16,samR:12,samPk:.5,samRate:.4,ciws:.45,ecm:.2,val:150,air:6},
   ess:{n:'潜水艦',s:'SS',cat:'sub',hp:60,spd:.5,dA:0,dS:30,dM:0,so:45,torp:8,torpR:18,val:50},
   ebmr:{n:'爆撃機編隊',s:'BMR',cat:'air',ac:2,spd:13,dA:120,dS:220,dM:60,asm:6,asmR:200,asmDmg:55,val:50},
@@ -43,14 +60,14 @@ const NAMES={
   dd:['あさなぎ','はやかぜ','ゆうなぎ','おきかぜ','しおかぜ','たちかぜ','ほかぜ','なみかぜ','はまかぜ','いそかぜ'],dd2:['あきづき','てるづき','すずつき','はつづき','にいづき','わかつき'],
   ffm:['ちくま','とね','きぬ','なか','すずや','いすず','あぶくま','じんつう'],ffm2:['あがの','のしろ','やはぎ','さかわ','おおよど','によど'],
   ss:['らいげい','そうげい','こくげい','ごうげい','せいげい','ちょうげい','じんげい','たいげい'],ssx:['せきりゅう','こうりゅう','しょうげい','ほうげい','きりゅう'],
-  opv:['はつしま','みやじま','くろしま','いえしま','としま','おおしま','こじま'],aoe:['かすみがうら','いんば','びわ','とうや','しんじ'],usv:[]
+  opv:['はつしま','みやじま','くろしま','いえしま','としま','おおしま','こじま'],aoe:['かすみがうら','いんば','びわ','とうや','しんじ'],usv:[],lst:['みうら','さつま','あつみ','もとぶ','ねむろ','おじか'],lhd:['あまくさ','いずはら','つしま']
 };
 const STK={sam:'sam',asm:'asm',torp:'torp',aam:'aam',aasm:'asm'},AMN={sam:'SAM',asm:'SSM',torp:'魚雷',aam:'AAM',aasm:'ASM'};
 const SCN={
   intrusion:{n:'領海侵入事案',d:i=>`国籍不明の艦艇群が${ISL[i.sector]}の領海へ向けて航行している。監視と警告で退去させよ。こちらから先に撃てば、政治的な代償はきわめて大きい。`,o:'50km以内に寄せて警告し、退去させる(敵が撃つまで武器は使えない)'},
   airraid:{n:'航空攻撃の兆候',d:i=>`${SECT[i.sector]}の我が部隊へ向かう爆撃機編隊を探知した。対艦ミサイル攻撃の公算が高い。敵が発射するまで手は出せない。艦隊防空を固めよ。`,o:'ミサイル攻撃を凌ぎ、艦隊を守る'},
-  landing:{n:'島嶼侵攻',d:i=>`揚陸艦を伴う侵攻部隊が${ISL[i.sector]}へ向かっている。防衛出動が発令された。上陸を阻止せよ。`,o:'揚陸艦を島に到達させない'},
-  retake:{n:'島嶼奪還作戦',d:i=>`${ISL[i.sector]}の周辺に居座る敵艦隊を排除し、島を取り戻す。`,o:'島の周辺から敵艦隊を排除する'}
+  landing:{n:'島嶼侵攻',d:i=>`揚陸艦を伴う侵攻部隊が${ISL[i.sector]}へ向かっている。防衛出動が発令された。上陸を阻止せよ。揚陸艦が島に達すると、守備隊との地上戦になる。`,o:'揚陸艦を島に到達させない'},
+  retake:{n:'制海戦闘',d:i=>`${ISL[i.sector]}の周辺に居座る敵艦隊を排除する。制海を得れば、準備攻撃と上陸作戦に進める。`,o:'島の周辺から敵艦隊を排除する'}
 };
 
 /* ---------- 能力値の一覧 [表示名, 書式] ---------- */
@@ -66,6 +83,7 @@ const STAT={
   cec:['共同交戦(他艦の探知で迎撃できる距離)','p'],reinT:['増援の到着時間','-m'],eIntel:['敵が掴む我が艦隊位置の誤差','%'],warn:['警告の成功率','p'],tension:['緊張度の低下(毎月)','n'],usv:['無人艇の能力','%'],threatSup:['海域の敵活動の抑制(毎月)','n'],garr:['上陸完了までの時間','m'],
   ammoC:['弾薬の価格','-%'],rdRec:['母港での整備度回復','%'],dockSpd:['ドック整備の速さ','%'],
   trGain:['練度の伸び','%'],recruit:['入隊者数','%'],attr:['離職率','-%'],morale:['士気(毎月)','n'],offGrow:['幹部の成長','%'],enlTr:['曹士の技能の伸び(毎月)','n'],recSk:['新隊員の技能','n'],cadet:['幹部候補生の採用数','%'],reserve:['予備自衛官の規模','%'],
+  gndPow:['陸上部隊の戦闘力','%'],
   rp:['研究ポイント','%'],support:['支持率(毎月)','n'],budg:['予算折衝の成功率','p'],projRisk:['開発の遅延リスク','-p'],cost:['諸経費','-%'],prePen:['政治的ペナルティ','-%'],q:['戦闘効率','p']
 };
 
@@ -108,6 +126,7 @@ const LABRP=[0,20,32,46,62,80];
 const PROJ=[
   {k:'opv',n:'哨戒艦',kind:'unit',req:{},c:[20,40,20],t:[2,4,2]},
   {k:'aoe',n:'補給艦',kind:'unit',req:{lg1:2},c:[30,60,30],t:[2,5,2]},
+  {k:'lhd',n:'強襲揚陸艦',kind:'unit',req:{hl:3,dk:2},c:[100,300,150],t:[4,10,5]},
   {k:'ffm2',n:'新型多機能護衛艦',kind:'unit',req:{vl:2,hl:2},c:[60,160,80],t:[3,8,4]},
   {k:'dd2',n:'新型汎用護衛艦',kind:'unit',req:{vl:3,hl:3,bs:3},c:[90,240,120],t:[4,10,5]},
   {k:'ddgx',n:'次世代ミサイル護衛艦',kind:'unit',req:{sk:5,rm:4,ra1:5,hl:4},c:[160,480,240],t:[5,14,6]},
@@ -176,7 +195,7 @@ const SUBL={we:'水雷長',op:'水測長'};
 const PHQ=[['cs','幕僚長',[5,7],'adm','全幕僚の働きを底上げする'],['n3','作戦主任幕僚',[4,5],'cmd','増援の到着と全艦の戦闘効率'],['n2','情報主任幕僚',[4,5],'tec','敵情の精度と衛星監視'],['n4','後方主任幕僚',[4,5],'adm','維持費の節減'],
   ['n6','通信電子幕僚',[3,5],'tec','共同交戦とミサイル探知'],['n7','訓練幕僚',[3,5],'cmd','練度の伸び'],['n1','人事幕僚',[3,5],'adm','離職の抑制と幹部の成長'],['n5','計画幕僚',[4,5],'adm','予算折衝と開発の遅延防止'],
   ['n8','監理幕僚',[3,5],'adm','諸経費の節減'],['pa','広報幕僚',[3,5],'cool','支持率'],['ja','法務・渉外幕僚',[3,5],'cool','警告の成功率と政治的ペナルティの軽減'],['av','航空幕僚',[4,5],'atk','戦闘機と発着艦']];
-const POTH=[['base:0','母港基地司令',[5,7],'adm','ドック整備の速さ'],['base:1','北方基地隊司令',[4,5],'cmd','北方海域の敵活動を抑える'],['base:2','中部基地隊司令',[4,5],'cmd','中部海域の敵活動を抑える'],['base:3','南嶺基地隊司令',[4,5],'cmd','南嶺海域の敵活動を抑える'],
+const POTH=[['base:0','母港基地司令',[5,7],'adm','ドック整備の速さ'],['base:1','雪見島基地隊司令',[4,5],'cmd','オホーツク海の敵活動を抑える'],['base:4','中之瀬島基地隊司令',[4,5],'cmd','東シナ海の敵活動を抑える'],['base:7','南嶺基地隊司令',[4,5],'cmd','南シナ海の敵活動を抑える'],
   ['sch:0','幹部学校長',[5,7],'adm','幹部の成長'],['sch:1','術科学校長',[5,6],'tec','曹士の技能の伸び'],['sch:2','教育隊司令',[4,5],'cmd','新隊員の技能']];
 const TRAIT=[['aggr','猛将','艦長：対艦ミサイルの突破力が上がるが、電子妨害はやや甘くなる'],['def','堅守','艦長：SAM命中率が上がる'],['subk','対潜の鬼','艦長・水雷長：対潜攻撃とソナーが強くなる'],['cool','沈着冷静','沈着の能力が3高いものとして扱う'],
   ['char','人望','艦長：艦の練度が伸びやすい。幕僚：士気が上がる'],['drill','鬼教官','艦長・副長：艦の練度の伸びが4割増し'],['tech','技術通','研究所長：研究が1割速い。機関長：整備度が落ちにくい'],['luck','強運','艦長：被弾を1割強の確率で免れる'],
@@ -187,15 +206,29 @@ const SUR='佐藤 鈴木 高橋 田中 伊藤 渡辺 山本 中村 小林 加藤
 const GIV='健一 誠 隆 浩 修 剛 学 豊 茂 博 明 勉 進 実 清 正 大輔 翔太 拓也 健太 雄一 直樹 和也 達也 哲也 智之 亮 悠 蓮 颯 陽介 慎吾 航 海斗 湊 洋平 由美 恵 裕子 智子 明美 真由美 陽子 久美子 香織 美穂 愛 彩 舞 美咲 千尋 遥 葵 凛 渚 汐里'.split(' ');
 // 曹士の職種 [キー, 名称, 効く能力値, 係数]
 const RATE=[['gun','射撃','samPk',.06],['tor','水雷','aswPk',.08],['rdr','電測','radM',.15],['com','通信','cec',.2],['nav','航海・運用','spd',.05],['eng','機関','rdDecay',.3],['dcn','応急','dc',.25],
-  ['ele','電子整備','rdRec',.3],['avm','航空機整備','deck',.4],['avo','航空運用','deck',.3],['sup','補給・給養','upk',.06],['med','衛生','morale',.5],['son','水測','sonar',.25],['sub','潜水艦','quiet',.2]];
+  ['ele','電子整備','rdRec',.3],['avm','航空機整備','deck',.4],['avo','航空運用','deck',.3],['sup','補給・給養','upk',.06],['med','衛生','morale',.5],['son','水測','sonar',.25],['sub','潜水艦','quiet',.2],['gnd','陸上','gndPow',.4]];
 const RQ={ship:{gun:.12,tor:.06,rdr:.1,com:.06,nav:.14,eng:.2,dcn:.06,ele:.08,sup:.1,med:.02,son:.06},cv:{gun:.05,rdr:.07,com:.05,nav:.1,eng:.16,dcn:.06,ele:.06,sup:.12,med:.03,avm:.2,avo:.1},sub:{sub:1}};
 // 課程 [キー, 名称, 月数, 費用, 伸びる能力, 階級の下限・上限]
 const COURSE=[['csc','指揮幕僚課程',12,6,{cmd:2,adm:2},[2,4]],['adv','高級課程',10,8,{cmd:2,cool:2,adm:1},[4,5]],['war','術科・戦術課程',6,3,{atk:2,def:2,asw:1},[0,3]],['eng','技術課程',6,3,{tec:3},[0,4]],['abr','海外留学',12,10,{cool:2,adm:2},[2,5]]];
 
 /* ---------- カスタムスタート ---------- */
 const DEFCFG={cmdr:'',nation:'瑞穂国',fleetName:'第1機動護衛群',y0:2030,years:5,eGrow:1,eAggr:1,incF:1,prePen:1,reinT:90,budget:7200,funds:700,tension:32,support:55,tr:65,techLv:0,labs:4,sandbox:false,
-  fleet:{cvl:1,ddg:2,dd:2,ffm:1,ss:2,opv:0,aoe:0,ftr:8,aew:1}};
+  fleet:{cvl:1,ddg:2,dd:2,ffm:1,ss:2,lst:1,opv:0,aoe:0,ftr:8,aew:1},gnd:{inf:6,amp:2,arm:0,art:1,aa:0,ssm:1}};
 const PRESET=[['標準',{}],['小艦隊の苦境',{fleet:{cvl:0,ddg:1,dd:2,ffm:2,ss:1,opv:0,aoe:0,ftr:0,aew:0},funds:400,budget:5600,tension:45}],
-  ['大艦隊',{fleet:{cvl:2,ddg:4,dd:4,ffm:3,ss:4,opv:2,aoe:1,ftr:20,aew:2},budget:12000,funds:1500,eGrow:1.5,labs:5}],
+  ['大艦隊',{fleet:{cvl:2,ddg:4,dd:4,ffm:3,ss:4,lst:2,opv:2,aoe:1,ftr:20,aew:2},gnd:{inf:6,amp:2,arm:1,art:2,aa:1,ssm:2},budget:12000,funds:1500,eGrow:1.5,labs:5}],
   ['長期戦略(30年)',{years:30,eGrow:.8,labs:5,budget:7800}],['技術先進国',{techLv:3,labs:6,budget:8200,fleet:{cvl:1,ddg:2,dd:2,ffm:1,ss:2,opv:0,aoe:0,ftr:8,aew:1}}],
   ['サンドボックス',{sandbox:true,funds:99999,years:30,labs:8,techLv:2}]];
+
+/* ---------- 陸上部隊と島の施設 ---------- */
+// atk=攻撃 def=防御 mv=移動力 rng=射程(マス)
+const GT={
+  amp:{n:'水陸機動連隊',s:'水',atk:6,def:5,mv:3,rng:1,cost:260,up:3,build:8,d:'上陸作戦の主力。浜に上がった直後から戦える'},
+  inf:{n:'普通科連隊',s:'歩',atk:5,def:6,mv:2,rng:1,cost:160,up:2,build:5,d:'守備の要。陣地に籠もると固い'},
+  arm:{n:'戦車中隊',s:'戦',atk:8,def:6,mv:4,rng:1,cost:300,up:4,build:8,d:'平地での突破力。市街と森では力が落ちる'},
+  art:{n:'特科隊',s:'砲',atk:7,def:2,mv:2,rng:3,cost:220,up:3,build:6,d:'3マス先まで砲撃でき、反撃を受けない。近づかれると脆い'},
+  aa:{n:'高射特科隊',s:'空',atk:2,def:3,mv:2,rng:1,cost:240,up:3,build:6,d:'敵の爆撃を妨げる。海戦では島のSAM陣地になる'},
+  ssm:{n:'地対艦ミサイル連隊',s:'艦',atk:1,def:2,mv:2,rng:1,cost:320,up:4,build:8,d:'海戦で島から対艦ミサイルを撃つ。地上戦では非力'}
+};
+const GTK=['amp','inf','arm','art','aa','ssm'];
+const FAC={hq:['司令部','司'],air:['飛行場','飛'],port:['港湾','港'],radar:['レーダーサイト','電'],depot:['補給処','庫'],town:['市街','街']};
+const FACD={hq:'ここを取った側が島を制する',air:'海域の敵活動を抑える',port:'この海域の艦は整備度が落ちにくい',radar:'海戦で島のレーダーが探知に加わる',depot:'守備隊の戦力が毎月回復する',town:'守りやすい'};

@@ -182,6 +182,32 @@ dl.kv2 dt{color:var(--mut);white-space:nowrap}dl.kv2 dd{margin:0}
 .zoom button.on{background:var(--cy);color:#06222a}
 .orow.w{flex-direction:column;align-items:stretch;gap:3px}
 .orow .o2{display:flex;justify-content:space-between;align-items:center;gap:8px}
+
+/* 作戦図・艦隊・陸上部隊・地上戦 */
+.tmap{width:100%;height:auto;display:block;margin-bottom:8px;touch-action:manipulation;border:1px solid var(--ln)}
+.tmap text{font-family:var(--go);pointer-events:none}
+.tmap .t1{fill:#dbe8f0;font-size:10.5px}.tmap .t2{fill:#86a0b3;font-size:9px}
+.tmap g{cursor:pointer}
+.zb{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:8px}
+.zb button{background:var(--pn2);border:1px solid var(--ln);border-radius:3px;padding:7px 1px;font-size:12px;color:var(--mut);white-space:nowrap;overflow:hidden}
+.zb button.on{background:#1d4e6b;color:#fff;border-color:#3b88ad}
+.zb button.dst{border-color:var(--am);color:#ffe0a6}
+.fb{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:#1d4e6b;border:1px solid var(--bl);font-size:12px;color:#fff;flex:0 0 auto;align-self:center}
+.facs{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin:6px 0}
+.facs div{background:var(--pn);padding:6px 8px;font-size:12.5px;border-left:2px solid var(--ln)}
+.facs div.dm{border-left-color:var(--rd)}
+.facs small{display:block;color:var(--mut);font-size:11.5px;line-height:1.4}
+.sbox{cursor:pointer}
+.zp{border-top:2px solid var(--cy)}
+#gb{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;background:#040d16}
+#gcv{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:manipulation}
+.gsp{flex:1}
+#gstat{font-size:12.5px;min-height:38px;line-height:1.5}
+#gact{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;min-height:38px}
+#gact button{background:var(--pn2);border:1px solid var(--ln);border-radius:3px;padding:8px 10px;font-size:13px;line-height:1.2}
+#gact button.am{border-color:var(--am);color:#ffe0a6}
+#gact button.g{border-color:var(--gr);color:#c6f5dd}
+#gact button:disabled{opacity:.35}
 </style>
 </head>
 <body>
@@ -195,7 +221,7 @@ dl.kv2 dt{color:var(--mut);white-space:nowrap}dl.kv2 dd{margin:0}
       <div><label>緊張度</label><span id="gt"></span><i class="bar"><b id="gtb" class="am"></b></i></div>
     </div>
     <nav class="tabs" id="tabs">
-      <button data-t="home">概況</button><button data-t="deploy">配置</button><button data-t="units">部隊</button><button data-t="shop">調達</button><button data-t="pers">人事</button><button data-t="rd">開発</button><button data-t="bud">予算</button>
+      <button data-t="home">概況</button><button data-t="deploy">作戦</button><button data-t="units">部隊</button><button data-t="shop">調達</button><button data-t="pers">人事</button><button data-t="rd">開発</button><button data-t="bud">予算</button>
     </nav>
   </header>
   <main id="view"></main>
@@ -219,6 +245,23 @@ dl.kv2 dt{color:var(--mut);white-space:nowrap}dl.kv2 dd{margin:0}
   <div class="blog" id="blog"></div>
 </div>
 
+<div id="gb" hidden>
+  <div class="btop">
+    <span class="bclk" id="gturn"></span>
+    <span class="roe" id="gside"></span>
+    <span class="gsp"></span>
+    <button class="btn sm pri" id="gend">ターン終了</button>
+    <button class="btn sm" id="gquit">撤退</button>
+  </div>
+  <div class="bmap" id="gmap">
+    <canvas id="gcv"></canvas>
+    <div class="ban" id="gban"></div>
+    <div class="bobj" id="gobj"></div>
+  </div>
+  <div class="bpan"><div id="gstat"></div><div id="gact"></div></div>
+  <div class="blog" id="glog"></div>
+</div>
+
 <div id="modal" hidden><div class="mbox" id="mbox"></div></div>
 <div id="toast"></div>
 
@@ -233,7 +276,20 @@ const nearest=(a,l)=>{let b=null,bd=1e9;for(const x of l){const d=dist(a,x);if(d
 const sg=n=>(n>0?'+':n<0?'−':'±')+Math.abs(n);
 
 /* ================= データ ================= */
-const SECT=['母港','北方海域','中部海域','南嶺海域'],ISL=['演習島','雪見島','中之瀬島','南嶺本島'];
+// 作戦海域。海の名は実在、国と島は架空。adj=つながる海域、isl=島、lane=シーレーン、enemy=敵の泊地
+const ZONES=[
+  {n:'本土近海',x:178,y:172,adj:[2,3,4],home:1,isl:'演習島'},
+  {n:'オホーツク海',x:214,y:56,adj:[2,3,8],isl:'雪見島'},
+  {n:'日本海',x:98,y:130,adj:[0,1,4,8],lane:1},
+  {n:'北西太平洋',x:272,y:152,adj:[0,1,5],lane:1},
+  {n:'東シナ海',x:90,y:240,adj:[0,2,5,6,9],isl:'中之瀬島'},
+  {n:'フィリピン海',x:242,y:270,adj:[3,4,6],lane:1},
+  {n:'バシー海峡',x:152,y:320,adj:[4,5,7],lane:1},
+  {n:'南シナ海',x:80,y:374,adj:[6,9],isl:'南嶺本島'},
+  {n:'敵 北方泊地',x:62,y:48,adj:[1,2],enemy:1},
+  {n:'敵 南方泊地',x:24,y:306,adj:[4,7],enemy:1}
+];
+const ISLZ=[1,4,7],ADJ=ZONES.map(z=>z.adj),SECT=ZONES.map(z=>z.n),ISL=ZONES.map(z=>z.isl||z.n);
 const LV=['停止','低','標準','高','最大'],LVM=[0,.5,1,1.6,2.4],COSTK=.7;
 // 自軍の艦種。距離はkm、速度はkm/分
 const PT={
@@ -249,14 +305,18 @@ const PT={
   ddgx:{n:'次世代ミサイル護衛艦',s:'DDGX',cat:'ship',hp:165,spd:.92,dA:520,dS:45,dM:52,so:18,sam:96,samR:180,samPk:.76,samRate:.16,ciws:.55,ecm:.32,asm:12,asmR:160,asmDmg:58,torp:6,torpR:20,crew:280,cost:2600,up:22,build:22,val:150,d:'SAM 96発。艦隊防空の決定版',lock:1},
   cv:{n:'多用途航空母艦',s:'CV',cat:'ship',hp:340,spd:.9,dA:280,dS:42,dM:32,so:8,sam:24,samR:15,samPk:.62,samRate:.3,ciws:.55,ecm:.28,aam:96,aasm:40,fcap:24,acap:2,crew:1200,cost:6800,up:60,build:36,val:260,d:'戦闘機24機を積む正規空母',lock:1},
   ssx:{n:'次世代潜水艦',s:'SSX',cat:'sub',hp:85,spd:.7,dA:0,dS:40,dM:0,so:65,asm:8,asmR:150,asmDmg:58,torp:18,torpR:30,quiet:.25,crew:65,cost:1000,up:9,build:16,val:85,d:'静粛性と兵装搭載量を高めた新世代艦',lock:1},
-  usv:{n:'無人ミサイル艇',s:'USV',cat:'ship',hp:35,spd:1,dA:60,dS:30,dM:15,so:0,sam:16,samR:50,samPk:.55,samRate:.3,ecm:.1,asm:8,asmR:150,asmDmg:55,crew:0,cost:260,up:2,build:6,val:30,d:'無人の弾庫。自前のセンサーは弱く、僚艦の探知に頼る',lock:1}
+  usv:{n:'無人ミサイル艇',s:'USV',cat:'ship',hp:35,spd:1,dA:60,dS:30,dM:15,so:0,sam:16,samR:50,samPk:.55,samRate:.3,ecm:.1,asm:8,asmR:150,asmDmg:55,crew:0,cost:260,up:2,build:6,val:30,d:'無人の弾庫。自前のセンサーは弱く、僚艦の探知に頼る',lock:1},
+  lst:{n:'輸送艦',s:'LST',cat:'ship',hp:120,spd:.7,dA:90,dS:35,dM:20,so:0,ciws:.4,ecm:.1,tcap:2,crew:120,cost:520,up:5,build:10,val:6,d:'陸上部隊を2個まで運び、上陸させる。戦闘力はない'},
+  lhd:{n:'強襲揚陸艦',s:'LHD',cat:'ship',hp:200,spd:.8,dA:200,dS:42,dM:28,so:0,sam:16,samR:12,samPk:.58,samRate:.35,ciws:.5,ecm:.2,tcap:4,crew:420,cost:1900,up:16,build:18,val:20,d:'陸上部隊を4個運び、1ターンに上陸できる数も増える',lock:1}
 };
-const SHIPK=['ffm','dd','ddg','ss','cvl','opv','aoe','ffm2','dd2','ddgx','ssx','usv','cv'];
+const FLEETK=['cv','cvl','ddg','dd','ffm','ss','lst','opv','aoe'];
+const SHIPK=['ffm','dd','ddg','ss','cvl','lst','opv','aoe','ffm2','dd2','ddgx','ssx','usv','lhd','cv'];
 const ET={
   eddg:{n:'ミサイル駆逐艦',s:'DDG',cat:'ship',hp:130,spd:.9,dA:350,dS:42,dM:35,so:12,sam:40,samR:100,samPk:.6,samRate:.3,ciws:.42,ecm:.2,asm:8,asmR:180,asmDmg:55,torp:4,torpR:12,val:90},
   ecg:{n:'巡洋艦',s:'CG',cat:'ship',hp:185,spd:.9,dA:420,dS:42,dM:42,so:14,sam:80,samR:150,samPk:.66,samRate:.22,ciws:.48,ecm:.26,asm:16,asmR:250,asmDmg:60,torp:4,torpR:12,val:150},
   eff:{n:'フリゲート',s:'FF',cat:'ship',hp:80,spd:.9,dA:180,dS:65,dM:30,so:20,sam:16,samR:40,samPk:.5,samRate:.35,ciws:.4,ecm:.15,asm:8,asmR:150,asmDmg:45,torp:4,torpR:12,val:50},
   elst:{n:'揚陸艦',s:'LST',cat:'ship',hp:130,spd:.65,dA:100,dS:35,dM:22,so:0,sam:8,samR:8,samPk:.4,samRate:.5,ciws:.3,ecm:.1,val:70},
+  eshore:{n:'地対艦ミサイル陣地',s:'SSM',cat:'ship',hp:90,spd:0,dA:200,dS:70,dM:25,so:0,ciws:.2,ecm:.1,asm:8,asmR:160,asmDmg:50,val:30},
   ecv:{n:'空母',s:'CV',cat:'ship',hp:260,spd:.85,dA:260,dS:42,dM:30,so:8,sam:16,samR:12,samPk:.5,samRate:.4,ciws:.45,ecm:.2,val:150,air:6},
   ess:{n:'潜水艦',s:'SS',cat:'sub',hp:60,spd:.5,dA:0,dS:30,dM:0,so:45,torp:8,torpR:18,val:50},
   ebmr:{n:'爆撃機編隊',s:'BMR',cat:'air',ac:2,spd:13,dA:120,dS:220,dM:60,asm:6,asmR:200,asmDmg:55,val:50},
@@ -277,14 +337,14 @@ const NAMES={
   dd:['あさなぎ','はやかぜ','ゆうなぎ','おきかぜ','しおかぜ','たちかぜ','ほかぜ','なみかぜ','はまかぜ','いそかぜ'],dd2:['あきづき','てるづき','すずつき','はつづき','にいづき','わかつき'],
   ffm:['ちくま','とね','きぬ','なか','すずや','いすず','あぶくま','じんつう'],ffm2:['あがの','のしろ','やはぎ','さかわ','おおよど','によど'],
   ss:['らいげい','そうげい','こくげい','ごうげい','せいげい','ちょうげい','じんげい','たいげい'],ssx:['せきりゅう','こうりゅう','しょうげい','ほうげい','きりゅう'],
-  opv:['はつしま','みやじま','くろしま','いえしま','としま','おおしま','こじま'],aoe:['かすみがうら','いんば','びわ','とうや','しんじ'],usv:[]
+  opv:['はつしま','みやじま','くろしま','いえしま','としま','おおしま','こじま'],aoe:['かすみがうら','いんば','びわ','とうや','しんじ'],usv:[],lst:['みうら','さつま','あつみ','もとぶ','ねむろ','おじか'],lhd:['あまくさ','いずはら','つしま']
 };
 const STK={sam:'sam',asm:'asm',torp:'torp',aam:'aam',aasm:'asm'},AMN={sam:'SAM',asm:'SSM',torp:'魚雷',aam:'AAM',aasm:'ASM'};
 const SCN={
   intrusion:{n:'領海侵入事案',d:i=>`国籍不明の艦艇群が${ISL[i.sector]}の領海へ向けて航行している。監視と警告で退去させよ。こちらから先に撃てば、政治的な代償はきわめて大きい。`,o:'50km以内に寄せて警告し、退去させる(敵が撃つまで武器は使えない)'},
   airraid:{n:'航空攻撃の兆候',d:i=>`${SECT[i.sector]}の我が部隊へ向かう爆撃機編隊を探知した。対艦ミサイル攻撃の公算が高い。敵が発射するまで手は出せない。艦隊防空を固めよ。`,o:'ミサイル攻撃を凌ぎ、艦隊を守る'},
-  landing:{n:'島嶼侵攻',d:i=>`揚陸艦を伴う侵攻部隊が${ISL[i.sector]}へ向かっている。防衛出動が発令された。上陸を阻止せよ。`,o:'揚陸艦を島に到達させない'},
-  retake:{n:'島嶼奪還作戦',d:i=>`${ISL[i.sector]}の周辺に居座る敵艦隊を排除し、島を取り戻す。`,o:'島の周辺から敵艦隊を排除する'}
+  landing:{n:'島嶼侵攻',d:i=>`揚陸艦を伴う侵攻部隊が${ISL[i.sector]}へ向かっている。防衛出動が発令された。上陸を阻止せよ。揚陸艦が島に達すると、守備隊との地上戦になる。`,o:'揚陸艦を島に到達させない'},
+  retake:{n:'制海戦闘',d:i=>`${ISL[i.sector]}の周辺に居座る敵艦隊を排除する。制海を得れば、準備攻撃と上陸作戦に進める。`,o:'島の周辺から敵艦隊を排除する'}
 };
 
 /* ---------- 能力値の一覧 [表示名, 書式] ---------- */
@@ -300,6 +360,7 @@ const STAT={
   cec:['共同交戦(他艦の探知で迎撃できる距離)','p'],reinT:['増援の到着時間','-m'],eIntel:['敵が掴む我が艦隊位置の誤差','%'],warn:['警告の成功率','p'],tension:['緊張度の低下(毎月)','n'],usv:['無人艇の能力','%'],threatSup:['海域の敵活動の抑制(毎月)','n'],garr:['上陸完了までの時間','m'],
   ammoC:['弾薬の価格','-%'],rdRec:['母港での整備度回復','%'],dockSpd:['ドック整備の速さ','%'],
   trGain:['練度の伸び','%'],recruit:['入隊者数','%'],attr:['離職率','-%'],morale:['士気(毎月)','n'],offGrow:['幹部の成長','%'],enlTr:['曹士の技能の伸び(毎月)','n'],recSk:['新隊員の技能','n'],cadet:['幹部候補生の採用数','%'],reserve:['予備自衛官の規模','%'],
+  gndPow:['陸上部隊の戦闘力','%'],
   rp:['研究ポイント','%'],support:['支持率(毎月)','n'],budg:['予算折衝の成功率','p'],projRisk:['開発の遅延リスク','-p'],cost:['諸経費','-%'],prePen:['政治的ペナルティ','-%'],q:['戦闘効率','p']
 };
 
@@ -342,6 +403,7 @@ const LABRP=[0,20,32,46,62,80];
 const PROJ=[
   {k:'opv',n:'哨戒艦',kind:'unit',req:{},c:[20,40,20],t:[2,4,2]},
   {k:'aoe',n:'補給艦',kind:'unit',req:{lg1:2},c:[30,60,30],t:[2,5,2]},
+  {k:'lhd',n:'強襲揚陸艦',kind:'unit',req:{hl:3,dk:2},c:[100,300,150],t:[4,10,5]},
   {k:'ffm2',n:'新型多機能護衛艦',kind:'unit',req:{vl:2,hl:2},c:[60,160,80],t:[3,8,4]},
   {k:'dd2',n:'新型汎用護衛艦',kind:'unit',req:{vl:3,hl:3,bs:3},c:[90,240,120],t:[4,10,5]},
   {k:'ddgx',n:'次世代ミサイル護衛艦',kind:'unit',req:{sk:5,rm:4,ra1:5,hl:4},c:[160,480,240],t:[5,14,6]},
@@ -410,7 +472,7 @@ const SUBL={we:'水雷長',op:'水測長'};
 const PHQ=[['cs','幕僚長',[5,7],'adm','全幕僚の働きを底上げする'],['n3','作戦主任幕僚',[4,5],'cmd','増援の到着と全艦の戦闘効率'],['n2','情報主任幕僚',[4,5],'tec','敵情の精度と衛星監視'],['n4','後方主任幕僚',[4,5],'adm','維持費の節減'],
   ['n6','通信電子幕僚',[3,5],'tec','共同交戦とミサイル探知'],['n7','訓練幕僚',[3,5],'cmd','練度の伸び'],['n1','人事幕僚',[3,5],'adm','離職の抑制と幹部の成長'],['n5','計画幕僚',[4,5],'adm','予算折衝と開発の遅延防止'],
   ['n8','監理幕僚',[3,5],'adm','諸経費の節減'],['pa','広報幕僚',[3,5],'cool','支持率'],['ja','法務・渉外幕僚',[3,5],'cool','警告の成功率と政治的ペナルティの軽減'],['av','航空幕僚',[4,5],'atk','戦闘機と発着艦']];
-const POTH=[['base:0','母港基地司令',[5,7],'adm','ドック整備の速さ'],['base:1','北方基地隊司令',[4,5],'cmd','北方海域の敵活動を抑える'],['base:2','中部基地隊司令',[4,5],'cmd','中部海域の敵活動を抑える'],['base:3','南嶺基地隊司令',[4,5],'cmd','南嶺海域の敵活動を抑える'],
+const POTH=[['base:0','母港基地司令',[5,7],'adm','ドック整備の速さ'],['base:1','雪見島基地隊司令',[4,5],'cmd','オホーツク海の敵活動を抑える'],['base:4','中之瀬島基地隊司令',[4,5],'cmd','東シナ海の敵活動を抑える'],['base:7','南嶺基地隊司令',[4,5],'cmd','南シナ海の敵活動を抑える'],
   ['sch:0','幹部学校長',[5,7],'adm','幹部の成長'],['sch:1','術科学校長',[5,6],'tec','曹士の技能の伸び'],['sch:2','教育隊司令',[4,5],'cmd','新隊員の技能']];
 const TRAIT=[['aggr','猛将','艦長：対艦ミサイルの突破力が上がるが、電子妨害はやや甘くなる'],['def','堅守','艦長：SAM命中率が上がる'],['subk','対潜の鬼','艦長・水雷長：対潜攻撃とソナーが強くなる'],['cool','沈着冷静','沈着の能力が3高いものとして扱う'],
   ['char','人望','艦長：艦の練度が伸びやすい。幕僚：士気が上がる'],['drill','鬼教官','艦長・副長：艦の練度の伸びが4割増し'],['tech','技術通','研究所長：研究が1割速い。機関長：整備度が落ちにくい'],['luck','強運','艦長：被弾を1割強の確率で免れる'],
@@ -421,25 +483,39 @@ const SUR='佐藤 鈴木 高橋 田中 伊藤 渡辺 山本 中村 小林 加藤
 const GIV='健一 誠 隆 浩 修 剛 学 豊 茂 博 明 勉 進 実 清 正 大輔 翔太 拓也 健太 雄一 直樹 和也 達也 哲也 智之 亮 悠 蓮 颯 陽介 慎吾 航 海斗 湊 洋平 由美 恵 裕子 智子 明美 真由美 陽子 久美子 香織 美穂 愛 彩 舞 美咲 千尋 遥 葵 凛 渚 汐里'.split(' ');
 // 曹士の職種 [キー, 名称, 効く能力値, 係数]
 const RATE=[['gun','射撃','samPk',.06],['tor','水雷','aswPk',.08],['rdr','電測','radM',.15],['com','通信','cec',.2],['nav','航海・運用','spd',.05],['eng','機関','rdDecay',.3],['dcn','応急','dc',.25],
-  ['ele','電子整備','rdRec',.3],['avm','航空機整備','deck',.4],['avo','航空運用','deck',.3],['sup','補給・給養','upk',.06],['med','衛生','morale',.5],['son','水測','sonar',.25],['sub','潜水艦','quiet',.2]];
+  ['ele','電子整備','rdRec',.3],['avm','航空機整備','deck',.4],['avo','航空運用','deck',.3],['sup','補給・給養','upk',.06],['med','衛生','morale',.5],['son','水測','sonar',.25],['sub','潜水艦','quiet',.2],['gnd','陸上','gndPow',.4]];
 const RQ={ship:{gun:.12,tor:.06,rdr:.1,com:.06,nav:.14,eng:.2,dcn:.06,ele:.08,sup:.1,med:.02,son:.06},cv:{gun:.05,rdr:.07,com:.05,nav:.1,eng:.16,dcn:.06,ele:.06,sup:.12,med:.03,avm:.2,avo:.1},sub:{sub:1}};
 // 課程 [キー, 名称, 月数, 費用, 伸びる能力, 階級の下限・上限]
 const COURSE=[['csc','指揮幕僚課程',12,6,{cmd:2,adm:2},[2,4]],['adv','高級課程',10,8,{cmd:2,cool:2,adm:1},[4,5]],['war','術科・戦術課程',6,3,{atk:2,def:2,asw:1},[0,3]],['eng','技術課程',6,3,{tec:3},[0,4]],['abr','海外留学',12,10,{cool:2,adm:2},[2,5]]];
 
 /* ---------- カスタムスタート ---------- */
 const DEFCFG={cmdr:'',nation:'瑞穂国',fleetName:'第1機動護衛群',y0:2030,years:5,eGrow:1,eAggr:1,incF:1,prePen:1,reinT:90,budget:7200,funds:700,tension:32,support:55,tr:65,techLv:0,labs:4,sandbox:false,
-  fleet:{cvl:1,ddg:2,dd:2,ffm:1,ss:2,opv:0,aoe:0,ftr:8,aew:1}};
+  fleet:{cvl:1,ddg:2,dd:2,ffm:1,ss:2,lst:1,opv:0,aoe:0,ftr:8,aew:1},gnd:{inf:6,amp:2,arm:0,art:1,aa:0,ssm:1}};
 const PRESET=[['標準',{}],['小艦隊の苦境',{fleet:{cvl:0,ddg:1,dd:2,ffm:2,ss:1,opv:0,aoe:0,ftr:0,aew:0},funds:400,budget:5600,tension:45}],
-  ['大艦隊',{fleet:{cvl:2,ddg:4,dd:4,ffm:3,ss:4,opv:2,aoe:1,ftr:20,aew:2},budget:12000,funds:1500,eGrow:1.5,labs:5}],
+  ['大艦隊',{fleet:{cvl:2,ddg:4,dd:4,ffm:3,ss:4,lst:2,opv:2,aoe:1,ftr:20,aew:2},gnd:{inf:6,amp:2,arm:1,art:2,aa:1,ssm:2},budget:12000,funds:1500,eGrow:1.5,labs:5}],
   ['長期戦略(30年)',{years:30,eGrow:.8,labs:5,budget:7800}],['技術先進国',{techLv:3,labs:6,budget:8200,fleet:{cvl:1,ddg:2,dd:2,ffm:1,ss:2,opv:0,aoe:0,ftr:8,aew:1}}],
   ['サンドボックス',{sandbox:true,funds:99999,years:30,labs:8,techLv:2}]];
 
+/* ---------- 陸上部隊と島の施設 ---------- */
+// atk=攻撃 def=防御 mv=移動力 rng=射程(マス)
+const GT={
+  amp:{n:'水陸機動連隊',s:'水',atk:6,def:5,mv:3,rng:1,cost:260,up:3,build:8,d:'上陸作戦の主力。浜に上がった直後から戦える'},
+  inf:{n:'普通科連隊',s:'歩',atk:5,def:6,mv:2,rng:1,cost:160,up:2,build:5,d:'守備の要。陣地に籠もると固い'},
+  arm:{n:'戦車中隊',s:'戦',atk:8,def:6,mv:4,rng:1,cost:300,up:4,build:8,d:'平地での突破力。市街と森では力が落ちる'},
+  art:{n:'特科隊',s:'砲',atk:7,def:2,mv:2,rng:3,cost:220,up:3,build:6,d:'3マス先まで砲撃でき、反撃を受けない。近づかれると脆い'},
+  aa:{n:'高射特科隊',s:'空',atk:2,def:3,mv:2,rng:1,cost:240,up:3,build:6,d:'敵の爆撃を妨げる。海戦では島のSAM陣地になる'},
+  ssm:{n:'地対艦ミサイル連隊',s:'艦',atk:1,def:2,mv:2,rng:1,cost:320,up:4,build:8,d:'海戦で島から対艦ミサイルを撃つ。地上戦では非力'}
+};
+const GTK=['amp','inf','arm','art','aa','ssm'];
+const FAC={hq:['司令部','司'],air:['飛行場','飛'],port:['港湾','港'],radar:['レーダーサイト','電'],depot:['補給処','庫'],town:['市街','街']};
+const FACD={hq:'ここを取った側が島を制する',air:'海域の敵活動を抑える',port:'この海域の艦は整備度が落ちにくい',radar:'海戦で島のレーダーが探知に加わる',depot:'守備隊の戦力が毎月回復する',town:'守りやすい'};
+
 /* ================= 状態 ================= */
 let S=null,_M=null,_PM=null;
-const ui={tab:'home',sub:{rd:'labs',bud:'alloc',pers:'sum'},of:{rank:-1,spec:-1,free:0,page:0},pg:'hq',dom:0,bcat:0};
-const SAVE='soukai_no_tate_v2';
-function save(){_M=null;_PM=null;try{localStorage.setItem(SAVE,JSON.stringify(S));}catch(e){}}
-function load(){try{const s=localStorage.getItem(SAVE);if(s){const o=JSON.parse(s);if(o&&o.v===2)return o;}}catch(e){}return null;}
+const ui={tab:'home',fsel:null,zsel:null,sub:{rd:'labs',bud:'alloc',pers:'sum',units:'ships'},of:{rank:-1,spec:-1,free:0,page:0},pg:'hq',dom:0,bcat:0};
+const SAVE='soukai_no_tate_v3';
+function save(){if(S&&S.fleets)syncSectors();_M=null;_PM=null;try{localStorage.setItem(SAVE,JSON.stringify(S));}catch(e){}}
+function load(){try{const s=localStorage.getItem(SAVE);if(s){const o=JSON.parse(s);if(o&&o.v===3)return o;}}catch(e){}return null;}
 const U=id=>S.units.find(u=>u.id===id);
 const lineById={};LINE.forEach(l=>{lineById[l[0]]=l;});
 const lvOf=id=>(S.res[id]||{}).lv||0;
@@ -480,9 +556,6 @@ function autoAssign(){_PM=null;const pm=postMap(),posts=allPosts().filter(p=>!pm
   _PM=null;_M=null;return n;}
 function crewK(){let v=0;for(const l of LINE)if(l[3]==='crewReq')v+=l[4]*lvOf(l[0]);return 1-clamp(v,0,.4);}
 function airCount(){return S.units.reduce((a,u)=>a+(u.ftr||0)+(u.aew||0),0)+S.pool.ftr+S.pool.aew;}
-function reqRates(){const r={},k=crewK();for(const x of RATE)r[x[0]]=0;
-  for(const u of S.units){const t=PT[u.type],q=t.cat==='sub'?RQ.sub:t.fcap?RQ.cv:RQ.ship;for(const a in q)r[a]+=t.crew*k*q[a];const ac=(u.ftr||0)+(u.aew||0);r.avm+=ac*9;r.avo+=ac*3;}
-  r.avm+=(S.pool.ftr+S.pool.aew)*5;for(const a in r)r[a]=Math.round(r[a]+(a==='sup'||a==='med'||a==='com'?40:12));return r;}
 function reqPers(){const r=reqRates();let s=0;for(const k in r)s+=r[k];return s;}
 function enlTotal(){let s=0;for(const k in S.enl)s+=S.enl[k].n;return s;}
 function fill(){return enlTotal()/Math.max(1,reqPers());}
@@ -507,7 +580,6 @@ function unitQ(u){const M=mods(),rd=u.rd<30?.8:u.rd<50?.9:1;if(!PT[u.type].crew)
   return clamp((0.6+0.4*u.tr/100)*rd*(.9+.1*S.pers.morale/100)*(.7+.3*clamp(fill(),.5,1))+M.q,.3,1.15);}
 const ftrCap=u=>PT[u.type].fcap+(u.mods.includes('k_deck')?4:0),aewCap=u=>PT[u.type].acap;
 function cap(u){const t=PT[u.type],M=mods();return{sam:Math.round((t.sam||0)*(1+M.samCap)*(u.mods.includes('k_vls')?1.4:1)),asm:Math.round((t.asm||0)*(1+M.asmCap)),torp:t.torp||0,aam:t.aam||0,aasm:t.aasm||0};}
-function upkeep(){return S.units.reduce((a,u)=>a+PT[u.type].up*(1+u.mods.length*.03)+(u.mode==='drill'?8:0)+(u.ftr||0)*2+(u.aew||0)*3,0)*(1-clamp(mods().upk,-.3,.4))+S.pool.ftr+S.pool.aew;}
 function scaleK(sc){return sc==='p'?reqPers()/2300:sc==='u'?Math.max(.4,S.units.reduce((a,u)=>a+PT[u.type].up,0)/110):sc==='a'?Math.max(.3,airCount()/9):1;}
 function itemCost(i,L){const b=BITEM[i];return b[2]*COSTK*LVM[L==null?S.bud[i]:L]*scaleK(b[3])*(1-clamp(mods().cost,-.2,.3));}
 const labCost=l=>8*l.lv*LVM[l.fund];
@@ -516,7 +588,6 @@ function catCost(c){let s=0;BITEM.forEach((b,i)=>{if(b[1]===c)s+=itemCost(i);});
 const debtPay=()=>S.debts.reduce((a,d)=>a+d.per,0);
 function monthCost(){let s=upkeep()+debtPay();for(let c=0;c<BCAT.length;c++)s+=catCost(c);return s;}
 const income=()=>Math.round(S.budget/12);
-function reserve(){return S.units.filter(u=>u.sector===0&&u.mode==='normal'&&PT[u.type].val>=10);}
 function fleetPower(us){return (us||S.units).filter(u=>u.mode==='normal'||u.mode==='drill').reduce((a,u)=>a+PT[u.type].val*unitQ(u)*(u.hp/100)+(u.ftr||0)*8+(u.aew||0)*12,0)*(1+totalLv()/500);}
 function enemyPower(){return Math.round((420+Math.min(S.month,120)*10+Math.max(0,S.month-120)*4)*(.5+.5*S.cfg.eGrow));}
 const eTech=()=>S.month/60*S.cfg.eGrow;
@@ -525,35 +596,10 @@ function thr(i){const s=S.sectors[i],v=s.est==null?s.threat:s.est;return v<30?{t
 function price(k){const M=mods(),t=PT[k],s=SHOPX[k];return Math.round(t?t.cost*(1-clamp(M.buildC,0,.4)):s.cost*(s.kind==='ammo'?1-clamp(M.ammoC,-.2,.5):1));}
 function buildMo(k){const t=PT[k],s=SHOPX[k];return Math.max(1,Math.round((t?t.build:s.build)*(t?1-clamp(mods().buildT,0,.45):1)));}
 
-function addUnit(type,o){o=o||{};const free=(NAMES[type]||[]).filter(n=>!S.used.includes(n)),name=free.length?free[0]:PT[type].s+'-'+String(++S.seq).padStart(2,'0');S.used.push(name);
-  const u={id:++S.uid,type,name,sector:0,mode:'normal',tr:o.tr==null?RI(58,72):o.tr,rd:o.rd==null?RI(80,92):o.rd,hp:100,ftr:0,aew:0,mods:[],refit:null,load:{}};
-  S.units.push(u);_M=null;const c=cap(u);for(const k in c)u.load[k]=c[k];return u;}
-function newGame(c){c=c||{};const C=Object.assign({},DEFCFG,c);C.fleet=Object.assign({},DEFCFG.fleet,c.fleet||{});_M=null;_PM=null;
-  S={v:2,cfg:C,month:0,fy:0,funds:C.funds,budget:C.budget,support:C.support,tension:C.tension,bud:BITEM.map(()=>2),units:[],used:[],seq:0,pool:{ftr:0,aew:0},
-    stock:{sam:48,asm:24,aam:32,torp:16},orders:[],debts:[],ledger:[],ext:0,pers:{morale:62,pipe:[],auto:true,pol:'auto',rep:[],sp:0,resv:0,resvEnd:0},off:[],enl:{},
-    res:{},labs:[],projs:{},flags:{},unlock:{},kits:{},sectors:[null,{threat:30,held:true,est:30},{threat:38,held:true,est:38},{threat:52,held:true,est:52}],
-    log:[],stats:{wins:0,loss:0,eSunk:0,pSunk:0,blood0:0},uid:0,oid:0,lid:0,pending:null,fore:null,foreK:false,over:null,restM:-1,fyAsk:0,fySupp:0,lastLoss:-99};
-  for(const r of RATE)S.enl[r[0]]={n:0,sk:60};
-  if(C.techLv)for(const l of LINE){const v=clamp(Math.round(C.techLv+R(-1.5,1.2)),0,10);if(v)S.res[l[0]]={lv:v,prog:0};}
-  const f=C.fleet;let ftr=f.ftr||0,aew=f.aew||0;
-  for(const k of['cv','cvl','ddg','dd','ffm','ss','opv','aoe'])for(let i=0;i<(f[k]||0);i++){const u=addUnit(k,{tr:clamp(C.tr+RI(-7,7),20,95)});if(PT[k].lock){S.unlock[k]=1;S.flags[k]=1;}
-    if(PT[k].fcap){u.ftr=Math.min(ftr,PT[k].fcap);ftr-=u.ftr;u.aew=Math.min(aew,PT[k].acap);aew-=u.aew;}}
-  S.pool.ftr=ftr;S.pool.aew=aew;const sc=Math.max(.5,S.units.length/8);for(const k in S.stock)S.stock[k]=Math.round(S.stock[k]*sc);
-  for(let i=0;i<clamp(C.labs,1,8);i++)S.labs.push({id:++S.lid,t:i,lv:1,fund:2,cur:null,auto:true,foc:-1});
-  const rq=reqRates();for(const r of RATE)S.enl[r[0]]={n:Math.round(rq[r[0]]*R(.93,.99)),sk:RI(55,68)};
-  const N=Math.round(allPosts().length*1.35)+10;RFRAC.forEach((fr,r)=>{for(let i=0;i<Math.max(1,Math.round(N*fr));i++)genOff(r);});
-  autoAssign();_M=null;for(const u of S.units){const cp=cap(u);for(const k in cp)u.load[k]=cp[k];}
-  hlog(`${C.fleetName}司令に着任。任期は${C.years}年`,'b');}
-
 /* ================= 月の進行 ================= */
 function reload(){const order=[...S.units].sort((a,b)=>a.sector-b.sector);let short=false;
   for(const u of order){const c=cap(u);for(const k in c){const need=c[k]-(u.load[k]||0);if(need>0){const give=Math.min(need,S.cfg.sandbox?need:S.stock[STK[k]]);u.load[k]=(u.load[k]||0)+give;if(!S.cfg.sandbox)S.stock[STK[k]]-=give;if(give<need)short=true;}else if(need<0)u.load[k]=c[k];}}
   return short;}
-function deliver(o,rep){
-  if(o.kind==='unit'){const u=addUnit(o.k);rep.push([`就役：${PT[o.k].n}「${u.name}」(母港)`,'g']);}
-  else if(o.kind==='air'){S.pool[o.k]+=o.q;rep.push([`納入：${o.n}(予備機へ)`,'g']);}
-  else if(o.kind==='ammo'){S.stock[o.k]+=o.q;rep.push([`納入：${o.n}`,'']);}
-  else if(o.kind==='lab'){S.labs.push({id:++S.lid,t:o.t,lv:1,fund:2,cur:null,auto:true,foc:-1});rep.push([`新設：${LABT[o.t].n}`,'g']);}}
 function distribute(n,due){if(n<=0)return;const rq=reqRates(),P=S.pers,pend={};for(const p of P.pipe)pend[p.r]=(pend[p.r]||0)+p.n;
   let w=RATE.map(r=>Math.max(0,(rq[r[0]]||0)-S.enl[r[0]].n-(pend[r[0]]||0))),sum=w.reduce((a,b)=>a+b,0);
   if(sum<=0){w=RATE.map(r=>rq[r[0]]||0);sum=w.reduce((a,b)=>a+b,0)||1;}
@@ -601,56 +647,12 @@ function monthlyRD(rep,M){const done=[];
     pj.ph++;pj.rolled=false;
     if(pj.ph>=3){delete S.projs[k];S.flags[k]=1;if(p.kind==='unit')S.unlock[k]=1;if(p.kind==='kit')S.kits[k]=1;_M=null;rep.push([`開発完了：${p.n}${p.kind==='unit'?'(調達できる)':p.kind==='kit'?'(各艦に改修できる)':'(全軍に配備)'}`,'g']);}
     else{pj.left=p.t[pj.ph];if(canPay(p.c[pj.ph]))spend(p.c[pj.ph]);else pj.wait=true;}}}
-function nextMonth(){
-  if(S.over||mq.length)return;if(S.pending){showIncident();return;}
-  _M=null;cleanPosts();if(S.pers.auto)autoAssign();
-  S.month++;const rep=[],C=S.cfg;let M=mods();
-  const inc=income(),up=upkeep(),cc=BCAT.map((_,c)=>catCost(c)),debt=debtPay(),tot=up+cc.reduce((a,b)=>a+b,0)+debt;
-  if(!C.sandbox)S.funds+=inc-tot;S.debts=S.debts.filter(d=>--d.left>0);
-  S.ledger.push({m:S.month,inc,up:Math.round(up),cc:cc.map(Math.round),debt:Math.round(debt),ext:Math.round(S.ext||0),f:Math.round(S.funds)});S.ext=0;if(S.ledger.length>60)S.ledger.shift();
-  // 部隊
-  const aoeIn={},pm=postMap();for(const u of S.units)if(PT[u.type].sup&&u.sector>0&&u.mode==='normal')aoeIn[u.sector]=1;
-  for(const u of S.units){const xo=pm[u.id+':xo'],co=pm[u.id+':co'],en=pm[u.id+':en'],crew=PT[u.type].crew>0,ht=(o,t)=>!!o&&o.tr.includes(t);
-    const tk=(1+M.trGain)*(crew?1+(xo?(xo.adm-10)*.03:-.15):1)*(ht(co,'drill')||ht(xo,'drill')?1.4:1)*(ht(co,'char')?1.15:1);
-    const dk=(1-clamp(M.rdDecay,-.5,.7))*(crew?(en?1-(en.tec-10)*.02-(ht(en,'tech')?.1:0):1.15):1)*(aoeIn[u.sector]?.5:1);
-    if(u.mode==='dock'){const s=1+clamp(M.dockSpd,-.5,1.5);u.rd=Math.min(100,u.rd+35*s);u.hp=Math.min(100,u.hp+34*s);u.tr=Math.max(0,u.tr-1);
-      if(u.refit&&--u.refit.left<=0){u.mods.push(u.refit.k);rep.push([`${u.name}：${KIT[u.refit.k].n}の改修を完了`,'g']);u.refit=null;_M=null;}
-      if(!u.refit&&u.rd>=100&&u.hp>=100){u.mode='normal';rep.push([`${u.name}：ドックを出た`,'g']);}}
-    else if(u.mode==='drill'){u.tr=Math.min(100,u.tr+4*Math.max(.3,tk));u.rd=Math.max(0,u.rd-4);}
-    else if(u.sector>0){u.rd=Math.max(0,u.rd-5*Math.max(.2,dk));u.tr=Math.min(100,u.tr+.5);}
-    else{u.rd=Math.min(100,u.rd+7*Math.max(.2,1+M.rdRec));u.tr=clamp(u.tr+.6*tk-.4,0,100);}}
-  monthlyPers(rep,M);monthlyRD(rep,M);M=mods();
-  S.orders=S.orders.filter(o=>{if(S.month<o.due)return true;deliver(o,rep);return false;});
-  if(reload())rep.push(['弾薬の在庫が足りず、定数割れの艦がある','am']);
-  // 情勢
-  _M=null;M=mods();const det=fleetPower()/enemyPower();let unc=0,occ=0;const pm2=postMap();
-  for(let i=1;i<=3;i++){const s=S.sectors[i];if(!s.held){occ++;continue;}const here=S.units.filter(u=>u.sector===i&&u.mode==='normal'),pw=fleetPower(here),bc=pm2['base:'+i];
-    s.threat=clamp(s.threat+R(-7,7)+(S.tension-40)*.06+(pw>=150?-3:here.length?-1:3)+(i===3?.8:0)-M.threatSup-(bc?(bc.cmd-10)*.08:-.3),5,100);if(s.threat>50&&!here.length)unc++;
-    s.est=clamp(s.threat+R(-12,12)*(1-clamp(M.intel,0,.9)),0,100);}
-  S.calm=S.tension<=5?(S.calm||0)+1:0;S.tension=clamp(S.tension+.8*C.eAggr+(Math.min(60,28*C.eAggr)-S.tension)*.03+R(-1.5,1.5)-clamp((det-1)*4,-3,2.5)+unc*.8-M.tension,0,100);
-  S.support=clamp(S.support+(50-S.support)*.04-occ-(S.funds<-300?2:S.funds<0?1:0)+M.support,0,100);
-  let fis=null;if(S.month%12===0)fis=fiscal();
-  for(const r of rep)hlog(r[0],r[1]);
-  checkOver();const offer=!S.over&&!S.peaceAsked&&(S.calm||0)>=12&&S.month>=24;if(offer){S.peaceAsked=true;S.support=clamp(S.support+5,0,100);hlog('両国が海上連絡メカニズムの運用に合意','g');}
-  if(!S.over){S.pending=S.fore&&S.sectors[S.fore.sector].held?mkIncident(S.fore.sector,S.fore.type):null;S.fore=rollIncident();
-    S.foreK=!!S.fore&&Math.random()<clamp(.15+M.foresee+M.intel*.2,0,.9);if(S.fore&&S.foreK)hlog(`情報：来月、${SECT[S.fore.sector]}で${SCN[S.fore.type].n}の兆候`,'am');}
-  save();render();
-  if(S.over){mq.length=0;$('#modal').hidden=true;showOver();return;}
-  if(offer)showPeace();
-  if(fis)showFiscal(fis);
-  if(S.pending)showIncident();else if(rep.length&&!fis)toast(rep[0][0]+(rep.length>1?`　ほか${rep.length-1}件`:''));}
 function fiscal(){const C=S.cfg,old=S.budget;S.fy++;
   let b=C.budget*Math.pow(1.015,S.fy)*(1+(S.tension-35)*.004+(S.support-50)*.004+Math.min(.15,S.stats.wins*.004));
   const cut=C.sandbox?0:Math.round(Math.max(0,S.funds-old*.25)*.3);b=Math.max(1200,Math.round((b-cut)/10)*10);S.budget=b;S.fyAsk=0;S.fySupp=0;
   const pr=annualPers();hlog(`新年度予算 ${b.toLocaleString()}億円`,'b');return{old,cut,pr};}
 function askChance(a){return clamp(.78-a*3+(S.support-50)*.008+(S.tension-40)*.006+mods().budg,.05,.95);}
 function suppChance(){return clamp(.35+(S.tension-50)*.01+mods().budg+(S.support-50)*.005+(S.month-S.lastLoss<6?.15:0),.05,.9);}
-function checkOver(){if(S.over)return;const occ=[1,2,3].filter(i=>!S.sectors[i].held).length,y=S.cfg.years;
-  if(S.support<=0)S.over={k:'fired',t:'更迭',d:'国民と政府の信任を失い、司令の任を解かれた。'};
-  else if(occ>=3)S.over={k:'lost',t:'敗北',d:'すべての島嶼が占領された。'};
-  else if(!S.units.length)S.over={k:'lost',t:'艦隊壊滅',d:'指揮すべき艦が残っていない。'};
-  else if(S.month>=y*12)S.over={k:'end',t:'任期満了',d:`${y}年の任期を全うした。`};
-}
 function genForce(type,L,eT){const r=x=>Math.max(0,Math.round(x));let f;
   if(type==='intrusion')f={eff:Math.max(1,r(.8+L*.6)),eddg:r(L*.45-.3),ess:Math.random()<.25*L?1:0};
   else if(type==='airraid')f={ebmr:Math.max(1,r(.6+L*.8)),eftr:r(L*.6-.3),eff:1,eddg:r(L*.4-.3)};
@@ -665,44 +667,10 @@ function mkIncident(i,type){const C=S.cfg,T=clamp(S.tension*C.eAggr,0,100),L=1+M
   if(!type){const r=Math.random();type=T<40?(r<.8?'intrusion':'airraid'):T<65?(r<.45?'intrusion':r<.85?'airraid':'landing'):(r<.2?'intrusion':r<.6?'airraid':'landing');
     if(S.stats.wins+S.stats.loss===0)type='intrusion';}
   const force=genForce(type,L,eT);return{sector:i,type,L,eT,force,intel:intelStr(force)};}
-function rollIncident(){if(S.month<1)return null;
-  for(const i of [1,2,3].sort(()=>Math.random()-.5)){const s=S.sectors[i];if(!s.held)continue;if(Math.random()<clamp((.04+(s.threat/100)*(.15+S.tension/250))*S.cfg.incF,0,.75))return mkIncident(i);}
-  return null;}
 function sink(su){S.units=S.units.filter(u=>u!==su);const t=PT[su.type],lost=t.crew*R(.3,.7),q=t.cat==='sub'?RQ.sub:t.fcap?RQ.cv:RQ.ship;
   for(const k in q)S.enl[k].n=Math.max(0,S.enl[k].n-Math.round(lost*q[k]));S.stats.pSunk++;S.lastLoss=S.month;S.pers.morale=Math.max(5,S.pers.morale-5);
   for(const o of S.off.slice())if(o.post&&o.post.startsWith(su.id+':')){if(Math.random()<.35){S.off=S.off.filter(x=>x!==o);if(o.post.endsWith(':co'))hlog(`${o.name}${RANK[o.rank]}、艦と運命を共にする`,'r');}else{o.post=null;o.sat-=10;}}
   _PM=null;_M=null;}
-function settle(o,inc){let dS=0,dT=0;const sec=inc.sector>0?S.sectors[inc.sector]:null,L=[],pp=S.cfg.prePen*(1-clamp(mods().prePen,-.3,.6));
-  dS-=o.pS*4;
-  if(o.res==='win'){S.stats.wins++;
-    if(o.bloodless){dS+=6;dT-=4;S.stats.blood0++;L.push('一発も撃たずに事態を収めた。国内外の評価は高い');}
-    else{dS+=4+Math.min(4,o.eS);dT+=o.eS*1.5-3;}
-    if(o.pursuitK){dT+=o.pursuitK*3;dS-=o.pursuitK;L.push('撤退中の敵への追撃が、緊張をさらに高めた');}
-    if(inc.type==='retake'&&sec){sec.held=true;sec.threat=35;dS+=8;L.push(`${ISL[inc.sector]}を奪還した`);}
-    else if(sec)sec.threat=Math.max(5,sec.threat-18);
-  }else if(o.res==='draw'){dS-=4;dT+=1;if(sec)sec.threat=Math.min(100,sec.threat+8);L.push('敵は領海内で示威を続けたのち引き揚げた。侵入を許したとの批判が出た');
-  }else{S.stats.loss++;dS-=8;dT+=4;
-    if(sec&&inc.type!=='retake'&&(o.occupied||inc.type==='landing')){sec.held=false;dS-=6;L.push(`${ISL[inc.sector]}が占領された`);}
-    else if(sec&&inc.type!=='retake'){sec.threat=Math.min(100,sec.threat+10);L.push('敵の既成事実化が一歩進んだ');}}
-  if(o.pre){dS-=15*pp;dT+=15*pp;L.push('先制攻撃に国内外から非難が集中した');}
-  S.stats.eSunk+=o.eS;dS=Math.round(dS);dT=Math.round(dT);
-  S.support=clamp(S.support+dS,0,100);S.tension=clamp(S.tension+dT,0,100);return{dS,dT,L};}
-function afterInc(html){S.pending=null;checkOver();save();render();modal(html+`<div class="mbtn"><button class="btn pri" data-m="ok">確認</button></div>`,{ok:()=>{closeModal();if(S.over)showOver();}});}
-function ignoreInc(inc){const sec=S.sectors[inc.sector];let dS=-6,dT=2;const L=[];
-  if(inc.type==='landing'){sec.held=false;dS-=10;dT=6;L.push(`${ISL[inc.sector]}が抵抗を受けずに占領された`);}else{sec.threat=clamp(sec.threat+12,0,100);L.push('敵の既成事実化が進んだ');}
-  S.support=clamp(S.support+dS,0,100);S.tension=clamp(S.tension+dT,0,100);S.stats.loss++;hlog(`${SECT[inc.sector]}：${SCN[inc.type].n}に対処せず`,'r');
-  afterInc(`<div class="alert r">静観</div><h2>${SECT[inc.sector]}</h2>${L.map(l=>`<p>${l}。</p>`).join('')}<div class="pol">支持率 ${sg(dS)}　緊張度 ${sg(dT)}</div>`);}
-function autoResolve(inc){
-  const loc=S.units.filter(u=>u.sector===inc.sector&&u.mode==='normal'),rn=reserve(),us=loc.concat(rn);let ep=0;for(const k in inc.force)ep+=ET[k].val*inc.force[k]*(1+.06*(inc.eT||0));
-  const r=(fleetPower(loc)+fleetPower(rn)*.5)/Math.max(1,ep),win=Math.random()<clamp(.15+.4*r,.05,.93),hot=inc.type!=='intrusion'||Math.random()<S.tension/120;
-  let pS=0,eS=0;const lost=[];
-  if(hot){for(const u of us){u.hp-=R(0,(win?35:80)/Math.max(.5,r))*(rn.includes(u)?.4:1);for(const k in u.load)u.load[k]=Math.round(u.load[k]*R(.3,.8));if(u.ftr)u.ftr=Math.max(0,u.ftr-RI(0,win?1:3));
-      if(u.hp<=0){sink(u);pS++;lost.push(u.name);}else{u.hp=Math.round(u.hp);u.tr=Math.min(100,u.tr+3);u.rd=Math.max(0,u.rd-6);}}
-    eS=win?RI(1,Math.max(1,Math.round(ep/80))):RI(0,1);}
-  const o={res:win?'win':'lose',bloodless:win&&!hot,eS,pS,occupied:!win&&inc.type==='landing'},pol=settle(o,inc);
-  hlog(`${SECT[inc.sector]}：${SCN[inc.type].n} ― ${win?'現場部隊が対処に成功':'現場部隊は対処に失敗'}`,win?'g':'r');
-  afterInc(`<div class="alert ${win?'g':'r'}">${win?'対処成功':'対処失敗'}</div><h2>${SECT[inc.sector]}　${SCN[inc.type].n}</h2><dl class="kv2"><dt>敵の損害</dt><dd>撃沈 ${eS}隻</dd><dt>我が損害</dt><dd>${pS?`沈没 ${pS}隻(${lost.join('、')})`:hot?'沈没なし。損傷艦は「部隊」で確認':'なし'}</dd></dl>${pol.L.map(l=>`<p class="sm">${l}。</p>`).join('')}<div class="pol">支持率 ${sg(pol.dS)}　緊張度 ${sg(pol.dT)}</div>`);}
-
 /* ================= 司令部の画面 ================= */
 const bar=(v,c)=>`<i class="bar"><b class="${c||''}" style="width:${clamp(v,0,100)}%"></b></i>`;
 const seg=(vals,cur,fn)=>`<div class="seg">${vals.map(v=>`<button class="${v[0]===cur?'on':''}" onclick="${fn(v[0])}">${v[1]}</button>`).join('')}</div>`;
@@ -710,59 +678,7 @@ const subtabs=(tab,list)=>`<div class="sub">${list.map(x=>`<button class="${ui.s
 const oname=o=>o?`${o.name} ${RANK[o.rank]}`:'<span class="am">欠員</span>';
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const PD={co:'艦の戦闘効率、電子戦、警告',xo:'練度の伸び',we:'SAM命中率と対艦ミサイルの突破力',op:'探知距離と反応速度',en:'速力、整備度、被害の軽減',as:'対潜攻撃とソナー',ai:'発着艦と戦闘機'};
-function alerts(){const a=[],pm=postMap();
-  if(S.fore&&S.foreK)a.push([`情報：来月、${SECT[S.fore.sector]}で${SCN[S.fore.type].n}の兆候がある`,'am']);
-  if(!S.units.some(u=>u.sector>0))a.push(['展開中の部隊がない。事案には母港からの増援だけで当たることになる','am']);
-  for(let i=1;i<=3;i++){const s=S.sectors[i],here=S.units.some(u=>u.sector===i);if(!s.held)a.push([`${ISL[i]}が占領下にある。「概況」から奪還作戦を発動できる`,'r']);else if(thr(i).v>=55&&!here)a.push([`${SECT[i]}：敵の活動が活発だが、展開部隊がない`,'am']);}
-  const low=S.units.filter(u=>u.rd<40&&u.mode!=='dock');if(low.length)a.push([`整備度が低い：${low.map(u=>u.name).join('、')}`,'am']);
-  const dm=S.units.filter(u=>u.hp<70&&u.mode!=='dock');if(dm.length)a.push([`損傷艦：${dm.map(u=>u.name).join('、')}(ドック整備で修理)`,'r']);
-  if(S.units.some(u=>{const c=cap(u);return Object.keys(c).some(k=>(u.load[k]||0)<c[k]);}))a.push(['弾薬が定数に足りない艦がある。「調達」で補充を','am']);
-  if(fill()<.9)a.push([`曹士の充足率 ${Math.round(fill()*100)}%`,'am']);
-  const vac=allPosts().filter(p=>!pm[p.id]).length;if(vac)a.push([`欠員のポストが ${vac} ある(人事の「補職」)`,'am']);
-  if(S.labs.some(l=>!l.cur&&!l.auto))a.push(['課題が決まっていない研究所がある','am']);
-  if(Object.keys(S.projs).some(k=>S.projs[k].wait))a.push(['資金不足で止まっている開発計画がある','am']);
-  if(S.funds<0)a.push(['資金が赤字。続くと支持率が下がる','r']);
-  return a;}
-function mapSVG(){const pos=[null,[176,34],[204,92],[164,150]];
-  let s=`<svg viewBox="0 0 320 180" class="smap" role="img" aria-label="作戦海域の略図"><rect width="320" height="180" fill="#081a2a"/><path d="M0,58 Q62,40 92,84 T72,180 L0,180Z" fill="#2c4a37" stroke="#5c8c6b"/><text x="12" y="128" class="t1">本土</text><text x="12" y="143" class="t2">母港 ${S.units.filter(u=>u.sector===0).length}隻</text>`;
-  for(let i=1;i<=3;i++){const sec=S.sectors[i],x=pos[i][0],y=pos[i][1],lv=thr(i),n=S.units.filter(u=>u.sector===i).length,col=!sec.held||lv.c==='r'?'#ff6b5e':lv.c==='am'?'#f2b54a':'#63dba0';
-    s+=`<circle cx="${x}" cy="${y}" r="26" fill="${col}" fill-opacity=".1" stroke="${col}" stroke-opacity=".6" stroke-dasharray="3 3"/><circle cx="${x}" cy="${y}" r="4" fill="${sec.held?'#5c8c6b':'#a8584e'}"/><text x="${x+34}" y="${y-3}" class="t1">${SECT[i]}</text><text x="${x+34}" y="${y+11}" class="t2">${sec.held?'敵活動 '+lv.t:'占領下'}／${n}隻</text>`;}
-  return s+'</svg>';}
 const VIEW={};
-VIEW.home=()=>{const inc=income(),cost=Math.round(monthCost()),al=alerts(),C=S.cfg;
-  let h=`<section class="sec"><h2>海域情勢</h2><div class="sgrid">`;
-  for(let i=1;i<=3;i++){const s=S.sectors[i],lv=thr(i),us=S.units.filter(u=>u.sector===i);
-    h+=`<div class="sbox ${s.held?'':'occ'}"><b>${SECT[i]}</b><span class="${s.held?lv.c:'r'}">${s.held?'敵活動 '+lv.t:ISL[i]+' 占領下'}</span>${bar(s.held?lv.v:100,s.held?lv.c:'r')}<small>${us.length?us.map(u=>u.name).join('・'):'展開なし'}</small>${!s.held?`<button class="btn sm warn" onclick="A.retake(${i})">奪還作戦を発動</button>`:''}</div>`;}
-  h+=`</div></section>`;
-  if(al.length)h+=`<section class="sec"><h2>要対処</h2>${al.map(a=>`<p class="al ${a[1]}">${a[0]}</p>`).join('')}</section>`;
-  h+=`<section class="sec"><h2>今月の見通し</h2><dl class="kv"><dt>防衛予算(月割)</dt><dd class="g">+${inc} 億円</dd><dt>維持費と各種経費</dt><dd>−${cost} 億円</dd><dt>差引</dt><dd class="${inc-cost<0?'r':'g'}">${sg(inc-cost)} 億円</dd><dt>抑止力(我／敵)</dt><dd>${Math.round(fleetPower())}／${enemyPower()}</dd><dt>技術の蓄積</dt><dd>${totalLv()}段階</dd><dt>戦績</dt><dd>${S.stats.wins}勝 ${S.stats.loss}敗(うち無血 ${S.stats.blood0})</dd><dt>任期</dt><dd>${Math.floor(S.month/12)+1}年目／全${C.years}年</dd></dl></section>`;
-  h+=`<section class="sec"><h2>記録</h2>${S.log.length?S.log.slice(0,12).map(l=>`<p class="lg ${l.c}"><span>${dateStr(l.m)}</span>${l.msg}</p>`).join(''):'<p class="mut sm">まだ記録はない</p>'}</section>`;
-  h+=`<section class="sec"><div class="brow"><button class="btn sm" onclick="A.drill()">図上演習(戦闘の練習)</button><button class="btn sm" onclick="A.help()">遊び方</button><button class="btn sm" onclick="A.reset()">新しく始める</button></div></section>`;
-  return h;};
-VIEW.deploy=()=>{let h=`<section class="sec"><h2>作戦海域</h2>${mapSVG()}<p class="mut sm">事案は敵の活動が活発な海域ほど起きやすい。展開した艦は最初から現場にいて、兵力が大きいほどその海域の敵活動を抑え込む。ただし毎月、整備度が下がる。母港の艦はどの海域にも増援に出られるが、到着は戦闘開始の${reinTime()}分後になる。</p></section><section class="sec"><h2>部隊の配置</h2>`;
-  for(const u of S.units){const lock=u.mode!=='normal';
-    h+=`<div class="drow"><div><span class="tag">${PT[u.type].s}</span> ${u.name}${lock?` <small class="am">${u.refit?'改修中':u.mode==='dock'?'整備中':'演習中'}</small>`:''}</div><div class="seg">${SECT.map((n,i)=>`<button class="${u.sector===i?'on':''}" ${lock&&i>0?'disabled':''} onclick="A.sector(${u.id},${i})">${n.replace('海域','')}</button>`).join('')}</div></div>`;}
-  return h+'</section>';};
-VIEW.units=()=>{const st=S.stock,pm=postMap();
-  let h=`<section class="sec"><h2>在庫</h2><dl class="kv"><dt>艦対空ミサイル</dt><dd>${st.sam}</dd><dt>対艦ミサイル</dt><dd>${st.asm}</dd><dt>空対空ミサイル</dt><dd>${st.aam}</dd><dt>魚雷・対潜弾</dt><dd>${st.torp}</dd><dt>予備機(戦闘機／早期警戒機)</dt><dd>${S.pool.ftr}／${S.pool.aew}</dd></dl><p class="mut sm">弾薬は月が替わるときに在庫から各艦へ自動で補給される。</p></section><section class="sec"><h2>艦艇 ${S.units.length}隻</h2>`;
-  for(const u of S.units){const t=PT[u.type],c=cap(u),ps=shipPosts(u),vac=ps.filter(p=>!pm[u.id+':'+p[0]]).length;
-    h+=`<div class="unit ${u.sector>0?'away':''}"><div class="uh"><span class="tag">${t.s}</span><b>${u.name}</b><small>${t.n}</small><span class="loc">${u.refit?`改修中 あと${u.refit.left}か月`:u.mode==='dock'?'ドック整備中':u.mode==='drill'?'演習中':SECT[u.sector]}</span></div>
-      <div class="st3"><div><label>練度 ${Math.round(u.tr)}</label>${bar(u.tr,'b')}</div><div><label>整備度 ${Math.round(u.rd)}</label>${bar(u.rd,u.rd<40?'r':u.rd<60?'am':'g')}</div><div><label>船体 ${Math.round(u.hp)}%</label>${bar(u.hp,u.hp<50?'r':u.hp<80?'am':'g')}</div></div>
-      <div class="amm">${Object.keys(c).filter(k=>c[k]).map(k=>`<span class="${(u.load[k]||0)<c[k]?'am':''}">${AMN[k]} ${u.load[k]||0}/${c[k]}</span>`).join('')}<span class="mut">戦闘効率 ${Math.round(unitQ(u)*100)}%</span></div>
-      ${t.fcap?`<div class="urow"><label>搭載機</label><span>戦闘機 ${u.ftr}/${ftrCap(u)}</span><button class="mini" onclick="A.air(${u.id},'ftr',1)" aria-label="戦闘機を積む">＋</button><button class="mini" onclick="A.air(${u.id},'ftr',-1)" aria-label="戦闘機を降ろす">－</button><span>警戒機 ${u.aew}/${aewCap(u)}</span><button class="mini" onclick="A.air(${u.id},'aew',1)" aria-label="警戒機を積む">＋</button><button class="mini" onclick="A.air(${u.id},'aew',-1)" aria-label="警戒機を降ろす">－</button></div>`:''}
-      ${ps.length?`<div class="urow"><label>幹部</label><span class="grow sm">艦長 ${oname(pm[u.id+':co'])}${vac?`　<span class="am">欠員${vac}</span>`:''}</span><button class="btn sm" onclick="A.gopost(${u.id})">補職</button></div>`:''}
-      <div class="urow"><label>改修</label><span class="grow sm">${u.mods.length?u.mods.map(k=>KIT[k].n).join('、'):'なし'}</span><button class="btn sm" onclick="A.kit(${u.id})">改修・除籍</button></div>
-      <div class="urow"><label>運用</label><div class="seg">${['normal','drill','dock'].map((m,i)=>`<button class="${u.mode===m?'on':''}" ${u.refit?'disabled':''} onclick="A.mode(${u.id},'${m}')">${['通常','演習','ドック整備'][i]}</button>`).join('')}</div></div></div>`;}
-  return h+`<p class="mut sm">演習は練度が大きく伸びるが整備度が下がり、月8億円かかる。ドック整備は整備度と船体を回復する。どちらも母港で行う。</p></section>`;};
-VIEW.shop=()=>{
-  let h=`<section class="sec"><h2>発注中</h2>${S.orders.length?S.orders.map(o=>`<div class="drow"><div style="flex:1">${o.n}</div><div class="mut">あと ${o.due-S.month} か月</div></div>`).join(''):'<p class="mut sm">発注中のものはない</p>'}</section><section class="sec"><h2>調達</h2><p class="mut sm">400億円以上のものは、一括払いか分割払いかを選べる。艦は母港で就役する。</p>`;
-  const item=(k,n,d)=>{const c=price(k);return `<div class="item"><div class="uh"><b>${n}</b><span class="loc">${c.toLocaleString()}億円／${buildMo(k)}か月</span></div><p class="sm mut">${d}</p><button class="btn sm" ${canPay(c)||c>=400?'':'disabled'} onclick="A.buy('${k}')">発注する</button></div>`;};
-  h+='<h3 class="sub">艦艇</h3>';const locked=[];
-  for(const k of SHIPK){const t=PT[k];if(t.lock&&!S.unlock[k]){locked.push(t.n);continue;}h+=item(k,t.n,`${t.d}。乗員${t.crew}名、維持費は月${t.up}億円`);}
-  if(locked.length)h+=`<p class="sm mut">開発計画を終えると調達できる：${locked.join('、')}</p>`;
-  h+='<h3 class="sub">航空機</h3>';for(const k of['ftr','aew'])h+=item(k,SHOPX[k].n,SHOPX[k].d);
-  h+='<h3 class="sub">弾薬</h3>';for(const k of['sam','asm','aam','torp'])h+=item(k,SHOPX[k].n,SHOPX[k].d+`(在庫 ${S.stock[k]})`);
-  return h+'</section>';};
 function render(){if(!S)return;
   $('#date').textContent=dateStr(S.month)+'　'+(Math.floor(S.month/12)+1)+'年目';
   const gf=$('#gf');gf.textContent=S.cfg.sandbox?'無制限':Math.round(S.funds).toLocaleString()+' 億円';gf.className=S.funds<0?'r':'';
@@ -778,18 +694,11 @@ function modal(html,cbs){mq.push({html,cbs:cbs||{}});if(mq.length===1)showM();}
 function closeModal(){mq.shift();if(mq.length)showM();else $('#modal').hidden=true;}
 function confirmM(text,yes,yl,no){modal(`<p>${text}</p><div class="mbtn"><button class="btn pri" data-m="y">${yl||'実行する'}</button><button class="btn" data-m="n">やめる</button></div>`,{y:()=>{closeModal();yes();},n:()=>{closeModal();if(no)no();}});}
 function toast(msg){const t=$('#toast');t.textContent=msg;t.className='show';clearTimeout(toast.h);toast.h=setTimeout(()=>{t.className='';},2600);}
-function showIncident(){const inc=S.pending;if(!inc)return;const us=S.units.filter(u=>u.sector===inc.sector&&u.mode==='normal'),rn=reserve(),rt=inc.type==='retake',can=us.length||rn.length;
-  modal(`<div class="alert r">${rt?'作戦計画':'事案発生'}</div><h2>${SECT[inc.sector]}　${SCN[inc.type].n}</h2><p>${SCN[inc.type].d(inc)}</p><dl class="kv2"><dt>敵情(推定)</dt><dd>${inc.intel}</dd><dt>現場の兵力</dt><dd>${us.length?us.map(u=>u.name).join('、'):'<b class="r">展開部隊なし</b>'}</dd><dt>母港からの増援</dt><dd>${rn.length?rn.map(u=>u.name).join('、')+`<br><span class="mut sm">戦闘開始の${reinTime()}分後に、海域の南西へ到着する</span>`:'なし'}</dd></dl><div class="mbtn">${can?`<button class="btn pri" data-m="fight">出撃し、自ら指揮を執る</button><button class="btn" data-m="auto">現場指揮官に任せる(自動解決)</button>`:''}<button class="btn" data-m="ignore">${rt?'作戦を中止する':can?'静観する':'対処できない(静観)'}</button></div>`,
-  {fight:()=>{closeModal();if(can)startBattle(inc);else ignoreInc(inc);},auto:()=>{closeModal();if(can)autoResolve(inc);else ignoreInc(inc);},ignore:()=>{closeModal();if(rt){S.pending=null;save();render();}else ignoreInc(inc);}});}
-function showOver(){const o=S.over,occ=[1,2,3].filter(i=>!S.sectors[i].held).length,st=S.stats;
+function showOver(){const o=S.over,occ=ISLZ.filter(i=>!S.sectors[i].held).length,st=S.stats;
   const score=st.wins*100+st.blood0*80+Math.round(S.support)*5-st.pSunk*60-occ*250+Math.min(S.month,60)*10+totalLv()+(o.k==='peace'?800:0);
   const rank=score>=2000?'S':score>=1400?'A':score>=900?'B':score>=400?'C':'D';
   modal(`<div class="alert ${o.k==='lost'||o.k==='fired'?'r':'g'}">${dateStr(S.month)}</div><h2>${o.t}</h2><p>${o.d}</p><dl class="kv2"><dt>戦績</dt><dd>${st.wins}勝 ${st.loss}敗(無血 ${st.blood0})</dd><dt>撃沈／喪失</dt><dd>${st.eSunk}隻／${st.pSunk}隻</dd><dt>確保した島</dt><dd>${3-occ}／3</dd><dt>技術の蓄積</dt><dd>${totalLv()}段階</dd><dt>最終支持率</dt><dd>${Math.round(S.support)}%</dd><dt>評価</dt><dd><b class="am">${rank}</b>(${score}点)</dd></dl><div class="mbtn"><button class="btn pri" data-m="new">新しい任期を始める</button><button class="btn" data-m="ok">記録を眺める</button></div>`,
   {new:()=>{closeModal();showTitle();}});}
-function showHelp(){const C=S.cfg;modal(`<div class="alert">着任</div><h2>${esc(C.fleetName)}司令部</h2><p>${C.cmdr?esc(C.cmdr)+'司令。':''}あなたは${esc(C.nation)}海上防衛軍の艦隊を預かる。任期の${C.years}年間、3つの島嶼を守り抜く。支持率が0%になれば更迭される。</p>
-<ul class="sm"><li><b>配置・部隊</b>：艦を海域に出し、演習・整備・改修を回す</li><li><b>人事</b>：幹部を艦と司令部のポストに就け、曹士の職種ごとの充足を保つ。任せきりにもできる</li><li><b>開発</b>：研究所ごとに課題を進め、技術が揃えば新しい艦や装備の開発計画に着手できる</li><li><b>予算</b>：64の費目に配分し、年度替わりには増額を折衝する</li><li><b>翌月へ進む</b>で時間が進み、事案が起きれば戦闘になる</li></ul>
-<p><b>戦闘の操作</b></p><ul class="sm"><li>自部隊をタップで選択、海面をタップで移動、敵をタップで目標に指定</li><li>右下の「3D」で立体表示に切り替えられる。ドラッグで視点を回し、2本指で拡大と移動</li><li>海面すれすれのミサイルは艦のレーダーでは30〜45kmまで見えない。早期警戒機と戦闘機を前に出すと早く見つかる</li><li>敵が撃つか領海に居座るまで、武器は使えない。艦を相手の50km以内に寄せて「警告」し、退去させれば最良の結果になる</li></ul>
-<div class="mbtn"><button class="btn pri" data-m="ok">任務に就く</button></div>`);}
 function showPeace(){modal(`<div class="alert g">緊張緩和</div><h2>海は1年のあいだ静かだった</h2><p>抑止が機能し、両国は海上連絡メカニズムの運用に合意した。ここで退任すれば、平和をもたらした司令として評価される。任期を続けることもできる。</p><div class="mbtn"><button class="btn pri" data-m="pc">任期を続ける</button><button class="btn" data-m="pe">ここで退任する</button></div>`,
   {pc:closeModal,pe:()=>{S.over={k:'peace',t:'緊張緩和',d:'抑止が機能し、海に静けさが戻った。'};S.pending=null;save();render();mq.length=0;showOver();}});}
 function showFiscal(f){const p=a=>Math.round(askChance(a)*100);
@@ -802,12 +711,13 @@ function showFiscal(f){const p=a=>Math.round(askChance(a)*100);
 function begin(cfg){newGame(cfg);save();ui.tab='home';render();showHelp();}
 function showTitle(){const has=!!load();mq.length=0;
   modal(`<div class="alert">機動護衛群司令部</div><h2 class="big">蒼海の盾</h2><p class="sm">現代の海で、艦隊の指揮と運営を担う。撃たせず、撃たずに守り抜けるか。</p>${has?'<p class="sm mut">新しく始めると、いまの記録は上書きされる。</p>':''}<div class="mbtn">${has?`<button class="btn pri" data-m="c">続きから</button>`:''}<button class="btn ${has?'':'pri'}" data-m="s">標準の設定で始める</button><button class="btn" data-m="k">カスタムスタート</button></div>`,
-  {c:()=>{closeModal();S=load();_M=null;_PM=null;render();if(S.over)showOver();else if(S.pending)showIncident();},s:()=>{closeModal();begin({});},k:()=>{closeModal();ui.cs=JSON.parse(JSON.stringify(DEFCFG));showSetup();}});}
+  {c:()=>{closeModal();S=load();_M=null;_PM=null;render();if(S.over)showOver();else if(S.gpend)groundPrompt();else if(S.pending)showIncident();},s:()=>{closeModal();begin({});},k:()=>{closeModal();ui.cs=JSON.parse(JSON.stringify(DEFCFG));showSetup();}});}
 function showSetup(){const c=ui.cs,f=c.fleet;
   const st=(k,lbl,step,min,max,unit)=>`<div class="srow"><label>${lbl}</label><div class="stp"><button onclick="A.cs('${k}',${-step},${min},${max})" aria-label="${lbl}を減らす">－</button><span>${c[k].toLocaleString()}${unit||''}</span><button onclick="A.cs('${k}',${step},${min},${max})" aria-label="${lbl}を増やす">＋</button></div></div>`;
   const fs=(k,lbl,step,max)=>`<div class="srow"><label>${lbl}</label><div class="stp"><button onclick="A.csf('${k}',${-step},${max})" aria-label="${lbl}を減らす">－</button><span>${f[k]||0}</span><button onclick="A.csf('${k}',${step},${max})" aria-label="${lbl}を増やす">＋</button></div></div>`;
   const sg2=(k,lbl,opts)=>`<div class="srow col"><label>${lbl}</label><div class="seg">${opts.map(o=>`<button class="${c[k]===o[0]?'on':''}" onclick="A.css('${k}',${o[0]})">${o[1]}</button>`).join('')}</div></div>`;
-  let up=0,crew=0,val=0;for(const k of['cv','cvl','ddg','dd','ffm','ss','opv','aoe']){const n=f[k]||0;up+=PT[k].up*n;crew+=PT[k].crew*n;val+=PT[k].val*n;}
+  let up=0,crew=0,val=0;for(const k of FLEETK){const n=f[k]||0;up+=PT[k].up*n;crew+=PT[k].crew*n;val+=PT[k].val*n;}
+  const gs=(k,max)=>`<div class="srow"><label>${GT[k].n}</label><div class="stp"><button onclick="A.csg('${k}',-1,${max})" aria-label="${GT[k].n}を減らす">－</button><span>${c.gnd[k]||0}</span><button onclick="A.csg('${k}',1,${max})" aria-label="${GT[k].n}を増やす">＋</button></div></div>`;
   const html=`<div class="alert">カスタムスタート</div><h2>任期の条件を決める</h2><div class="brow">${PRESET.map((p,i)=>`<button class="btn sm" onclick="A.csp(${i})">${p[0]}</button>`).join('')}</div>
   <h3 class="sub">名前</h3>
   <div class="srow"><label>司令官</label><input value="${esc(c.cmdr)}" placeholder="(任意)" oninput="ui.cs.cmdr=this.value" maxlength="16" aria-label="司令官の名前"></div>
@@ -819,8 +729,11 @@ function showSetup(){const c=ui.cs,f=c.fleet;
   ${st('budget','年間の防衛予算',400,2400,24000,' 億円')}${st('funds','手持ちの資金',200,0,30000,' 億円')}${st('tension','緊張度',5,5,85,'%')}${st('support','支持率',5,25,85,'%')}
   ${sg2('prePen','先制攻撃への非難',[[.5,'緩い'],[1,'標準'],[1.6,'厳しい']])}${sg2('sandbox','資金',[[false,'通常'],[true,'無制限']])}
   <h3 class="sub">艦隊</h3>
-  ${fs('cv','多用途航空母艦',1,3)}${fs('cvl','航空護衛艦',1,4)}${fs('ddg','ミサイル護衛艦',1,8)}${fs('dd','汎用護衛艦',1,10)}${fs('ffm','多機能護衛艦',1,10)}${fs('ss','潜水艦',1,8)}${fs('opv','哨戒艦',1,8)}${fs('aoe','補給艦',1,3)}${fs('ftr','艦上戦闘機',2,60)}${fs('aew','早期警戒機',1,6)}
+  ${fs('cv','多用途航空母艦',1,3)}${fs('cvl','航空護衛艦',1,4)}${fs('ddg','ミサイル護衛艦',1,8)}${fs('dd','汎用護衛艦',1,10)}${fs('ffm','多機能護衛艦',1,10)}${fs('ss','潜水艦',1,8)}${fs('lst','輸送艦',1,6)}${fs('opv','哨戒艦',1,8)}${fs('aoe','補給艦',1,3)}${fs('ftr','艦上戦闘機',2,60)}${fs('aew','早期警戒機',1,6)}
   <p class="sm mut">維持費 月${up}億円、乗員 ${crew.toLocaleString()}名、戦力値 ${val}(標準は 590)。空母に積みきれない機体は予備機になる。</p>
+  <h3 class="sub">陸上部隊</h3>
+  ${GTK.map(k=>gs(k,12)).join('')}
+  <p class="sm mut">普通科・特科・高射・地対艦は3つの島に順に配置され、水陸機動と戦車は本土に置かれる。島へ運ぶには輸送艦が要る。</p>
   ${st('tr','初期の練度',5,35,90,'')}
   <h3 class="sub">技術と増援</h3>
   ${sg2('techLv','技術水準',[[0,'現行'],[1,'やや進む'],[2,'進む'],[3,'先進']])}${st('labs','研究所の数',1,1,8,'')}${sg2('reinT','増援の到着',[[60,'60分'],[90,'90分'],[120,'120分'],[150,'150分']])}
@@ -922,8 +835,6 @@ const A={
   of(k,v){ui.of[k]=v;if(k!=='page')ui.of.page=0;render();},
   bud(i,v){S.bud[i]=v;save();render();},
   budCat(c,L){BITEM.forEach((b,i)=>{if(b[1]===c)S.bud[i]=L;});save();render();},
-  sector(id,s){const u=U(id);if(!u||(u.mode!=='normal'&&s>0))return;u.sector=s;save();render();},
-  mode(id,m){const u=U(id);if(!u||u.refit)return;u.mode=m;if(m!=='normal')u.sector=0;save();render();},
   air(id,k,d){const u=U(id);if(!u)return;const mx=k==='ftr'?ftrCap(u):aewCap(u);
     if(d>0){if(S.pool[k]<1)return toast('予備機がない。「調達」で発注を');if(u[k]>=mx)return toast('これ以上は積めない');S.pool[k]--;u[k]++;}
     else{if(u[k]<1)return;u[k]--;S.pool[k]++;}save();render();},
@@ -940,7 +851,7 @@ const A={
     else if(!ks.length)h+=`<p class="sm mut">取り付けられるキットがない。「開発」の装備開発計画で改修キットを完成させると、ここに並ぶ。</p>`;
     else for(const k of ks){const K=KIT[k];cbs['k_'+k]=()=>{closeModal();A.refit(id,k);};h+=`<div class="item"><div class="uh"><b>${K.n}</b><span class="loc">${K.cost}億円／ドック${K.mo}か月</span></div><p class="sm mut">${K.d}</p><button class="btn sm" data-m="k_${k}" ${canPay(K.cost)?'':'disabled'}>取り付ける</button></div>`;}
     modal(h+`<div class="mbtn"><button class="btn warn" data-m="sc">この艦を除籍する</button><button class="btn pri" data-m="x">閉じる</button></div>`,cbs);},
-  refit(id,k){const u=U(id),K=KIT[k];if(!u||u.refit||!canPay(K.cost))return;spend(K.cost);u.refit={k,left:K.mo};u.mode='dock';u.sector=0;hlog(`${u.name}：${K.n}の改修に着手`,'');save();render();toast('ドックに入れた');},
+  refit(id,k){const u=U(id),K=KIT[k];if(!u||u.refit||!canPay(K.cost))return;spend(K.cost);u.refit={k,left:K.mo};u.mode='dock';hlog(`${u.name}：${K.n}の改修に着手`,'');save();render();toast('ドックに入れた');},
   // 開発
   labPick(id){const l=S.labs.find(x=>x.id===id);if(!l)return;const T=LABT[l.t],cbs={x:closeModal};let h=`<div class="alert">${Math.round(labRP(l))} RP／月</div><h2>${T.n}の課題</h2>`;
     for(const d of T.d){h+=`<h3 class="sub">${DOM[d]}</h3>`;for(const ln of LINE.filter(x=>x[2]===d)){const lv=lvOf(ln[0]),busy=S.labs.some(x=>x!==l&&x.cur===ln[0]);cbs['l_'+ln[0]]=()=>{closeModal();l.cur=ln[0];l.auto=false;save();render();};
@@ -985,16 +896,424 @@ const A={
   ask(a){closeModal();if(Math.random()<askChance(a)){S.budget=Math.round(S.budget*(1+a)/10)*10;hlog(`予算折衝：${Math.round(a*100)}%の増額を獲得`,'g');toast('増額が認められた');}
     else{S.budget=Math.round(S.budget*.98/10)*10;S.support=clamp(S.support-2,0,100);hlog('予算折衝：増額要求は退けられた','r');toast('増額要求は退けられた');}S.fyAsk=1;save();render();},
   supp(){if(S.fySupp)return;S.fySupp=1;if(Math.random()<suppChance()){const a=suppAmt();S.funds+=a;hlog(`補正予算 ${a}億円が成立`,'g');toast(`補正予算 ${a}億円が成立した`);}else{S.support=clamp(S.support-2,0,100);hlog('補正予算の要求は退けられた','r');toast('補正予算は退けられた');}save();render();},
-  retake(i){if(S.pending||S.over)return;S.pending=mkIncident(i,'retake');save();showIncident();},
   drill(){const L=1.6;startBattle({drill:true,sector:0,type:'landing',L,eT:eTech(),force:genForce('landing',L,0)});},
   reset(){confirmM('いまの任期を離れて、タイトルに戻る。進行は保存されている。',()=>showTitle(),'タイトルへ');},
   // カスタムスタート
   cs(k,d,min,max){ui.cs[k]=clamp(ui.cs[k]+d,min,max);showSetup();},
   csf(k,d,max){ui.cs.fleet[k]=clamp((ui.cs.fleet[k]||0)+d,0,max);showSetup();},
   css(k,v){ui.cs[k]=v;showSetup();},
-  csp(i){const keep={cmdr:ui.cs.cmdr,nation:ui.cs.nation,fleetName:ui.cs.fleetName},p=PRESET[i][1];ui.cs=Object.assign(JSON.parse(JSON.stringify(DEFCFG)),JSON.parse(JSON.stringify(p)),keep);ui.cs.fleet=Object.assign({},DEFCFG.fleet,p.fleet||{});showSetup();}
+  csp(i){const keep={cmdr:ui.cs.cmdr,nation:ui.cs.nation,fleetName:ui.cs.fleetName},p=PRESET[i][1];ui.cs=Object.assign(JSON.parse(JSON.stringify(DEFCFG)),JSON.parse(JSON.stringify(p)),keep);ui.cs.fleet=Object.assign({},DEFCFG.fleet,p.fleet||{});ui.cs.gnd=Object.assign({},DEFCFG.gnd,p.gnd||{});showSetup();}
 };
 window.A=A;
+
+/* ================= 広域作戦：海域・艦隊・島・陸上部隊 ================= */
+const ZS=['本土','オホーツク','日本海','北西太平洋','東シナ海','フィリピン海','バシー','南シナ海','敵北方','敵南方'];
+const EBASE={1:8,4:9,7:9};
+for(const k of GTK)SHOPX['g_'+k]={kind:'gnd',n:GT[k].n,cost:GT[k].cost,build:GT[k].build,q:1,d:GT[k].d};
+// 敵の泊地を通らない最短経路
+function zpath(a,b){if(a===b)return[a];const prev={},q=[a];prev[a]=-1;
+  while(q.length){const c=q.shift();for(const n of ADJ[c]){if(prev[n]!=null||ZONES[n].enemy)continue;prev[n]=c;
+    if(n===b){const p=[b];let x=b;while(prev[x]!==-1){x=prev[x];p.unshift(x);}return p;}q.push(n);}}
+  return null;}
+const HOP=ZONES.map((_,a)=>ZONES.map((_,b)=>{const p=zpath(a,b);return p?p.length-1:99;}));
+const FL=id=>S.fleets.find(f=>f.id===id)||null;
+const flUnits=f=>S.units.filter(u=>u.fl===f.id);
+// 艦の所在は艦隊で決まる。演習・整備中は母港、合流中はどこにもいない(-1)
+function syncSectors(){for(const u of S.units){const f=u.fl?FL(u.fl):null;if(u.fl&&!f)u.fl=0;u.sector=u.tz>0?-1:f&&u.mode==='normal'?f.zone:0;}}
+const inZone=z=>S.units.filter(u=>u.sector===z&&u.mode==='normal');
+const fightIn=z=>inZone(z).filter(u=>!PT[u.type].tcap);
+const fleetCap=f=>flUnits(f).reduce((a,u)=>a+(u.mode==='normal'&&!(u.tz>0)?PT[u.type].tcap||0:0),0);
+const fleetLoad=f=>S.gnd.filter(g=>g.loc==='f'+f.id);
+const garrison=z=>S.gnd.filter(g=>g.loc==='i'+z);
+const facOK=(z,k)=>!!S.isl[z]&&S.sectors[z].held&&S.isl[z].fac[k]>=50;
+const seaCtrl=z=>!S.isl[z].cover&&fleetPower(fightIn(z))>=60;
+function forcePower(f,eT){let ep=0;for(const k in f)ep+=ET[k].val*f[k]*(1+.06*(eT||0));return ep;}
+// 増援：隣の海域(near)と2つ先の海域(far)にいる戦闘艦
+function reserve(z){const near=[],far=[];for(const u of S.units){if(u.mode!=='normal'||u.sector<0||u.sector===z||PT[u.type].val<10||PT[u.type].tcap)continue;const h=HOP[u.sector][z];if(h===1)near.push(u);else if(h===2)far.push(u);}
+  return{near,far,all:near.concat(far)};}
+function upkeep(){return S.units.reduce((a,u)=>a+PT[u.type].up*(1+u.mods.length*.03)+(u.mode==='drill'?8:0)+(u.ftr||0)*2+(u.aew||0)*3,0)*(1-clamp(mods().upk,-.3,.4))+S.pool.ftr+S.pool.aew+S.gnd.reduce((a,g)=>a+GT[g.type].up,0);}
+function reqRates(){const r={},k=crewK();for(const x of RATE)r[x[0]]=0;
+  for(const u of S.units){const t=PT[u.type],q=t.cat==='sub'?RQ.sub:t.fcap?RQ.cv:RQ.ship;for(const a in q)r[a]+=t.crew*k*q[a];const ac=(u.ftr||0)+(u.aew||0);r.avm+=ac*9;r.avo+=ac*3;}
+  r.avm+=(S.pool.ftr+S.pool.aew)*5;r.gnd=S.gnd.length*120;for(const a in r)r[a]=Math.round(r[a]+(a==='sup'||a==='med'||a==='com'?40:12));return r;}
+
+function addUnit(type,o){o=o||{};const free=(NAMES[type]||[]).filter(n=>!S.used.includes(n)),name=free.length?free[0]:PT[type].s+'-'+String(++S.seq).padStart(2,'0');S.used.push(name);
+  const u={id:++S.uid,type,name,sector:0,fl:0,tz:0,mode:'normal',tr:o.tr==null?RI(58,72):o.tr,rd:o.rd==null?RI(80,92):o.rd,hp:100,ftr:0,aew:0,mods:[],refit:null,load:{}};
+  S.units.push(u);_M=null;const c=cap(u);for(const k in c)u.load[k]=c[k];return u;}
+function addGnd(type,loc,o){o=o||{};S.gseq[type]=(S.gseq[type]||0)+1;
+  const g={id:++S.gid,type,name:`第${S.gseq[type]}${GT[type].n}`,hp:10,tr:o.tr==null?RI(55,70):o.tr,loc:loc||'home'};S.gnd.push(g);_M=null;return g;}
+const mkIsl=()=>({seed:RI(1,999999999),fac:{hq:100,air:100,port:100,radar:100,depot:100,town:100},egar:[],fort:0,cover:0,blk:0,prep:{}});
+function autoFleets(){const mkF=(n,zone)=>{const f={id:++S.fid,n,zone,dest:null};S.fleets.push(f);return f;};
+  const cb=S.units.filter(u=>{const t=PT[u.type];return t.cat==='ship'&&!t.tcap&&!t.sup&&t.val>=30;}),cv=cb.filter(u=>PT[u.type].fcap),es=cb.filter(u=>!PT[u.type].fcap).sort((a,b)=>PT[b.type].val-PT[a.type].val);
+  const n=cb.length?clamp(Math.max(cv.length,es.length>=9?3:es.length>=4?2:1),1,Math.max(1,Math.min(3,Math.floor(cb.length/2)))):0,fs=[];
+  const posts=[7,4,1];for(let i=0;i<n;i++)fs.push(mkF(`第${i+1}護衛隊群`,posts[i]));
+  cv.forEach((u,i)=>{u.fl=fs[i%n].id;});es.forEach((u,i)=>{u.fl=fs[(i+cv.length)%n].id;});
+  const ss=S.units.filter(u=>PT[u.type].cat==='sub');if(ss.length){const f=mkF('潜水隊群',n<3?posts[n]:0);for(const u of ss)u.fl=f.id;}
+  const rest=S.units.filter(u=>!u.fl);if(rest.length){const f=mkF('輸送・支援隊',0);for(const u of rest)u.fl=f.id;}
+  syncSectors();}
+function newGame(c){c=c||{};const C=Object.assign({},DEFCFG,c);C.fleet=Object.assign({},DEFCFG.fleet,c.fleet||{});C.gnd=Object.assign({},DEFCFG.gnd,c.gnd||{});_M=null;_PM=null;
+  S={v:3,cfg:C,month:0,fy:0,funds:C.funds,budget:C.budget,support:C.support,tension:C.tension,bud:BITEM.map(()=>2),units:[],used:[],seq:0,pool:{ftr:0,aew:0},
+    stock:{sam:48,asm:24,aam:32,torp:16},orders:[],debts:[],ledger:[],ext:0,pers:{morale:62,pipe:[],auto:true,pol:'auto',rep:[],sp:0,resv:0,resvEnd:0},off:[],enl:{},
+    res:{},labs:[],projs:{},flags:{},unlock:{},kits:{},
+    sectors:ZONES.map((z,i)=>{const t=i===1?30:i===4?38:i===7?52:z.lane?RI(22,36):0;return{threat:t,held:true,est:t};}),
+    fleets:[],fid:0,gnd:[],gid:0,gseq:{},isl:{},efl:[],eid:0,gpend:null,laneL:0,
+    log:[],stats:{wins:0,loss:0,eSunk:0,pSunk:0,blood0:0},uid:0,oid:0,lid:0,pending:null,fore:null,foreK:false,over:null,restM:-1,fyAsk:0,fySupp:0,lastLoss:-99};
+  for(const z of ISLZ)S.isl[z]=mkIsl();
+  for(const r of RATE)S.enl[r[0]]={n:0,sk:60};
+  if(C.techLv)for(const l of LINE){const v=clamp(Math.round(C.techLv+R(-1.5,1.2)),0,10);if(v)S.res[l[0]]={lv:v,prog:0};}
+  const f=C.fleet;let ftr=f.ftr||0,aew=f.aew||0;
+  for(const k of FLEETK)for(let i=0;i<(f[k]||0);i++){const u=addUnit(k,{tr:clamp(C.tr+RI(-7,7),20,95)});if(PT[k].lock){S.unlock[k]=1;S.flags[k]=1;}
+    if(PT[k].fcap){u.ftr=Math.min(ftr,PT[k].fcap);ftr-=u.ftr;u.aew=Math.min(aew,PT[k].acap);aew-=u.aew;}}
+  S.pool.ftr=ftr;S.pool.aew=aew;const sc=Math.max(.5,S.units.length/8);for(const k in S.stock)S.stock[k]=Math.round(S.stock[k]*sc);
+  // 陸上部隊：守りの部隊は南から順に島へ、機動部隊は本土に置く
+  const il=[7,4,1];let ii=0;for(const k of GTK)for(let i=0;i<(C.gnd[k]||0);i++)addGnd(k,k==='amp'||k==='arm'?'home':'i'+il[ii++%3],{tr:clamp(C.tr+RI(-7,7),20,95)});
+  autoFleets();
+  for(let i=0;i<clamp(C.labs,1,8);i++)S.labs.push({id:++S.lid,t:i,lv:1,fund:2,cur:null,auto:true,foc:-1});
+  const rq=reqRates();for(const r of RATE)S.enl[r[0]]={n:Math.round(rq[r[0]]*R(.93,.99)),sk:RI(55,68)};
+  const N=Math.round(allPosts().length*1.35)+10;RFRAC.forEach((fr,r)=>{for(let i=0;i<Math.max(1,Math.round(N*fr));i++)genOff(r);});
+  autoAssign();_M=null;for(const u of S.units){const cp=cap(u);for(const k in cp)u.load[k]=cp[k];}
+  hlog(`${esc(C.fleetName)}司令に着任。任期は${C.years}年`,'b');}
+function deliver(o,rep){
+  if(o.kind==='unit'){const u=addUnit(o.k);rep.push([`就役：${PT[o.k].n}「${u.name}」(母港)`,'g']);}
+  else if(o.kind==='gnd'){const g=addGnd(o.k.slice(2));rep.push([`編成完結：${g.name}(本土)`,'g']);}
+  else if(o.kind==='air'){S.pool[o.k]+=o.q;rep.push([`納入：${o.n}(予備機へ)`,'g']);}
+  else if(o.kind==='ammo'){S.stock[o.k]+=o.q;rep.push([`納入：${o.n}`,'']);}
+  else if(o.kind==='lab'){S.labs.push({id:++S.lid,t:o.t,lv:1,fund:2,cur:null,auto:true,foc:-1});rep.push([`新設：${LABT[o.t].n}`,'g']);}}
+
+/* ---------- 島の占領と奪還 ---------- */
+function mkEgar(L,add){if(add)return[{t:'inf',hp:8}];const a=[{t:'inf',hp:10},{t:'inf',hp:10},{t:'amp',hp:9}];if(L>=2)a.push({t:'art',hp:9});if(L>=2.4)a.push({t:'aa',hp:9});if(L>=2.8)a.push({t:'ssm',hp:9});return a;}
+function mkAssault(L,fr){const n=clamp(Math.round((1.6+L*1.1)*(fr||1)),2,7),a=[];for(let i=0;i<n;i++)a.push({t:i===0?'amp':i===3&&L>=2?'arm':i===4&&L>=2.4?'art':i%2?'inf':'amp',hp:10});return a;}
+function occupy(z,L,surv){const s=S.sectors[z],il=S.isl[z];s.held=false;s.threat=100;s.est=100;il.egar=(surv||[]).filter(e=>e.hp>0).concat(mkEgar(L,surv&&surv.length)).slice(0,7);
+  il.fort=0;il.cover=1;il.blk=0;il.prep={};S.gnd=S.gnd.filter(g=>g.loc!=='i'+z);S.efl=S.efl.filter(e=>e.z!==z);S.lastLoss=S.month;hlog(`${ISL[z]}が占領された`,'r');_M=null;}
+function liberate(z){const s=S.sectors[z],il=S.isl[z];s.held=true;s.threat=35;s.est=35;il.egar=[];il.fort=0;il.cover=0;il.blk=0;hlog(`${ISL[z]}を奪還した`,'g');_M=null;}
+// 敵の空襲が島の施設と守備隊に及ぶ
+function raidIsland(z){const il=S.isl[z];if(!il||!S.sectors[z].held)return'';const gs=garrison(z),aa=gs.some(g=>g.type==='aa'),k=pick(['air','port','radar','depot']);
+  il.fac[k]=Math.max(0,il.fac[k]-(aa?20:45));if(gs.length&&!aa){const g=pick(gs);g.hp=Math.max(1,g.hp-2);}
+  return `${ISL[z]}の${FAC[k][0]}が爆撃を受けた${aa?'(高射特科隊が被害を抑えた)':''}`;}
+// 上陸前の準備攻撃(艦砲・空爆・ミサイル)
+function prepStrike(z,kind){const il=S.isl[z],us=fightIn(z),L=[],pri=['ssm','aa','art','arm','amp','inf'],tg=()=>il.egar.filter(e=>e.hp>0).sort((a,b)=>pri.indexOf(a.t)-pri.indexOf(b.t));
+  il.prep[kind]=S.month;
+  if(kind==='gun'){for(const e of il.egar)e.hp-=RI(0,2);il.fort=Math.max(0,il.fort-1);L.push('守備隊の全体に損害を与え、陣地を崩した');for(const u of us)u.rd=Math.max(0,u.rd-2);
+    if(il.egar.some(e=>e.hp>0&&(e.t==='art'||e.t==='ssm'))&&Math.random()<.3){const u=pick(us.filter(u=>PT[u.type].cat==='ship'));if(u){const d=RI(6,14);u.hp=Math.max(5,u.hp-d);L.push(`<span class="r">${u.name}が陸上からの反撃で損傷した(船体 −${d}%)</span>`);}}}
+  else if(kind==='air'){const cv=us.find(u=>PT[u.type].fcap&&u.ftr>=2),aa=il.egar.some(e=>e.t==='aa'&&e.hp>0),ts=tg();
+    if(ts[0])ts[0].hp-=RI(2,4);if(ts[1])ts[1].hp-=RI(0,2);L.push(`${ts[0]?GT[ts[0].t].n:'陣地'}を中心に爆撃した`);
+    if(aa&&cv&&Math.random()<.35){cv.ftr--;L.push('<span class="r">対空砲火で戦闘機1機を失った</span>');}}
+  else{let need=4;for(const u of us){const n=Math.min(need,u.load.asm||0);if(n){u.load.asm-=n;need-=n;}if(!need)break;}const ts=tg();if(ts[0]){ts[0].hp-=RI(3,5);L.push(`${GT[ts[0].t].n}の陣地にミサイルが命中した`);}}
+  const dead=il.egar.filter(e=>e.hp<=0);il.egar=il.egar.filter(e=>e.hp>0);if(!il.egar.length&&dead.length){const e=dead.shift();e.hp=1;il.egar.push(e);}
+  if(dead.length)L.push(`${dead.map(e=>GT[e.t].n).join('、')}を壊滅させた`);
+  const nm={gun:'艦砲射撃',air:'空爆',msl:'ミサイル攻撃'}[kind];S.tension=clamp(S.tension+1,0,100);hlog(`${ISL[z]}：${nm}を実施`,'b');save();render();
+  modal(`<div class="alert">準備攻撃</div><h2>${ISL[z]}　${nm}</h2>${L.map(l=>`<p class="sm">${l}。</p>`).join('')}<p class="sm mut">敵の守備隊は残り${il.egar.length}個。陣地は「${FORT[il.fort]}」。</p><div class="pol">緊張度 +1</div><div class="mbtn"><button class="btn pri" data-m="ok">確認</button></div>`,{ok:()=>{closeModal();A.prep(z);}});}
+const FORT=['未構築','簡易','堅固','要塞化'];
+
+/* ================= 月の進行 ================= */
+function nextMonth(){
+  if(S.over||mq.length||G)return;if(S.gpend){groundPrompt();return;}if(S.pending){showIncident();return;}
+  _M=null;cleanPosts();if(S.pers.auto)autoAssign();
+  S.month++;const rep=[],C=S.cfg;let M=mods();
+  // 艦隊は1か月に2海域ぶん進む
+  for(const f of S.fleets){if(f.dest==null)continue;const p=zpath(f.zone,f.dest);if(!p||p.length<2){f.dest=null;continue;}f.zone=p[Math.min(2,p.length-1)];if(f.zone===f.dest){f.dest=null;rep.push([`${f.n}：${SECT[f.zone]}に到着`,'']);}}
+  for(const u of S.units)if(u.tz>0)u.tz--;syncSectors();
+  const inc=income(),up=upkeep(),cc=BCAT.map((_,c)=>catCost(c)),debt=debtPay(),tot=up+cc.reduce((a,b)=>a+b,0)+debt;
+  if(!C.sandbox)S.funds+=inc-tot;S.debts=S.debts.filter(d=>--d.left>0);
+  S.ledger.push({m:S.month,inc,up:Math.round(up),cc:cc.map(Math.round),debt:Math.round(debt),ext:Math.round(S.ext||0),f:Math.round(S.funds)});S.ext=0;if(S.ledger.length>60)S.ledger.shift();
+  // 艦
+  const aoeIn={},pm=postMap();for(const u of S.units)if(PT[u.type].sup&&u.sector>0&&u.mode==='normal')aoeIn[u.sector]=1;
+  for(const u of S.units){const xo=pm[u.id+':xo'],co=pm[u.id+':co'],en=pm[u.id+':en'],crew=PT[u.type].crew>0,ht=(o,t)=>!!o&&o.tr.includes(t);
+    const tk=(1+M.trGain)*(crew?1+(xo?(xo.adm-10)*.03:-.15):1)*(ht(co,'drill')||ht(xo,'drill')?1.4:1)*(ht(co,'char')?1.15:1);
+    const dk=(1-clamp(M.rdDecay,-.5,.7))*(crew?(en?1-(en.tec-10)*.02-(ht(en,'tech')?.1:0):1.15):1)*(aoeIn[u.sector]?.5:1)*(u.sector>0&&facOK(u.sector,'port')?.6:1);
+    if(u.mode==='dock'){const s=1+clamp(M.dockSpd,-.5,1.5);u.rd=Math.min(100,u.rd+35*s);u.hp=Math.min(100,u.hp+34*s);u.tr=Math.max(0,u.tr-1);
+      if(u.refit&&--u.refit.left<=0){u.mods.push(u.refit.k);rep.push([`${u.name}：${KIT[u.refit.k].n}の改修を完了`,'g']);u.refit=null;_M=null;}
+      if(!u.refit&&u.rd>=100&&u.hp>=100){u.mode='normal';const f=u.fl?FL(u.fl):null;if(f&&f.zone!==0)u.tz=Math.ceil(HOP[0][f.zone]/2);rep.push([`${u.name}：ドックを出た${u.tz>0?'。艦隊へ向かう':''}`,'g']);}}
+    else if(u.mode==='drill'){u.tr=Math.min(100,u.tr+4*Math.max(.3,tk));u.rd=Math.max(0,u.rd-4);}
+    else if(u.sector!==0){u.rd=Math.max(0,u.rd-5*Math.max(.2,dk));u.tr=Math.min(100,u.tr+.5);}
+    else{u.rd=Math.min(100,u.rd+7*Math.max(.2,1+M.rdRec));u.tr=clamp(u.tr+.6*tk-.4,0,100);}}
+  syncSectors();
+  // 陸上部隊と島の施設
+  for(const g of S.gnd){const home=g.loc==='home',z=g.loc[0]==='i'?+g.loc.slice(1):-1;g.tr=clamp(g.tr+(home?1.2:z>=0?.5:0)*(1+M.trGain),0,100);
+    if(g.hp<10&&(home||(z>=0&&facOK(z,'depot'))))g.hp=Math.min(10,g.hp+(home?2:1));}
+  for(const z of ISLZ)if(S.sectors[z].held){const fc=S.isl[z].fac;for(const k in fc)fc[k]=Math.min(100,fc[k]+8);}
+  monthlyPers(rep,M);monthlyRD(rep,M);M=mods();
+  S.orders=S.orders.filter(o=>{if(S.month<o.due)return true;deliver(o,rep);return false;});
+  if(reload())rep.push(['弾薬の在庫が足りず、定数割れの艦がある','am']);
+  // 情勢
+  _M=null;M=mods();const det=fleetPower()/enemyPower();let unc=0,occ=0,lane=0;const pm2=postMap();
+  for(const i of ISLZ){const s=S.sectors[i],il=S.isl[i],here=inZone(i),pw=fleetPower(here);
+    if(!s.held){occ++;
+      if(seaCtrl(i)){let hit=0;for(const e of il.egar)if(e.hp>2){e.hp--;hit++;}if(hit&&!il.blk)rep.push([`${ISL[i]}：海上封鎖で敵守備隊の補給が細っている`,'g']);il.blk=1;}
+      else{il.blk=0;if(!il.cover&&Math.random()<(here.length?.25:.7)){il.cover=1;rep.push([`${ISL[i]}：敵艦隊が周辺に戻った`,'am']);}
+        if(il.cover){for(const e of il.egar)e.hp=Math.min(10,e.hp+1);il.fort=Math.min(3,il.fort+1);if(il.egar.length<6&&Math.random()<.3)il.egar.push({t:pick(['inf','inf','art','aa','ssm']),hp:8});}}
+      continue;}
+    const bc=pm2['base:'+i];
+    s.threat=clamp(s.threat+R(-7,7)+(S.tension-40)*.06+(pw>=150?-3:here.length?-1:3)+(i===7?.8:0)-M.threatSup-(bc?(bc.cmd-10)*.08:-.3)-(facOK(i,'air')?1:0)-Math.min(1.2,garrison(i).length*.3),5,100);if(s.threat>50&&!here.length)unc++;
+    s.est=clamp(s.threat+R(-12,12)*(1-clamp(M.intel,0,.9)),0,100);}
+  // シーレーン：緊張が高いほど荒れる。艦隊がいれば抑えられ、隣の海域にいるだけでも少し効く。放置すると通商妨害で収入が減る
+  ZONES.forEach((Z,i)=>{if(!Z.lane)return;const s=S.sectors[i],here=inZone(i),pw=fleetPower(here),nb=ADJ[i].some(a=>!ZONES[a].enemy&&inZone(a).length);
+    s.threat=clamp(s.threat+(18+S.tension*.55-s.threat)*.15+R(-5,5)-(pw>=120?7:here.length?4:0)-(nb?1.5:0)-M.threatSup,5,100);s.est=clamp(s.threat+R(-12,12)*(1-clamp(M.intel,0,.9)),0,100);if(s.threat>60&&!here.length)lane++;});
+  if(lane){const c=Math.round(inc*.01*lane);if(!C.sandbox)S.funds-=c;if(S.laneL++%4===0)rep.push([`シーレーンで通商妨害が続いている(今月の損失 ${c}億円)`,'am']);}else S.laneL=0;
+  S.calm=S.tension<=5?(S.calm||0)+1:0;S.tension=clamp(S.tension+.8*C.eAggr+(Math.min(60,28*C.eAggr)-S.tension)*.03+R(-1.5,1.5)-clamp((det-1)*4,-3,2.5)+unc*.8-M.tension,0,100);
+  S.support=clamp(S.support+(50-S.support)*.04-occ-lane*.25-(S.funds<-300?2:S.funds<0?1:0)+M.support,0,100);
+  // 敵の侵攻部隊：泊地に集結(あと2か月)→出撃(あと1か月)→来襲
+  let arrive=null;
+  S.efl=S.efl.filter(e=>{if(!S.sectors[e.z].held)return false;e.eta--;
+    if(e.eta===1&&fleetPower(inZone(e.z))>forcePower(e.inc.force,e.inc.eT)*1.5&&Math.random()<.35){rep.push([`敵の侵攻部隊は${SECT[e.z]}の我が艦隊を前に引き返した`,'g']);S.tension=clamp(S.tension-2,0,100);return false;}
+    if(e.eta<=0){if(!arrive){arrive=e;return false;}e.eta=1;}
+    if(!e.known&&Math.random()<clamp(.55+M.foresee+M.intel*.3+(M.satT>0?.15:0),0,.97)){e.known=1;rep.push([`情報：敵の揚陸部隊が出撃した。目標は${ISL[e.z]}、到達まであと${e.eta}か月`,'r']);}
+    return true;});
+  let fis=null;if(S.month%12===0)fis=fiscal();
+  for(const r of rep)hlog(r[0],r[1]);
+  checkOver();const offer=!S.over&&!S.peaceAsked&&(S.calm||0)>=12&&S.month>=24;if(offer){S.peaceAsked=true;S.support=clamp(S.support+5,0,100);hlog('両国が海上連絡メカニズムの運用に合意','g');}
+  if(!S.over){S.pending=arrive?arrive.inc:S.fore&&S.sectors[S.fore.sector].held?mkIncident(S.fore.sector,S.fore.type):null;S.fore=rollIncident();
+    S.foreK=!!S.fore&&Math.random()<clamp(.15+M.foresee+M.intel*.2,0,.9);if(S.fore&&S.foreK)hlog(`情報：来月、${SECT[S.fore.sector]}で${SCN[S.fore.type].n}の兆候`,'am');}
+  save();render();
+  if(S.over){mq.length=0;$('#modal').hidden=true;showOver();return;}
+  if(offer)showPeace();
+  if(fis)showFiscal(fis);
+  if(S.pending)showIncident();else if(rep.length&&!fis)toast(rep[0][0]+(rep.length>1?`　ほか${rep.length-1}件`:''));}
+function checkOver(){if(S.over)return;const occ=ISLZ.filter(i=>!S.sectors[i].held).length,y=S.cfg.years;
+  if(S.support<=0)S.over={k:'fired',t:'更迭',d:'国民と政府の信任を失い、司令の任を解かれた。'};
+  else if(occ>=3)S.over={k:'lost',t:'敗北',d:'すべての島嶼が占領された。'};
+  else if(!S.units.length)S.over={k:'lost',t:'艦隊壊滅',d:'指揮すべき艦が残っていない。'};
+  else if(S.month>=y*12)S.over={k:'end',t:'任期満了',d:`${y}年の任期を全うした。`};
+}
+// 島嶼侵攻は即座の事案ではなく、泊地に集結する侵攻部隊として現れる
+function rollIncident(){if(S.month<1)return null;
+  for(const i of ISLZ.slice().sort(()=>Math.random()-.5)){const s=S.sectors[i];if(!s.held||S.efl.some(e=>e.z===i))continue;
+    if(Math.random()<clamp((.04+(s.threat/100)*(.15+S.tension/250))*S.cfg.incF,0,.75)){const inc=mkIncident(i);if(inc.type!=='landing')return inc;
+      const M=mods(),known=Math.random()<clamp(.2+M.foresee+M.intel*.3,0,.9)?1:0;S.efl.push({id:++S.eid,z:i,eta:2,known,inc});
+      if(known)hlog(`情報：敵の泊地に揚陸部隊が集結している。目標は${ISL[i]}とみられる`,'r');return null;}}
+  return null;}
+function settle(o,inc){let dS=0,dT=0;const z=inc.sector,sec=ISLZ.includes(z)?S.sectors[z]:null,L=[],pp=S.cfg.prePen*(1-clamp(mods().prePen,-.3,.6));
+  dS-=o.pS*4;
+  if(o.res==='win'){S.stats.wins++;
+    if(o.bloodless){dS+=6;dT-=4;S.stats.blood0++;L.push('一発も撃たずに事態を収めた。国内外の評価は高い');}
+    else{dS+=4+Math.min(4,o.eS);dT+=o.eS*1.5-3;}
+    if(o.pursuitK){dT+=o.pursuitK*3;dS-=o.pursuitK;L.push('撤退中の敵への追撃が、緊張をさらに高めた');}
+    if(inc.type==='retake'&&sec){S.isl[z].cover=0;L.push(`${ISL[z]}周辺の制海を得た。準備攻撃と上陸作戦に進める`);}
+    else if(sec)sec.threat=Math.max(5,sec.threat-18);
+  }else if(o.res==='draw'){dS-=4;dT+=1;if(sec)sec.threat=Math.min(100,sec.threat+8);L.push('敵は領海内で示威を続けたのち引き揚げた。侵入を許したとの批判が出た');
+  }else{S.stats.loss++;dS-=8;dT+=4;
+    if(sec&&inc.type==='landing'){let fr=o.fr==null?1:o.fr;if(B&&B.inc===inc)fr=B.u.filter(u=>u.key==='elst'&&!u.dead).length/Math.max(1,inc.force.elst||1);
+      if(fr>0){S.gpend={z,L:inc.L,fr:clamp(fr,.4,1)};L.push(`敵の上陸部隊が${ISL[z]}に取りついた`);}else L.push('揚陸艦を失った敵は、上陸を断念した');}
+    else if(sec&&inc.type==='airraid'){sec.threat=Math.min(100,sec.threat+10);L.push(raidIsland(z)||'敵の既成事実化が一歩進んだ');}
+    else if(sec&&inc.type!=='retake'){sec.threat=Math.min(100,sec.threat+10);L.push('敵の既成事実化が一歩進んだ');}}
+  if(o.pre){dS-=15*pp;dT+=15*pp;L.push('先制攻撃に国内外から非難が集中した');}
+  S.stats.eSunk+=o.eS;dS=Math.round(dS);dT=Math.round(dT);
+  S.support=clamp(S.support+dS,0,100);S.tension=clamp(S.tension+dT,0,100);return{dS,dT,L};}
+function afterInc(html){S.pending=null;checkOver();save();render();modal(html+`<div class="mbtn"><button class="btn pri" data-m="ok">確認</button></div>`,{ok:()=>{closeModal();if(S.over)showOver();else if(S.gpend)groundPrompt();}});}
+function ignoreInc(inc){const z=inc.sector,sec=S.sectors[z];let dS=-6,dT=2;const L=[];
+  if(inc.type==='landing'){S.gpend={z,L:inc.L,fr:1};dS-=4;dT=5;L.push(`敵の上陸部隊は、海上で阻まれることなく${ISL[z]}に取りついた`);}
+  else{sec.threat=clamp(sec.threat+12,0,100);L.push(inc.type==='airraid'&&raidIsland(z)||'敵の既成事実化が進んだ');}
+  S.support=clamp(S.support+dS,0,100);S.tension=clamp(S.tension+dT,0,100);S.stats.loss++;hlog(`${SECT[z]}：${SCN[inc.type].n}に対処せず`,'r');
+  afterInc(`<div class="alert r">静観</div><h2>${SECT[z]}</h2>${L.map(l=>`<p>${l}。</p>`).join('')}<div class="pol">支持率 ${sg(dS)}　緊張度 ${sg(dT)}</div>`);}
+function autoResolve(inc){
+  const z=inc.sector,loc=fightIn(z),rs=reserve(z),us=loc.concat(rs.all),ep=forcePower(inc.force,inc.eT);
+  const r=(fleetPower(loc)+fleetPower(rs.near)*.5+fleetPower(rs.far)*.25)/Math.max(1,ep),win=Math.random()<clamp(.15+.4*r,.05,.93),hot=inc.type!=='intrusion'||Math.random()<S.tension/120;
+  let pS=0,eS=0;const lost=[];
+  if(hot){for(const u of us){u.hp-=R(0,(win?35:80)/Math.max(.5,r))*(rs.far.includes(u)?.2:rs.near.includes(u)?.4:1);for(const k in u.load)u.load[k]=Math.round(u.load[k]*R(.3,.8));if(u.ftr)u.ftr=Math.max(0,u.ftr-RI(0,win?1:3));
+      if(u.hp<=0){sink(u);pS++;lost.push(u.name);}else{u.hp=Math.round(u.hp);u.tr=Math.min(100,u.tr+3);u.rd=Math.max(0,u.rd-6);}}
+    eS=win?RI(1,Math.max(1,Math.round(ep/80))):RI(0,1);}
+  const o={res:win?'win':'lose',bloodless:win&&!hot,eS,pS,fr:R(.5,1)},pol=settle(o,inc);
+  hlog(`${SECT[z]}：${SCN[inc.type].n} ― ${win?'現場部隊が対処に成功':'現場部隊は対処に失敗'}`,win?'g':'r');
+  afterInc(`<div class="alert ${win?'g':'r'}">${win?'対処成功':'対処失敗'}</div><h2>${SECT[z]}　${SCN[inc.type].n}</h2><dl class="kv2"><dt>敵の損害</dt><dd>撃沈 ${eS}隻</dd><dt>我が損害</dt><dd>${pS?`沈没 ${pS}隻(${lost.join('、')})`:hot?'沈没なし。損傷艦は「部隊」で確認':'なし'}</dd></dl>${pol.L.map(l=>`<p class="sm">${l}。</p>`).join('')}<div class="pol">支持率 ${sg(pol.dS)}　緊張度 ${sg(pol.dT)}</div>`);}
+
+/* ---------- 上陸された島の地上戦に入る ---------- */
+const gstr=(list,q)=>list.reduce((a,x)=>{const t=GT[x.t||x.type];return a+x.hp*(t.atk+t.def)/2*(q?q(x):1);},0);
+function polApply(dS,dT){S.support=clamp(S.support+dS,0,100);S.tension=clamp(S.tension+dT,0,100);}
+function groundPrompt(){const gp=S.gpend;if(!gp||S.over)return;const z=gp.z,gar=garrison(z);if(!gp.force)gp.force=mkAssault(gp.L,gp.fr);
+  if(!gar.length){S.gpend=null;occupy(z,gp.L,gp.force);polApply(-6,3);checkOver();save();render();
+    modal(`<div class="alert r">占領</div><h2>${ISL[z]}</h2><p>守備隊のいない島に敵が上陸し、抵抗を受けずに占領した。</p><div class="pol">支持率 −6　緊張度 +3</div><div class="mbtn"><button class="btn pri" data-m="ok">確認</button></div>`,{ok:()=>{closeModal();if(S.over)showOver();}});return;}
+  save();
+  modal(`<div class="alert r">地上戦</div><h2>${ISL[z]}に敵が上陸</h2><p>敵は砂浜から司令部を目指してくる。司令部に乗り込まれたまま次の番を終えるか、守備隊が全滅すれば島は占領される。10ターン守り抜けば撃退できる。</p><dl class="kv2"><dt>敵の上陸部隊</dt><dd>${gp.force.length}個部隊(推定)</dd><dt>守備隊</dt><dd>${gar.map(g=>`${g.name}<span class="mut">(戦力${g.hp})</span>`).join('、')}</dd></dl><div class="mbtn"><button class="btn pri" data-m="f">守備隊を自ら指揮する</button><button class="btn" data-m="a">守備隊長に任せる(自動解決)</button></div>`,
+  {f:()=>{closeModal();startGround('defend',z);},a:()=>{closeModal();autoGround(z);}});}
+function autoGround(z){const gp=S.gpend,gar=garrison(z),M=mods();if(!gp)return;
+  const P=gstr(gar,g=>.8+.4*g.tr/100)*(1+M.gndPow)*1.35,E=gstr(gp.force)*(1+.05*eTech()),win=Math.random()<clamp(.5+(P-E)/Math.max(1,P+E)*.9,.06,.94);S.gpend=null;let dS,dT,h;
+  if(win){for(const g of gar){g.hp=Math.max(1,g.hp-RI(1,4));g.tr=Math.min(100,g.tr+5);}S.stats.wins++;dS=6;dT=-1;S.sectors[z].threat=Math.max(5,S.sectors[z].threat-15);hlog(`${ISL[z]}：守備隊が上陸した敵を撃退`,'g');
+    h=`<div class="alert g">撃退</div><h2>${ISL[z]}を守り抜いた</h2><p>守備隊は損害を出しながらも、上陸した敵を海へ追い落とした。</p>`;}
+  else{S.stats.loss++;S.enl.gnd.n=Math.max(0,S.enl.gnd.n-gar.length*RI(40,90));occupy(z,gp.L,gp.force.filter(()=>Math.random()<.75).map(e=>({t:e.t,hp:Math.max(3,e.hp-RI(1,4))})));dS=-6;dT=3;
+    h=`<div class="alert r">陥落</div><h2>${ISL[z]}が占領された</h2><p>守備隊は壊滅し、島は敵の手に落ちた。</p>`;}
+  polApply(dS,dT);S.pers.morale=clamp(S.pers.morale+(win?3:-4),5,100);checkOver();save();render();
+  modal(h+`<div class="pol">支持率 ${sg(dS)}　緊張度 ${sg(dT)}</div><div class="mbtn"><button class="btn pri" data-m="ok">確認</button></div>`,{ok:()=>{closeModal();if(S.over)showOver();}});}
+
+/* ================= 作戦図と部隊の画面 ================= */
+function alerts(){const a=[],pm=postMap();
+  for(const e of S.efl)if(e.known)a.push([`敵の揚陸部隊が${ISL[e.z]}を狙っている。到達まであと${e.eta}か月`,'r']);
+  if(S.fore&&S.foreK)a.push([`情報：来月、${SECT[S.fore.sector]}で${SCN[S.fore.type].n}の兆候がある`,'am']);
+  for(const i of ISLZ){const s=S.sectors[i],here=fightIn(i).length;
+    if(!s.held){a.push([`${ISL[i]}が占領下にある。「作戦」の作戦図から奪還に動ける`,'r']);continue;}
+    if(!here&&!reserve(i).all.length)a.push([`${SECT[i]}：艦隊がおらず、駆けつけられる増援もない`,'r']);else if(thr(i).v>=55&&!here)a.push([`${SECT[i]}：敵の活動が活発だが、所在の艦隊がない`,'am']);
+    if(!garrison(i).length)a.push([`${ISL[i]}に守備隊がいない。上陸されれば無抵抗で占領される`,'am']);}
+  const ln=ZONES.map((Z,i)=>Z.lane&&thr(i).v>=60&&!inZone(i).length?Z.n:null).filter(Boolean);if(ln.length)a.push([`シーレーンが脅かされている：${ln.join('、')}`,'am']);
+  const low=S.units.filter(u=>u.rd<40&&u.mode!=='dock');if(low.length)a.push([`整備度が低い：${low.map(u=>u.name).join('、')}`,'am']);
+  const dm=S.units.filter(u=>u.hp<70&&u.mode!=='dock');if(dm.length)a.push([`損傷艦：${dm.map(u=>u.name).join('、')}(ドック整備で修理)`,'r']);
+  if(S.units.some(u=>{const c=cap(u);return Object.keys(c).some(k=>(u.load[k]||0)<c[k]);}))a.push(['弾薬が定数に足りない艦がある。「調達」で補充を','am']);
+  if(fill()<.9)a.push([`曹士の充足率 ${Math.round(fill()*100)}%`,'am']);
+  const vac=allPosts().filter(p=>!pm[p.id]).length;if(vac)a.push([`欠員のポストが ${vac} ある(人事の「補職」)`,'am']);
+  if(S.labs.some(l=>!l.cur&&!l.auto))a.push(['課題が決まっていない研究所がある','am']);
+  if(Object.keys(S.projs).some(k=>S.projs[k].wait))a.push(['資金不足で止まっている開発計画がある','am']);
+  if(S.funds<0)a.push(['資金が赤字。続くと支持率が下がる','r']);
+  return a;}
+function thrCol(i){const s=S.sectors[i],lv=thr(i);return !s.held||lv.c==='r'?'#ff6b5e':lv.c==='am'?'#f2b54a':'#63dba0';}
+// 作戦図。海の名は実在、陸地の形は架空
+function theaterSVG(){const P=i=>ZONES[i],fsel=ui.fsel!=null?FL(ui.fsel):null;
+  let s=`<svg viewBox="0 0 320 432" class="tmap" role="img" aria-label="作戦図"><rect width="320" height="432" fill="#081a2a"/>
+<path d="M0,0 L84,0 Q98,30 72,62 Q42,98 54,150 Q62,210 36,262 Q12,300 32,340 Q42,384 14,432 L0,432Z" fill="#33211f" stroke="#7a4f48"/>
+<path d="M210,98 Q238,122 228,160 Q220,202 188,224 Q162,238 148,220 Q168,200 180,168 Q184,126 210,98Z" fill="#2c4a37" stroke="#5c8c6b"/><text x="212" y="196" class="t2">本土</text>`;
+  for(let i=0;i<ZONES.length;i++)for(const j of ADJ[i])if(j>i){const a=P(i),b=P(j),en=a.enemy||b.enemy;s+=`<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="${en?'#7a3a36':'#28506a'}" stroke-width="${en?1:1.5}"${en?' stroke-dasharray="2 4"':''}/>`;}
+  for(const f of S.fleets)if(f.dest!=null){const p=zpath(f.zone,f.dest);if(p)s+=`<polyline points="${p.map(z=>P(z).x+','+P(z).y).join(' ')}" fill="none" stroke="#5fb0ff" stroke-width="2.5" stroke-dasharray="6 4" opacity=".85"/>`;}
+  ZONES.forEach((Z,i)=>{const sec=S.sectors[i],isI=ISLZ.includes(i),sel=ui.zsel===i,x=Z.x,y=Z.y;let col='#5fb0ff',st='';
+    if(Z.enemy)col='#ff6b5e';else if(Z.home)st='母港';
+    else{col=thrCol(i);st=isI?(sec.held?'敵活動 '+thr(i).t:'占領下'):thr(i).v>=60?'通商妨害':'航路 '+thr(i).t;}
+    s+=`<g onclick="A.zone(${i})"><circle cx="${x}" cy="${y}" r="28" fill="#000" fill-opacity="0"/>`;
+    s+=Z.enemy?`<rect x="${x-13}" y="${y-13}" width="26" height="26" transform="rotate(45 ${x} ${y})" fill="${col}" fill-opacity="${sel?.3:.14}" stroke="${sel?'#fff':col}" stroke-opacity=".8"/>`
+      :`<circle cx="${x}" cy="${y}" r="22" fill="${col}" fill-opacity="${sel?.3:.1}" stroke="${sel?'#fff':col}" stroke-opacity="${sel?.95:.65}" stroke-width="${fsel?2:1}"${fsel?'':' stroke-dasharray="3 3"'}/>`;
+    if(isI)s+=`<path d="M${x-8},${y+3} q3,-9 9,-7 q8,-1 7,7 q-7,5 -16,0Z" fill="${sec.held?'#5c8c6b':'#a8584e'}" stroke="${sec.held?'#8fc09d':'#e08a80'}" stroke-width=".8"/>`;
+    else if(Z.home)s+=`<rect x="${x-4}" y="${y-4}" width="8" height="8" fill="#5fb0ff"/>`;
+    const ta=x<50?`x="${x-16}"`:`x="${x}" text-anchor="middle"`;
+    s+=`<text ${ta} y="${y+36}" class="t1">${Z.n}</text>${st?`<text ${ta} y="${y+47}" class="t2" fill="${col}">${st}${isI&&sec.held&&garrison(i).length?'・陸'+garrison(i).length:''}</text>`:''}</g>`;});
+  const cnt={};S.fleets.forEach((f,k)=>{const Z=P(f.zone),n=cnt[f.zone]=(cnt[f.zone]||0)+1,x=Z.x-20+((n-1)%3)*20,y=Z.y-28-Math.floor((n-1)/3)*19,sel=ui.fsel===f.id;
+    s+=`<g onclick="A.fsel(${f.id})"><circle cx="${x}" cy="${y}" r="13" fill="#000" fill-opacity="0"/><circle cx="${x}" cy="${y}" r="9" fill="${sel?'#fff':'#1d4e6b'}" stroke="#5fb0ff" stroke-width="1.5"/><text x="${x}" y="${y+3.6}" text-anchor="middle" style="font-size:10.5px;fill:${sel?'#0b1b2a':'#fff'}">${k+1}</text></g>`;});
+  for(const e of S.efl)if(e.known){const a=P(EBASE[e.z]),b=P(e.z),t=e.eta>=2?.16:.58,x=Math.round(a.x+(b.x-a.x)*t),y=Math.round(a.y+(b.y-a.y)*t);
+    s+=`<g style="pointer-events:none"><path d="M${x},${y-8} l8,8 l-8,8 l-8,-8Z" fill="#ff6b5e" stroke="#fff" stroke-width=".8"/><text x="${x+11}" y="${y+3.5}" class="t2" style="fill:#ffb3aa">侵攻部隊</text></g>`;}
+  for(const i of ISLZ)if(!S.sectors[i].held&&S.isl[i].cover){const Z=P(i);s+=`<path style="pointer-events:none" d="M${Z.x+15},${Z.y-9} l6,6 l-6,6 l-6,-6Z" fill="#ff6b5e"/>`;}
+  return s+'</svg>';}
+const gLoc=g=>g.loc==='home'?'本土':g.loc[0]==='i'?ISL[+g.loc.slice(1)]:(FL(+g.loc.slice(1))||{n:'艦隊'}).n+'に乗船';
+function gRow(g,act){const t=GT[g.type];return `<div class="unit ${g.loc==='home'?'':'away'}"><div class="uh"><span class="tag">${t.s}</span><b>${g.name}</b><span class="loc">${esc(gLoc(g))}</span></div>
+  <div class="st3"><div><label>戦力 ${g.hp}/10</label>${bar(g.hp*10,g.hp<4?'r':g.hp<7?'am':'g')}</div><div><label>練度 ${Math.round(g.tr)}</label>${bar(g.tr,'b')}</div><div><label>攻${t.atk} 防${t.def} 移${t.mv}${t.rng>1?' 射'+t.rng:''}</label></div></div>${act||''}</div>`;}
+function zonePanel(z){const Z=ZONES[z],s=S.sectors[z],il=S.isl[z],here=inZone(z),fl=S.fleets.filter(f=>f.zone===z);
+  let h=`<section class="sec zp"><h2>${Z.n}${il?'　'+Z.isl:''}</h2>`;
+  if(Z.enemy){const es=S.efl.filter(e=>e.known&&EBASE[e.z]===z);
+    return h+`<p class="sm">敵の泊地。専守防衛のもとでは、こちらから踏み込めない。侵攻部隊はここに集結してから島へ向かう。</p>${es.map(e=>`<p class="al r">揚陸部隊が${e.eta>=2?'集結している':'出撃した'}。目標は${ISL[e.z]}、到達まであと${e.eta}か月</p>`).join('')||'<p class="sm mut">目立った動きは確認されていない。</p>'}</section>`;}
+  const rs=reserve(z);h+='<dl class="kv2">';
+  if(Z.home)h+='<dt>役割</dt><dd>母港と本土。ここにいる艦は整備度が回復する。演習とドック整備、陸上部隊の編成もここで行う</dd>';
+  else if(Z.lane)h+=`<dt>航路の脅威</dt><dd class="${thr(z).c}">${thr(z).t}${thr(z).v>=60&&!here.length?'。通商妨害で毎月の収入と支持が削られている':''}</dd>`;
+  else h+=`<dt>${s.held?'敵の活動':'状況'}</dt><dd class="${s.held?thr(z).c:'r'}">${s.held?thr(z).t:Z.isl+'は占領下'}</dd>`;
+  h+=`<dt>所在の艦隊</dt><dd>${fl.length?fl.map(f=>esc(f.n)).join('、'):'なし'}${here.length?`<br><span class="mut sm">${here.length}隻、戦力 ${Math.round(fleetPower(here))}</span>`:''}</dd>`;
+  if(!Z.home)h+=`<dt>増援に来られる艦</dt><dd>隣の海域 ${rs.near.length}隻、2つ先 ${rs.far.length}隻</dd>`;
+  h+='</dl>';
+  if(il&&s.held){const gar=garrison(z);
+    h+=`<h3 class="sub">施設</h3><div class="facs">${Object.keys(FAC).map(k=>`<div class="${il.fac[k]<50?'dm':''}"><b>${FAC[k][0]}</b>${il.fac[k]<50?' <span class="r">損壊</span>':''}<small>${FACD[k]}</small></div>`).join('')}</div>
+    <h3 class="sub">守備隊 ${gar.length}個</h3>${gar.length?gar.map(g=>gRow(g)).join(''):'<p class="al am">守備隊がいない。上陸されれば無抵抗で占領される。「部隊」の陸上部隊を輸送艦に乗せて運ぶこと。</p>'}`;}
+  else if(il){const ctrl=seaCtrl(z),emb=fl.reduce((a,f)=>a.concat(fleetLoad(f)),[]),str=e=>e.hp>=8?'充足':e.hp>=5?'消耗':'壊滅寸前';
+    h+=`<h3 class="sub">敵の守備隊(推定)</h3><p class="sm">${il.egar.map(e=>`${GT[e.t].n}<span class="mut">(${str(e)})</span>`).join('、')}</p>
+    <dl class="kv2"><dt>陣地</dt><dd>${FORT[il.fort]}</dd><dt>周辺の敵艦隊</dt><dd class="${il.cover?'r':'g'}">${il.cover?'居座っている':'排除済み'}</dd><dt>制海</dt><dd>${ctrl?'<span class="g">確保</span>。敵守備隊の補給を断っている':il.cover?'未確保':'未確保。この海域に戦闘艦を置くこと'}</dd><dt>上陸部隊</dt><dd>${emb.length?emb.map(g=>g.name).join('、'):'この海域の艦隊には乗っていない'}</dd></dl>
+    <p class="sm mut">奪還の手順：①周辺の敵艦隊を排除して制海を得る　②艦砲射撃・空爆・ミサイルで守備隊と陣地を叩く(月に各1回)　③輸送艦に乗せた陸上部隊で上陸し、司令部を制圧する。制海を保つあいだは、封鎖で敵が毎月弱っていく。</p>
+    <div class="brow"><button class="btn sm warn" ${il.cover?'':'disabled'} onclick="A.retake(${z})">①敵艦隊を排除</button><button class="btn sm" ${ctrl?'':'disabled'} onclick="A.prep(${z})">②準備攻撃</button><button class="btn sm pri" ${ctrl&&emb.length?'':'disabled'} onclick="A.land(${z})">③上陸作戦</button></div>`;}
+  return h+'</section>';}
+VIEW.home=()=>{const inc=income(),cost=Math.round(monthCost()),al=alerts(),C=S.cfg;
+  let h=`<section class="sec"><h2>島嶼の情勢</h2><div class="sgrid">`;
+  for(const i of ISLZ){const s=S.sectors[i],lv=thr(i),fl=S.fleets.filter(f=>f.zone===i),gn=garrison(i).length;
+    h+=`<div class="sbox ${s.held?'':'occ'}" onclick="A.goz(${i})"><b>${ISL[i]}</b><span class="${s.held?lv.c:'r'}">${s.held?'敵活動 '+lv.t:'占領下'}</span>${bar(s.held?lv.v:100,s.held?lv.c:'r')}<small>${SECT[i]}<br>${fl.length?fl.map(f=>esc(f.n)).join('・'):'艦隊なし'}<br>守備隊 ${s.held?gn+'個':'―'}</small></div>`;}
+  h+=`</div><p class="mut sm">島をタップすると作戦図が開く。</p></section>`;
+  if(al.length)h+=`<section class="sec"><h2>要対処</h2>${al.map(a=>`<p class="al ${a[1]}">${a[0]}</p>`).join('')}</section>`;
+  h+=`<section class="sec"><h2>今月の見通し</h2><dl class="kv"><dt>防衛予算(月割)</dt><dd class="g">+${inc} 億円</dd><dt>維持費と各種経費</dt><dd>−${cost} 億円</dd><dt>差引</dt><dd class="${inc-cost<0?'r':'g'}">${sg(inc-cost)} 億円</dd><dt>抑止力(我／敵)</dt><dd>${Math.round(fleetPower())}／${enemyPower()}</dd><dt>陸上部隊</dt><dd>${S.gnd.length}個</dd><dt>技術の蓄積</dt><dd>${totalLv()}段階</dd><dt>戦績</dt><dd>${S.stats.wins}勝 ${S.stats.loss}敗(うち無血 ${S.stats.blood0})</dd><dt>任期</dt><dd>${Math.floor(S.month/12)+1}年目／全${C.years}年</dd></dl></section>`;
+  h+=`<section class="sec"><h2>記録</h2>${S.log.length?S.log.slice(0,12).map(l=>`<p class="lg ${l.c}"><span>${dateStr(l.m)}</span>${l.msg}</p>`).join(''):'<p class="mut sm">まだ記録はない</p>'}</section>`;
+  h+=`<section class="sec"><div class="brow"><button class="btn sm" onclick="A.drill()">図上演習(海戦)</button><button class="btn sm" onclick="A.gdrill()">図上演習(上陸戦)</button><button class="btn sm" onclick="A.help()">遊び方</button><button class="btn sm" onclick="A.reset()">新しく始める</button></div></section>`;
+  return h;};
+VIEW.deploy=()=>{const fsel=ui.fsel!=null?FL(ui.fsel):null,T=reinTime();
+  let h=`<section class="sec"><h2>作戦図</h2>${fsel?`<p class="al am">${esc(fsel.n)}の行き先を選ぶ。作戦図の海域をタップ</p>`:''}${theaterSVG()}<p class="mut sm">艦隊は1か月に2海域ぶん進む。事案にはその海域の艦隊が当たり、隣の海域の艦は${T}分後、2つ先の海域の艦は${T*2}分後に増援として着く。海域をタップすると詳細、艦隊の番号をタップすると行き先を選べる。</p></section>`;
+  if(ui.zsel!=null)h+=zonePanel(ui.zsel);
+  h+=`<section class="sec"><h2>艦隊</h2>`;
+  S.fleets.forEach((f,k)=>{const us=flUnits(f),cp=fleetCap(f),ld=fleetLoad(f),mv=f.dest!=null;
+    h+=`<div class="unit ${f.zone>0?'away':''}"><div class="uh"><span class="fb">${k+1}</span><b>${esc(f.n)}</b><span class="loc">${SECT[f.zone]}${mv?` → ${ZS[f.dest]}(あと${Math.ceil(HOP[f.zone][f.dest]/2)}か月)`:''}</span></div>
+      <p class="sm mut">${us.length?us.map(u=>PT[u.type].s+' '+u.name+(u.tz>0?'(合流中)':u.mode!=='normal'?'(母港)':'')).join('、'):'所属艦なし'}<br>戦力 ${Math.round(fleetPower(us.filter(u=>u.sector===f.zone)))}${cp||ld.length?`　輸送 ${ld.length}/${cp}個`:''}</p>
+      <div class="zb">${[0,1,2,3,4,5,6,7].map(z=>`<button class="${f.zone===z&&!mv?'on':f.dest===z?'dst':''}" onclick="A.fdest(${f.id},${z})">${ZS[z]}</button>`).join('')}</div></div>`;});
+  const free=S.units.filter(u=>!u.fl);
+  h+=`${S.fleets.length?'':'<p class="mut sm">艦隊がない。「部隊」の艦隊編成で編成する。</p>'}${free.length?`<p class="sm mut">母港で待機中(無所属)：${free.map(u=>u.name).join('、')}</p>`:''}<div class="brow"><button class="btn sm" onclick="A.sub('units','fleets');A.tab('units')">艦隊の編成を変える</button></div></section>`;
+  return h;};
+const UV={};
+UV.ships=()=>{const st=S.stock,pm=postMap();
+  let h=`<section class="sec"><h2>在庫</h2><dl class="kv"><dt>艦対空ミサイル</dt><dd>${st.sam}</dd><dt>対艦ミサイル</dt><dd>${st.asm}</dd><dt>空対空ミサイル</dt><dd>${st.aam}</dd><dt>魚雷・対潜弾</dt><dd>${st.torp}</dd><dt>予備機(戦闘機／早期警戒機)</dt><dd>${S.pool.ftr}／${S.pool.aew}</dd></dl><p class="mut sm">弾薬は月が替わるときに在庫から各艦へ自動で補給される。</p></section><section class="sec"><h2>艦艇 ${S.units.length}隻</h2>`;
+  for(const u of S.units){const t=PT[u.type],c=cap(u),ps=shipPosts(u),vac=ps.filter(p=>!pm[u.id+':'+p[0]]).length;
+    h+=`<div class="unit ${u.sector!==0?'away':''}"><div class="uh"><span class="tag">${t.s}</span><b>${u.name}</b><small>${t.n}</small><span class="loc">${u.refit?`改修中 あと${u.refit.left}か月`:u.mode==='dock'?'ドック整備中':u.mode==='drill'?'演習中':u.tz>0?`合流中 あと${u.tz}か月`:SECT[u.sector]}</span></div>
+      <div class="st3"><div><label>練度 ${Math.round(u.tr)}</label>${bar(u.tr,'b')}</div><div><label>整備度 ${Math.round(u.rd)}</label>${bar(u.rd,u.rd<40?'r':u.rd<60?'am':'g')}</div><div><label>船体 ${Math.round(u.hp)}%</label>${bar(u.hp,u.hp<50?'r':u.hp<80?'am':'g')}</div></div>
+      <div class="amm">${Object.keys(c).filter(k=>c[k]).map(k=>`<span class="${(u.load[k]||0)<c[k]?'am':''}">${AMN[k]} ${u.load[k]||0}/${c[k]}</span>`).join('')}${t.tcap?`<span>陸上部隊 ${t.tcap}個を輸送</span>`:''}<span class="mut">戦闘効率 ${Math.round(unitQ(u)*100)}%</span></div>
+      <div class="urow"><label>所属</label><select onchange="A.ufl(${u.id},+this.value)" aria-label="${u.name}の所属" ${u.tz>0?'disabled':''}><option value="0">母港(無所属)</option>${S.fleets.map(f=>`<option value="${f.id}" ${u.fl===f.id?'selected':''}>${esc(f.n)}(${ZS[f.zone]})</option>`).join('')}</select></div>
+      ${t.fcap?`<div class="urow"><label>搭載機</label><span>戦闘機 ${u.ftr}/${ftrCap(u)}</span><button class="mini" onclick="A.air(${u.id},'ftr',1)" aria-label="戦闘機を積む">＋</button><button class="mini" onclick="A.air(${u.id},'ftr',-1)" aria-label="戦闘機を降ろす">－</button><span>警戒機 ${u.aew}/${aewCap(u)}</span><button class="mini" onclick="A.air(${u.id},'aew',1)" aria-label="警戒機を積む">＋</button><button class="mini" onclick="A.air(${u.id},'aew',-1)" aria-label="警戒機を降ろす">－</button></div>`:''}
+      ${ps.length?`<div class="urow"><label>幹部</label><span class="grow sm">艦長 ${oname(pm[u.id+':co'])}${vac?`　<span class="am">欠員${vac}</span>`:''}</span><button class="btn sm" onclick="A.gopost(${u.id})">補職</button></div>`:''}
+      <div class="urow"><label>改修</label><span class="grow sm">${u.mods.length?u.mods.map(k=>KIT[k].n).join('、'):'なし'}</span><button class="btn sm" onclick="A.kit(${u.id})">改修・除籍</button></div>
+      <div class="urow"><label>運用</label><div class="seg">${['normal','drill','dock'].map((m,i)=>`<button class="${u.mode===m?'on':''}" ${u.refit?'disabled':''} onclick="A.mode(${u.id},'${m}')">${['通常','演習','ドック整備'][i]}</button>`).join('')}</div></div></div>`;}
+  return h+`<p class="mut sm">演習は練度が大きく伸びるが整備度が下がり、月8億円かかる。ドック整備は整備度と船体を回復する。どちらも母港で行い、終わると艦隊へ戻る(離れた海域なら合流に時間がかかる)。</p></section>`;};
+UV.fleets=()=>{let h=`<section class="sec"><h2>艦隊 ${S.fleets.length}個</h2><p class="mut sm">艦は艦隊ごとに動く。各艦の所属は「艦艇」で変える。別の海域にいる艦隊へ移すと、合流に時間がかかる。輸送艦を含む艦隊は陸上部隊を運べる。</p>`;
+  S.fleets.forEach((f,k)=>{const us=flUnits(f),cp=fleetCap(f),ld=fleetLoad(f);
+    h+=`<div class="unit ${f.zone>0?'away':''}"><div class="uh"><span class="fb">${k+1}</span><b>${esc(f.n)}</b><span class="loc">${SECT[f.zone]}${f.dest!=null?' → '+ZS[f.dest]:''}</span></div>
+      <p class="sm">${us.length?us.map(u=>`<span class="tag">${PT[u.type].s}</span> ${u.name}${u.tz>0?' <small class="am">合流中</small>':u.mode!=='normal'?' <small class="am">母港</small>':''}`).join('　'):'<span class="mut">所属艦なし</span>'}</p>
+      ${cp||ld.length?`<p class="sm">輸送 ${ld.length}/${cp}個：${ld.length?ld.map(g=>g.name).join('、'):'<span class="mut">空き</span>'}</p>`:''}
+      <div class="brow"><button class="btn sm" onclick="A.fname(${f.id})">名前を変える</button><button class="btn sm" onclick="A.fdel(${f.id})">解隊</button></div></div>`;});
+  return h+`<div class="brow"><button class="btn sm pri" onclick="A.fnew()">新しい艦隊を編成する</button></div></section>`;};
+function gActs(g){let b='';
+  if(g.loc[0]!=='f'){const z=g.loc==='home'?0:+g.loc.slice(1);for(const f of S.fleets)if(f.zone===z&&fleetCap(f)>fleetLoad(f).length)b+=`<button class="btn sm" onclick="A.gmove(${g.id},'f${f.id}')">${esc(f.n)}に乗船</button>`;
+    if(!b)b=`<span class="sm mut">${z?SECT[z]:'本土近海'}に、空きのある輸送艦を含む艦隊がいない</span>`;}
+  else{const f=FL(+g.loc.slice(1));if(f){if(f.zone===0)b=`<button class="btn sm" onclick="A.gmove(${g.id},'home')">本土に下ろす</button>`;
+      else if(ISLZ.includes(f.zone)&&S.sectors[f.zone].held)b=`<button class="btn sm" onclick="A.gmove(${g.id},'i${f.zone}')">${ISL[f.zone]}に下ろす</button>`;
+      else b=`<span class="sm mut">${ISLZ.includes(f.zone)?'島は占領下。「作戦」の上陸作戦で揚げる':'本土近海か、島のある海域に着くと下ろせる'}</span>`;}}
+  return `<div class="urow"><label>移動</label><div class="brow grow" style="margin:0">${b}</div></div><div class="urow"><label>管理</label><button class="btn sm" onclick="A.gdis(${g.id})">解隊</button></div>`;}
+UV.gnd=()=>{let h=`<section class="sec"><h2>陸上部隊 ${S.gnd.length}個</h2><p class="mut sm">島の守備と奪還を担う。海を渡るには、輸送艦を含む艦隊に乗せて運ぶ。本土にいるあいだは練度と戦力が回復する。新しい部隊は「調達」で編成できる。</p>`;
+  if(!S.gnd.length)h+='<p class="al am">陸上部隊がない</p>';
+  for(const g of S.gnd)h+=gRow(g,gActs(g));
+  return h+'</section>';};
+VIEW.units=()=>subtabs('units',[['ships','艦艇'],['fleets','艦隊編成'],['gnd','陸上部隊']])+(UV[ui.sub.units]||UV.ships)();
+VIEW.shop=()=>{
+  let h=`<section class="sec"><h2>発注中</h2>${S.orders.length?S.orders.map(o=>`<div class="drow"><div style="flex:1">${o.n}</div><div class="mut">あと ${o.due-S.month} か月</div></div>`).join(''):'<p class="mut sm">発注中のものはない</p>'}</section><section class="sec"><h2>調達</h2><p class="mut sm">400億円以上のものは、一括払いか分割払いかを選べる。艦は母港で就役し、陸上部隊は本土で編成される。</p>`;
+  const item=(k,n,d)=>{const c=price(k);return `<div class="item"><div class="uh"><b>${n}</b><span class="loc">${c.toLocaleString()}億円／${buildMo(k)}か月</span></div><p class="sm mut">${d}</p><button class="btn sm" ${canPay(c)||c>=400?'':'disabled'} onclick="A.buy('${k}')">発注する</button></div>`;};
+  h+='<h3 class="sub">艦艇</h3>';const locked=[];
+  for(const k of SHIPK){const t=PT[k];if(t.lock&&!S.unlock[k]){locked.push(t.n);continue;}h+=item(k,t.n,`${t.d}。乗員${t.crew}名、維持費は月${t.up}億円`);}
+  if(locked.length)h+=`<p class="sm mut">開発計画を終えると調達できる：${locked.join('、')}</p>`;
+  h+='<h3 class="sub">陸上部隊</h3>';for(const k of GTK){const t=GT[k];h+=item('g_'+k,t.n,`${t.d}。攻撃${t.atk}・防御${t.def}・移動${t.mv}、維持費は月${t.up}億円`);}
+  h+='<h3 class="sub">航空機</h3>';for(const k of['ftr','aew'])h+=item(k,SHOPX[k].n,SHOPX[k].d);
+  h+='<h3 class="sub">弾薬</h3>';for(const k of['sam','asm','aam','torp'])h+=item(k,SHOPX[k].n,SHOPX[k].d+`(在庫 ${S.stock[k]})`);
+  return h+'</section>';};
+function showIncident(){const inc=S.pending;if(!inc)return;const z=inc.sector,us=fightIn(z),rs=reserve(z),rt=inc.type==='retake',can=us.length||rs.all.length,T=reinTime(),gar=garrison(z);
+  const rn=(rs.near.length?`隣の海域から：${rs.near.map(u=>u.name).join('、')}<br><span class="mut sm">戦闘開始の${T}分後に着く</span>`:'')+(rs.near.length&&rs.far.length?'<br>':'')+(rs.far.length?`2つ先の海域から：${rs.far.map(u=>u.name).join('、')}<br><span class="mut sm">${T*2}分後に着く</span>`:'');
+  modal(`<div class="alert r">${rt?'作戦計画':'事案発生'}</div><h2>${SECT[z]}　${SCN[inc.type].n}</h2><p>${SCN[inc.type].d(inc)}</p><dl class="kv2"><dt>敵情(推定)</dt><dd>${inc.intel}</dd><dt>現場の兵力</dt><dd>${us.length?us.map(u=>u.name).join('、'):'<b class="r">所在の艦隊なし</b>'}</dd><dt>増援</dt><dd>${rn||'なし'}</dd>${inc.type==='landing'?`<dt>島の守備隊</dt><dd>${gar.length?gar.map(g=>g.name).join('、'):'<b class="r">なし</b>'}</dd>`:''}</dl><div class="mbtn">${can?`<button class="btn pri" data-m="fight">出撃し、自ら指揮を執る</button><button class="btn" data-m="auto">現場指揮官に任せる(自動解決)</button>`:''}<button class="btn" data-m="ignore">${rt?'作戦を中止する':can?'静観する':'対処できない(静観)'}</button></div>`,
+  {fight:()=>{closeModal();if(can)startBattle(inc);else ignoreInc(inc);},auto:()=>{closeModal();if(can)autoResolve(inc);else ignoreInc(inc);},ignore:()=>{closeModal();if(rt){S.pending=null;save();render();}else ignoreInc(inc);}});}
+function showHelp(){const C=S.cfg;modal(`<div class="alert">着任</div><h2>${esc(C.fleetName)}司令部</h2><p>${C.cmdr?esc(C.cmdr)+'司令。':''}あなたは${esc(C.nation)}海上防衛軍を預かる。任期の${C.years}年間、オホーツク海・東シナ海・南シナ海にある3つの島を守り抜く。支持率が0%になれば更迭される。</p>
+<ul class="sm"><li><b>作戦</b>：艦隊を海域へ送る。事案にはその海域の艦隊が当たり、隣と2つ先の海域からは増援が遅れて着く。シーレーンを空けたままにすると収入が減る</li><li><b>部隊</b>：艦の所属と演習・整備・改修、艦隊の編成、陸上部隊の輸送</li><li><b>陸上部隊</b>：島の守備隊になる。敵に上陸されると地上戦になり、守備隊がいなければ無抵抗で占領される</li><li><b>奪還</b>：占領された島は、制海を得て、砲爆撃で叩き、上陸して司令部を制圧すれば取り戻せる</li><li><b>人事・開発・予算</b>：幹部の補職、研究と装備開発、64費目の配分と年度の折衝</li><li><b>翌月へ進む</b>で時間が進む</li></ul>
+<p><b>海戦の操作</b></p><ul class="sm"><li>自部隊をタップで選択、海面をタップで移動、敵をタップで目標に指定。右下の「3D」で立体表示</li><li>敵が撃つか領海に居座るまで、武器は使えない。艦を相手の50km以内に寄せて「警告」し、退去させれば最良の結果になる</li></ul>
+<p><b>地上戦の操作</b></p><ul class="sm"><li>ターン制。自部隊をタップして、水色のマスへ移動、赤い枠の敵をタップで攻撃</li><li>動かず撃たなかった部隊は陣地を固める。森・丘・市街は守りやすい</li><li>艦砲射撃・爆撃・ミサイルは、その海域にいる艦隊が支援する。施設を制圧すると効果が自軍に移る</li></ul>
+<p class="sm mut">「概況」の図上演習で、海戦と上陸戦を練習できる。</p>
+<div class="mbtn"><button class="btn pri" data-m="ok">任務に就く</button></div>`);}
+
+/* ---------- 操作 ---------- */
+Object.assign(A,{
+  help:showHelp,
+  tab(t){ui.tab=t;render();window.scrollTo(0,0);},
+  goz(z){ui.tab='deploy';ui.zsel=z;ui.fsel=null;render();const e=document.querySelector('.zp');if(e&&e.scrollIntoView)e.scrollIntoView({block:'start'});},
+  zone(z){if(ui.fsel!=null&&!ZONES[z].enemy){const id=ui.fsel;ui.fsel=null;return A.fdest(id,z);}ui.fsel=null;ui.zsel=ui.zsel===z?null:z;render();},
+  fsel(id){ui.fsel=ui.fsel===id?null:id;render();},
+  fdest(id,z){const f=FL(id);if(!f||ZONES[z].enemy)return;f.dest=z===f.zone?null:z;save();render();toast(f.dest==null?`${f.n}：${SECT[f.zone]}にとどまる`:`${f.n}：${SECT[z]}へ向かう(${Math.ceil(HOP[f.zone][z]/2)}か月)`);},
+  fnew(){if(S.fleets.length>=12)return toast('艦隊はこれ以上編成できない');let n=1;while(S.fleets.some(f=>f.n===`第${n}任務部隊`))n++;S.fleets.push({id:++S.fid,n:`第${n}任務部隊`,zone:0,dest:null});save();render();toast('母港で艦隊を編成した。「艦艇」で艦を所属させること');},
+  fname(id){const f=FL(id);if(!f)return;modal(`<h2>艦隊の名前</h2><div class="srow"><input id="fnm" value="${esc(f.n)}" maxlength="14" aria-label="艦隊の名前"></div><div class="mbtn"><button class="btn pri" data-m="ok">決める</button><button class="btn" data-m="n">やめる</button></div>`,
+    {ok:()=>{const v=$('#fnm').value.replace(/[<>&"'`]/g,'').trim();closeModal();if(v){f.n=v;save();render();}},n:closeModal});},
+  fdel(id){const f=FL(id);if(!f)return;if(fleetLoad(f).length)return toast('陸上部隊を乗せている。先に下船させること');
+    confirmM(`${esc(f.n)}を解隊する。所属の艦は母港へ戻る。`,()=>{for(const u of flUnits(f)){if(f.zone!==0&&u.mode==='normal')u.tz=Math.max(u.tz||0,Math.ceil(HOP[f.zone][0]/2));u.fl=0;}S.fleets=S.fleets.filter(x=>x!==f);if(ui.fsel===id)ui.fsel=null;save();render();},'解隊する');},
+  ufl(uid,fid){const u=U(uid),f=fid?FL(fid):null;if(!u||(fid&&!f)||u.fl===fid)return;const of=u.fl?FL(u.fl):null;
+    if(u.tz>0){render();return toast('合流中の艦は所属を変えられない');}
+    if(of&&PT[u.type].tcap&&u.mode==='normal'&&fleetCap(of)-PT[u.type].tcap<fleetLoad(of).length){render();return toast('陸上部隊を乗せている。先に下船させること');}
+    const from=of&&u.mode==='normal'?of.zone:0,to=f?f.zone:0;u.fl=fid;if(u.mode==='normal'&&from!==to)u.tz=Math.ceil(HOP[from][to]/2);save();render();
+    toast(u.tz>0?`${u.name}：合流まで${u.tz}か月`:`${u.name}：${f?f.n+'に所属':'母港で待機'}`);},
+  mode(id,m){const u=U(id);if(!u||u.refit||u.mode===m)return;const f=u.fl?FL(u.fl):null;
+    if(m!=='normal'&&u.tz>0)return toast('合流中は切り替えられない');
+    if(m!=='normal'&&u.mode==='normal'&&f&&PT[u.type].tcap&&fleetCap(f)-PT[u.type].tcap<fleetLoad(f).length)return toast('陸上部隊を乗せている。先に下船させること');
+    if(u.mode==='normal')u.mm=S.month;u.mode=m;if(m==='normal'&&f&&f.zone!==0&&u.mm!==S.month)u.tz=Math.ceil(HOP[0][f.zone]/2);save();render();if(u.tz>0)toast(`${u.name}：艦隊への合流まで${u.tz}か月`);},
+  gmove(gid,dest){const g=S.gnd.find(x=>x.id===gid);if(!g)return;
+    if(dest[0]==='f'){const f=FL(+dest.slice(1)),z=g.loc==='home'?0:g.loc[0]==='i'?+g.loc.slice(1):-1;if(!f||f.zone!==z||fleetCap(f)<=fleetLoad(f).length)return toast('乗船できない');}
+    else{const f=g.loc[0]==='f'?FL(+g.loc.slice(1)):null;if(!f||(dest==='home'?f.zone!==0:!(dest==='i'+f.zone&&ISLZ.includes(f.zone)&&S.sectors[f.zone].held)))return toast('ここでは下ろせない');}
+    g.loc=dest;save();render();toast(`${g.name}：${gLoc(g)}`);},
+  gdis(gid){const g=S.gnd.find(x=>x.id===gid);if(!g)return;confirmM(`${g.name}を解隊する。部隊は戻らない。`,()=>{S.gnd=S.gnd.filter(x=>x!==g);hlog(`${g.name}を解隊`,'');save();render();},'解隊する');},
+  retake(z){if(S.pending||S.over||S.gpend)return;if(!S.isl[z].cover)return toast('周辺に敵艦隊はいない');S.pending=mkIncident(z,'retake');save();showIncident();},
+  prep(z){const il=S.isl[z];if(S.sectors[z].held)return;if(!seaCtrl(z))return toast('制海を確保していない');
+    const us=fightIn(z),gun=us.filter(u=>PT[u.type].cat==='ship'&&PT[u.type].val>=30).length,ftr=us.reduce((a,u)=>a+(PT[u.type].fcap?u.ftr:0),0),asm=us.reduce((a,u)=>a+(u.load.asm||0),0),dn=k=>il.prep[k]===S.month;
+    const it=(k,n,cnt,ok,d)=>`<div class="item"><div class="uh"><b>${n}</b><span class="loc">${cnt}</span></div><p class="sm mut">${d}</p><button class="btn sm" data-m="${k}" ${ok&&!dn(k)?'':'disabled'}>${dn(k)?'今月は実施済み':ok?'実施する':'実施できない'}</button></div>`;
+    modal(`<div class="alert">準備攻撃</div><h2>${ISL[z]}</h2><p class="sm">上陸の前に、敵の守備隊(残り${il.egar.length}個)と陣地(${FORT[il.fort]})を叩く。それぞれ月に1回。実施のたびに緊張度が1上がる。</p>
+    ${it('gun','艦砲射撃',`水上戦闘艦 ${gun}隻`,gun>0,'守備隊の全体を少しずつ削り、陣地を一段崩す。敵に特科か地対艦ミサイルが残っていると、撃ち返されることがある。')}
+    ${it('air','空爆',`艦上戦闘機 ${ftr}機`,ftr>=2,'地対艦・高射・特科の陣地から順に叩く。敵の高射特科が残っていると、戦闘機を失うことがある。')}
+    ${it('msl','ミサイル攻撃',`対艦ミサイル ${asm}発`,asm>=4,'対艦ミサイル4発を使い、もっとも厄介な陣地を1つ確実に叩く。反撃は受けない。')}
+    <div class="mbtn"><button class="btn pri" data-m="x">閉じる</button></div>`,{x:closeModal,gun:()=>{closeModal();prepStrike(z,'gun');},air:()=>{closeModal();prepStrike(z,'air');},msl:()=>{closeModal();prepStrike(z,'msl');}});},
+  land(z){if(S.pending||S.over||S.gpend||S.sectors[z].held)return;if(!seaCtrl(z))return toast('制海を確保していない');const il=S.isl[z],emb=S.fleets.filter(f=>f.zone===z).reduce((a,f)=>a.concat(fleetLoad(f)),[]);
+    if(!emb.length)return toast('この海域に、陸上部隊を乗せた艦隊がいない');
+    confirmM(`<b>${ISL[z]}への上陸作戦</b>を発動する。<br>上陸部隊：${emb.map(g=>g.name).join('、')}<br>敵の守備隊(推定)：${il.egar.length}個、陣地は「${FORT[il.fort]}」<br><span class="sm mut">司令部に乗り込んで敵の番を持ちこたえるか、敵を全滅させれば奪還できる。16ターンで決着がつかなければ艦へ引き揚げる。</span>`,()=>startGround('assault',z),'上陸を開始する');},
+  gdrill(){startGround('drill',0);},
+  csg(k,d,max){ui.cs.gnd[k]=clamp((ui.cs.gnd[k]||0)+d,0,max);showSetup();}
+});
 
 /* ================= 戦闘 ================= */
 let B=null,raf=0,lastTs=0;
@@ -1021,7 +1340,7 @@ function goHot(by){if(B.hot)return;B.hot=true;B.auth=true;
   else blog('我が方が攻撃を開始。交戦状態に入った','am');uiRefresh(true);}
 function kill(t){if(t.dead)return;t.dead=true;t.hp=0;fx(t.x,t.y,'kill',t.cat==='air'?1:0);
   if(t.cat==='air')blog(`${t.name} 全機喪失`,t.side==='P'?'r':'g');
-  else{blog(`${t.name} ${t.side==='P'?'沈没':'を撃沈'}`,t.side==='P'?'r':'g');if(t.side==='P')banner(`${t.name} 沈没`,'r');else if(B.eWd)B.pursuitK++;}
+  else{blog(`${t.name} ${t.site?(t.side==='P'?'壊滅':'を破壊'):t.side==='P'?'沈没':'を撃沈'}`,t.side==='P'?'r':'g');if(t.side==='P')banner(`${t.name} ${t.site?'壊滅':'沈没'}`,'r');else if(B.eWd)B.pursuitK++;}
   if(t.side==='E')B.eLost+=t.cat==='air'?0:t.val;
   B.sel=B.sel.filter(i=>i!==t.id);if(B.tsel===t.id)B.tsel=null;}
 function dmg(t,d,word){t.hp-=d;fx(t.x,t.y,'hit');if(t.hp<=0)return kill(t);
@@ -1071,7 +1390,7 @@ function doOrd(u){const o=u.ord;if(!o)return;const t=B.ui[o.tgt];if(!t||t.dead){
     u.ord=null;u.dx=u.dy=null;if(u.cat==='sub')u.reveal=3*(u.hide||1);if(u.cat==='air'&&o.w==='asm'&&u.asm<=0)rtb(u);
     goHot('P');}
   else{const p=t.seen?t:(t.ls||t);u.dx=p.x;u.dy=p.y;}}
-function cmdMove(wx,wy){const us=selUnits().filter(u=>!u.rtb);if(!us.length)return;let cx=0,cy=0;for(const u of us){cx+=u.x;cy+=u.y;}cx/=us.length;cy/=us.length;
+function cmdMove(wx,wy){const us=selUnits().filter(u=>!u.rtb&&u.spd>0);if(!us.length)return;let cx=0,cy=0;for(const u of us){cx+=u.x;cy+=u.y;}cx/=us.length;cy/=us.length;
   for(const u of us){u.dx=clamp(wx+(u.x-cx),2,W-2);u.dy=clamp(wy+(u.y-cy),2,H-2);u.ord=null;}B.mk={x:wx,y:wy,t:performance.now()};}
 function cmdAttack(w,n){const t=B.ui[B.tsel];if(!t||t.dead)return;const us=selUnits();
   const go=()=>{let c=0;for(const u of us){if(w==='asm'&&u.asm>0&&t.cat==='ship'){u.ord={tgt:t.id,w,n:n==='all'?99:+n};c++;}if(w==='torp'&&u.torp>0&&canTorp(u,t)){u.ord={tgt:t.id,w,n:u.cat==='sub'?2:1};c++;}}
@@ -1084,11 +1403,11 @@ function launch(kind){const c=selUnits()[0];if(!c||!c.cvf)return;if(c.deckCd>0)r
   c.deckCd=3*(c.deckK||1);}
 function warn(){if(B.hot||B.over)return;if(B.warnCd>0)return toast(`次の警告まであと ${Math.ceil(B.warnCd)} 分`);
   const es=B.u.filter(u=>u.side==='E'&&!u.dead&&u.seen&&u.cat==='ship');if(!es.length)return toast('警告する相手をまだ探知していない');
-  const ps=B.u.filter(u=>u.side==='P'&&!u.dead&&u.cat==='ship');if(!es.some(e=>ps.some(p=>dist(p,e)<=50)))return toast('無線が届かない。艦を相手の50km以内まで寄せること');
+  const ps=B.u.filter(u=>u.side==='P'&&!u.dead&&u.cat==='ship'&&!u.site);if(!es.some(e=>ps.some(p=>dist(p,e)<=50)))return toast('無線が届かない。艦を相手の50km以内まで寄せること');
   B.warnCd=15;B.warnN++;blog('国際VHFで警告：「貴艦は我が国の領海に接近している。直ちに針路を変更せよ」','b');
   if(B.sc!=='intrusion'){B.pend.push({t:B.t+2,f:()=>blog('応答なし','')});return;}
   const fl=B.u.find(u=>u.side==='P'&&!u.dead&&u.cvf)||B.u.find(u=>u.side==='P'&&!u.dead&&u.cat==='ship'),cool=fl?fl.cool:8;
-  const block=B.u.some(u=>u.side==='P'&&!u.dead&&u.cat==='ship'&&dist(u,B.obj)<B.obj.r+12);
+  const block=B.u.some(u=>u.side==='P'&&!u.dead&&u.cat==='ship'&&!u.site&&dist(u,B.obj)<B.obj.r+12);
   const p=clamp(.5-S.tension*S.cfg.eAggr/220+B.M.warn+(fl&&fl.care?.05:0)+(cool-10)*.012+(block?.15:0)+(B.willFire?-.3:.1)-(B.warnN-1)*.05,.05,.85);
   B.pend.push({t:B.t+2,f:()=>{if(B.hot||B.eWd)return;if(Math.random()<p)withdraw('警告に応じて変針');else{blog('敵艦は警告を無視し、航行を続けている','am');if(B.willFire&&B.fireAt==null&&Math.random()<.4)B.fireAt=B.t+R(1,6);}}});}
 
@@ -1136,8 +1455,8 @@ function zoneStep(dt){const o=B.obj;let inz=false,land=false;
   for(const e of B.u){if(e.dead||e.side!=='E'||e.cat!=='ship')continue;const d=dist(e,o);if(d<o.r)inz=true;if(e.key==='elst'&&d<8)land=true;}
   if(B.sc==='intrusion'&&inz&&!B.eWd){B.zoneT+=dt;if(!B.auth&&B.zoneT>5){B.auth=true;banner('領海侵入を確認　武器使用許可','am');blog('政府は海上警備行動を発令した。武器の使用が許可された','am');uiRefresh(true);}}
   if(land){B.landT+=dt;if(B.landT>=B.landNeed)finish('lose',{occupied:true});}}
-function endCheck(){if(B.over)return;const P=B.u.filter(u=>u.side==='P'&&!u.dead&&u.cat!=='air');if(!P.length&&!B.pend.some(p=>p.rein))return finish('lose',{});
-  const E=B.u.filter(u=>u.side==='E'&&!u.dead),sp=B.pend.some(p=>p.sp);
+function endCheck(){if(B.over)return;const P=B.u.filter(u=>u.side==='P'&&!u.dead&&u.cat!=='air'&&!u.site);if(!P.length&&!B.pend.some(p=>p.rein))return finish('lose',{});
+  const E=B.u.filter(u=>u.side==='E'&&!u.dead&&!u.site),sp=B.pend.some(p=>p.sp);
   if(!E.length&&!sp)return finish('win');
   if(B.eWd){const near=E.some(e=>dist(e,B.obj)<100||P.some(p=>dist(e,p)<70)),em=B.m.some(m=>m.side==='E'&&(m.type==='asm'||m.type==='torp'));if(!near&&!em)finish('win');}}
 function step(dt){
@@ -1156,18 +1475,18 @@ function step(dt){
 
 /* ---------- 終了処理 ---------- */
 function finish(res,x){if(!B||B.over)return;x=x||{};B.paused=true;
-  const eS=B.u.filter(u=>u.side==='E'&&u.dead&&!u.esc&&u.cat!=='air'),pS=B.u.filter(u=>u.side==='P'&&u.dead&&u.cat!=='air');
+  const eS=B.u.filter(u=>u.side==='E'&&u.dead&&!u.esc&&u.cat!=='air'&&!u.site),pS=B.u.filter(u=>u.side==='P'&&u.dead&&u.cat!=='air'&&!u.site);
   if(res==='win'&&B.intruded&&!B.hot)res='draw';
   const o=B.over={res,occupied:!!x.occupied,retreat:!!x.retreat,eS:eS.length,pS:pS.length,eNames:eS.map(u=>u.name),pNames:pS.map(u=>u.name),bloodless:res==='win'&&!B.hot,pre:B.pre,pursuitK:B.pursuitK};
   let pol=null;
   if(!B.drill){applyUnits();pol=settle(o,B.inc);hlog(`${SECT[B.inc.sector]}：${SCN[B.sc].n} ― ${res==='win'?(o.bloodless?'無血で収拾':'敵を撃退'):res==='draw'?'領海侵入を許す':o.retreat?'撤退':'失敗'}`,res==='win'?'g':res==='draw'?'am':'r');S.pending=null;checkOver();save();}
   const win=res==='win',draw=res==='draw';
-  let h=`<div class="alert ${win?'g':draw?'':'r'}">${B.drill?'図上演習　終了':win?'作戦成功':draw?'事態終息':o.retreat?'撤退':'作戦失敗'}</div><h2>${win?(o.bloodless?'一発も撃たずに事態を収めた':'敵部隊を退けた'):draw?'敵は示威を終えて引き揚げた':o.occupied?'島嶼を占領された':o.retreat?'海域から離脱した':'部隊は壊滅した'}</h2>
+  let h=`<div class="alert ${win?'g':draw?'':'r'}">${B.drill?'図上演習　終了':win?'作戦成功':draw?'事態終息':o.retreat?'撤退':'作戦失敗'}</div><h2>${win?(o.bloodless?'一発も撃たずに事態を収めた':'敵部隊を退けた'):draw?'敵は示威を終えて引き揚げた':o.occupied?'敵の揚陸艦が島に達した':o.retreat?'海域から離脱した':'部隊は壊滅した'}</h2>
   <dl class="kv2"><dt>所要時間</dt><dd>${clk(B.t)}</dd><dt>敵の損害</dt><dd>撃沈 ${o.eS}隻${o.eNames.length?'('+o.eNames.join('、')+')':''}、撃墜 ${B.eAir}機</dd><dt>我が損害</dt><dd>沈没 ${o.pS}隻${o.pNames.length?'('+o.pNames.join('、')+')':''}、航空機 ${B.pAir}機</dd><dt>消費弾薬</dt><dd>SAM ${B.st.sam}、対艦 ${B.st.asm}、AAM ${B.st.aam}、魚雷 ${B.st.torp}</dd></dl>`;
   if(pol)h+=pol.L.map(l=>`<p class="sm">${l}。</p>`).join('')+`<div class="pol">支持率 ${sg(pol.dS)}　緊張度 ${sg(pol.dT)}</div>`;else h+=`<p class="sm mut">演習の結果は部隊や情勢に影響しない。</p>`;
   h+=`<div class="mbtn"><button class="btn pri" data-m="ok">司令部へ戻る</button></div>`;
   modal(h,{ok:()=>{closeModal();endBattle();}});}
-function endBattle(){cancelAnimationFrame(raf);B=null;$('#bt').hidden=true;$('#hq').hidden=false;render();if(S.over)showOver();}
+function endBattle(){cancelAnimationFrame(raf);B=null;$('#bt').hidden=true;$('#hq').hidden=false;render();if(S.over)showOver();else if(S.gpend)groundPrompt();}
 
 /* ---------- 戦闘の画面 ---------- */
 function fit(){if(!B)return;const cv=$('#cv'),r=$('#bmap').getBoundingClientRect();B.dpr=Math.min(2,window.devicePixelRatio||1);B.cw=Math.max(50,r.width);B.ch=Math.max(50,r.height);cv.width=Math.round(B.cw*B.dpr);cv.height=Math.round(B.ch*B.dpr);B.g=cv.getContext('2d');}
@@ -1253,7 +1572,7 @@ function uiRefresh(force){if(!B)return;
   if(B.logD||force){B.logD=false;$('#blog').innerHTML=B.log.slice(0,30).map(l=>`<div class="${l.c}"><span>${clk(l.t)}</span>${l.msg}</div>`).join('');}}
 function bact(a){if(!B||B.over)return;const p=a.split(':'),c=p[0],v=p[1];
   switch(c){
-    case'all':B.sel=B.u.filter(u=>u.side==='P'&&!u.dead&&u.cat==='ship').map(u=>u.id);break;
+    case'all':B.sel=B.u.filter(u=>u.side==='P'&&!u.dead&&u.cat==='ship'&&!u.site).map(u=>u.id);break;
     case'warn':warn();break;
     case'end':finish('win');return;
     case'asm':cmdAttack('asm',v);break;
@@ -1293,7 +1612,7 @@ function mkFlight(c,kind){const M=B.M,d=norm(B.sp.x-c.x,B.sp.y-c.y),base={side:'
       asm,asmR:110*(1+M.ftrAsmR),asmDmg:50*(1+M.asmDmg),pkB:M.asmPen,asmV:15*(1+M.asmSpd),fuel:150*(1+M.ftrFuel)}));
     if(kind==='cap'){f.dx=clamp(c.x+d.x*40,5,W-5);f.dy=clamp(c.y+d.y*40,5,H-5);}}
   return f;}
-const SLOTK={cv:'cvl',cvl:'cvl',ddg:'ddg',ddgx:'ddg',dd:'dd',dd2:'dd',ffm:'ffm',ffm2:'ffm',opv:'ffm',usv:'usv',ss:'ss',ssx:'ss',aoe:'aoe'};
+const SLOTK={cv:'cvl',cvl:'cvl',ddg:'ddg',ddgx:'ddg',dd:'dd',dd2:'dd',ffm:'ffm',ffm2:'ffm',opv:'ffm',usv:'usv',ss:'ss',ssx:'ss',aoe:'aoe',lst:'aoe',lhd:'aoe'};
 const SLOT={cvl:[[0,0],[-20,14]],ddg:[[26,-12],[26,12],[42,0]],dd:[[10,-31],[10,31],[-16,-26],[-16,26]],ffm:[[-24,0],[-28,-16],[-28,16],[-36,-8],[-36,8]],usv:[[18,0],[14,-18],[14,18]],ss:[[80,-34],[80,34],[100,0]],aoe:[[-40,0],[-44,12]]};
 function setupP(us,pc){const d=norm(B.sp.x-pc.x,B.sp.y-pc.y),p={x:-d.y,y:d.x},at=(a,b)=>({x:clamp(pc.x+d.x*a+p.x*b,8,W-8),y:clamp(pc.y+d.y*a+p.y*b,8,H-8)}),cnt={};
   for(const su of us){const k=SLOTK[su.type]||'ffm',i=cnt[k]=(cnt[k]||0)+1,sl=SLOT[k],s=sl[(i-1)%sl.length],ov=Math.floor((i-1)/sl.length),q=at(s[0]-ov*12,s[1]+ov*7);pShip(su,q.x,q.y);}}
@@ -1313,30 +1632,6 @@ function setupE(f){const sp=B.sp,o=B.obj,d=norm(o.x-sp.x,o.y-sp.y),p={x:-d.y,y:d
   const t0=B.sc==='airraid'?R(10,30):R(40,90);
   for(let i=0;i<n('ebmr');i++)B.pend.push({sp:1,t:t0+R(0,12),f:()=>{const q=at(R(-5,5),R(-40,40));mkE('ebmr',q.x,q.y,'bmr');}});
   for(const k2 of['eftr','estl'])for(let i=0;i<n(k2);i++)B.pend.push({sp:1,t:Math.max(1,t0+R(-3,6)),f:()=>{const q=at(R(0,10),R(-40,40));mkE(k2,q.x,q.y,'ftr');}});}
-function startBattle(inc){
-  const drill=!!inc.drill,us=S.units.filter(u=>u.mode==='normal'&&(drill||u.sector===inc.sector)),rein=drill?[]:reserve();
-  if(!us.length&&!rein.length){toast('出撃できる部隊がない');return;}
-  _M=null;const M=mods(),eT=inc.eT||0,C=S.cfg;
-  B={inc,drill,M,eT,sc:inc.type,iname:ISL[inc.sector]||'演習島',t:0,u:[],m:[],ui:{},mi:{},uid:0,mid:0,fx:[],log:[],pend:[],sel:[],tsel:null,hot:false,auth:false,pre:false,eWd:false,over:null,paused:true,speed:1,
-    obj:{x:255,y:285,r:22},pc:{x:125,y:405},base:{x:14,y:H-14},sp:pick([{x:260,y:22},{x:455,y:55},{x:472,y:240}]),cam:{x:W/2,y:H/2,z:1},k:1,cw:300,ch:300,dpr:1,g:null,
-    view:ui.view||'2d',c3:Object.assign({},C3DEF),fol:false,
-    dT:0,aT:0,intelT:15,intel:null,zoneT:0,landT:0,landNeed:Math.max(10,20+M.garr),warnCd:0,warnN:0,fireAt:null,vampCd:0,satT:Math.max(0,M.satT),sup:eT>=3?2:(inc.L>=2.6||eT>=1)?1:0,
-    antiSS:clamp(M.antiSS,0,.25),asmLow:clamp(M.asmLow,0,.6),antiLO:M.antiLO,jam:clamp(M.jam,0,.5),eIn:25*(1+clamp(M.eIntel,-.5,2)),reinT0:reinTime(),
-    willFire:inc.type!=='intrusion'||Math.random()<clamp((S.tension*C.eAggr-10)/80+.15,.25,.95),
-    eAir:0,pAir:0,eLost:0,eInit:0,pursuitK:0,divert:{ftr:0,aew:0},st:{sam:0,asm:0,aam:0,torp:0},ec:{},fn:0,tmax:420,intruded:false,logD:true,mk:null};
-  if(inc.type==='landing'||inc.type==='retake'){B.hot=true;B.auth=true;}
-  for(const k in inc.force)B.eInit+=ET[k].val*inc.force[k];
-  setupP(us,B.pc);setupE(inc.force);
-  if(rein.length)B.pend.push({rein:1,t:B.reinT0,f:()=>{setupP(rein,{x:B.pc.x-35,y:B.pc.y+35});blog(`母港からの増援が到着：${rein.map(u=>u.name).join('、')}`,'g');banner('増援　到着','g');if(B.speed>4)setSpeed(4);uiRefresh(true);}});
-  B.intel={x:B.pc.x+R(-B.eIn,B.eIn),y:B.pc.y+R(-B.eIn,B.eIn)};
-  blog(`${drill?'図上演習':SCN[B.sc].n}　目標：${SCN[B.sc].o}`,'b');
-  if(rein.length)blog(`母港の部隊が増援に向かっている。到着は${B.reinT0}分後(海域の南西)`,'');
-  if(B.sup)blog(B.sup>=2?'敵は極超音速の対艦ミサイルを配備している':'敵は超音速の対艦ミサイルを配備している','am');
-  if(B.hot)blog('防衛出動が発令されている。武器の使用は自由','am');else blog('武器の使用は許可されていない。敵が撃つまで監視と警告のみ','');
-  detect();
-  $('#hq').hidden=true;$('#bt').hidden=false;fit();setSpeed(0);setView(B.view);uiRefresh(true);banner('作戦開始　速度ボタンで時間を進める','');
-  lastTs=performance.now();cancelAnimationFrame(raf);raf=requestAnimationFrame(frame);}
-
 /* ---------- 兵装(高速ミサイル・被害軽減・回避を反映) ---------- */
 function fireASM(u,t,n,d0){n=Math.min(n,u.asm);const spd=u.side==='E'?(B.sup>=2?55:B.sup?32:15):(u.asmV||15);
   for(let i=0;i<n;i++)reg({side:u.side,type:'asm',x:u.x,y:u.y,spd,ss:spd>25,hs:spd>45,tgt:t.id,tm:false,dmg:u.asmDmg,pkB:u.pkB||0,life:60,delay:(d0||0)+i*.12});u.asm-=n;if(u.side==='P')B.st.asm+=n;return n;}
@@ -1365,19 +1660,335 @@ function detect(){const al=B.u.filter(u=>!u.dead);
   for(const m of B.m){if(m.dead||m.delay>0)continue;if(m.type!=='asm'&&m.type!=='torp'){m.seen=true;continue;}let s=false;const k=m.side==='P'&&m.type==='asm'?1-B.asmLow:1;
     for(const o of al){if(o.side===m.side)continue;const r=(m.type==='asm'?o.dM:o.so*.6)*k;if(r>0&&dist(o,m)<=r){s=true;break;}}
     if(s&&!m.rep&&m.side==='E'){m.rep=true;if(m.type==='asm')nv++;else nt++;}m.seen=s;}
-  if((nv||nt)&&B.vampCd<=0){B.vampCd=1.5;banner(nv?'対艦ミサイル接近':'魚雷音を探知','r');blog(nv?`敵対艦ミサイルを探知　${nv}発`:`敵魚雷を探知　${nt}本`,'r');if(B.speed>1)setSpeed(1);}}
+  if((nv||nt)&&B.vampCd<=0){B.vampCd=1.5;banner(nv?'対艦ミサイル接近':'魚雷音を探知','r');blog(nv?`敵対艦ミサイルを探知　${nv}発`:`敵魚雷を探知　${nt}本`,'r');if(B.speed>1)setSpeed(1);}}// 島の施設と守備隊は、海戦では動かない陸上の拠点として加わる
+function mkSite(o){return mk(Object.assign({side:'P',cat:'ship',key:'site',site:1,cvf:false,spd:0,hp:60,max:60,q:1,ciws:.2,turn:[],deckCd:0,ftr:0,aew:0,aamS:0,asmS:0,cool:6,stealth:0,quiet:0,dc:0,decoy:0,luck:0,cecS:0,hide:1,pkB:0,asmV:15},o));}
+function setupShore(z){const o=B.obj,M=B.M;let n=0;
+  if(facOK(z,'radar'))mkSite({name:ISL[z]+' レーダーサイト',lab:'レーダー',sym:'RDR',x:o.x-4,y:o.y-3,dA:320*(1+M.radA),dS:75,dM:45,fref:'radar'});
+  for(const g of garrison(z)){const q=(.8+.4*g.tr/100)*(1+M.gndPow),k=g.hp/10;
+    if(g.type==='ssm')mkSite({name:g.name,lab:'地対艦',sym:'SSM',x:o.x+3+n*2,y:o.y+4-n*2,hp:70,max:70,dS:60,dM:25,asm:Math.max(2,Math.round(8*k)),asmR:150*(1+M.asmR),asmDmg:50*(1+M.asmDmg),pkB:M.asmPen,asmV:15*(1+M.asmSpd),gref:g.id,q});
+    else if(g.type==='aa')mkSite({name:g.name,lab:'高射',sym:'SAM',x:o.x+5-n*2,y:o.y-4+n*2,dA:200,dS:40,dM:40*(1+M.radM),sam:Math.max(4,Math.round(16*k)),samR:40*(1+M.samRS),samPk:clamp((.55+M.samPk)*Math.min(1,q),0,.9),samRate:.35,cecS:clamp(M.cec,0,1),gref:g.id,q});
+    else continue;n++;}}
+function startBattle(inc){
+  const drill=!!inc.drill,z=inc.sector,us=drill?S.units.filter(u=>u.mode==='normal'&&u.sector>=0&&!PT[u.type].tcap):fightIn(z),rs=drill?{near:[],far:[],all:[]}:reserve(z);
+  if(!us.length&&!rs.all.length){toast('出撃できる部隊がない');return;}
+  _M=null;const M=mods(),eT=inc.eT||0,C=S.cfg,T=reinTime();
+  B={inc,drill,M,eT,sc:inc.type,iname:drill?'演習島':ISL[z],t:0,u:[],m:[],ui:{},mi:{},uid:0,mid:0,fx:[],log:[],pend:[],sel:[],tsel:null,hot:false,auth:false,pre:false,eWd:false,over:null,paused:true,speed:1,
+    obj:{x:255,y:285,r:22},pc:{x:125,y:405},base:{x:14,y:H-14},sp:pick([{x:260,y:22},{x:455,y:55},{x:472,y:240}]),cam:{x:W/2,y:H/2,z:1},k:1,cw:300,ch:300,dpr:1,g:null,
+    view:ui.view||'2d',c3:Object.assign({},C3DEF),fol:false,
+    dT:0,aT:0,intelT:15,intel:null,zoneT:0,landT:0,landNeed:Math.max(10,20+M.garr),warnCd:0,warnN:0,fireAt:null,vampCd:0,satT:Math.max(0,M.satT),sup:eT>=3?2:(inc.L>=2.6||eT>=1)?1:0,
+    antiSS:clamp(M.antiSS,0,.25),asmLow:clamp(M.asmLow,0,.6),antiLO:M.antiLO,jam:clamp(M.jam,0,.5),eIn:25*(1+clamp(M.eIntel,-.5,2)),reinT0:rs.near.length?T:T*2,
+    willFire:inc.type!=='intrusion'||Math.random()<clamp((S.tension*C.eAggr-10)/80+.15,.25,.95),
+    eAir:0,pAir:0,eLost:0,eInit:0,pursuitK:0,divert:{ftr:0,aew:0},st:{sam:0,asm:0,aam:0,torp:0},ec:{},fn:0,tmax:420,intruded:false,logD:true,mk:null};
+  if(inc.type==='landing'||inc.type==='retake'){B.hot=true;B.auth=true;}
+  for(const k in inc.force)B.eInit+=ET[k].val*inc.force[k];
+  setupP(us,B.pc);setupE(inc.force);
+  if(!drill&&ISLZ.includes(z)){
+    if(S.sectors[z].held)setupShore(z);
+    else S.isl[z].egar.forEach((e,i)=>{if(e.t==='ssm'&&e.hp>0)mkE('eshore',B.obj.x+R(-4,4),B.obj.y+R(-4,4),'guard',{site:1,eg:i,asm:Math.max(2,Math.round(8*e.hp/10))});});}
+  const arr=(list,t,more,pos)=>B.pend.push({rein:1,t,f:()=>{setupP(list,pos);blog(`増援が到着：${list.map(u=>u.name).join('、')}`,'g');banner('増援　到着','g');if(more)B.reinT0=T*2;if(B.speed>4)setSpeed(4);uiRefresh(true);}});
+  if(rs.near.length)arr(rs.near,T,rs.far.length>0,{x:B.pc.x-35,y:B.pc.y+35});
+  if(rs.far.length)arr(rs.far,T*2,false,{x:B.pc.x-15,y:B.pc.y+55});
+  B.intel={x:B.pc.x+R(-B.eIn,B.eIn),y:B.pc.y+R(-B.eIn,B.eIn)};
+  blog(`${drill?'図上演習':SCN[B.sc].n}　目標：${SCN[B.sc].o}`,'b');
+  if(rs.near.length)blog(`隣の海域から増援が向かっている。到着は${T}分後(海域の南西)`,'');
+  if(rs.far.length)blog(`2つ先の海域からも増援が向かっている。到着は${T*2}分後`,'');
+  if(B.u.some(u=>u.site&&u.side==='P'))blog(`${B.iname}の陸上拠点が戦闘に加わる：${B.u.filter(u=>u.site&&u.side==='P').map(u=>u.lab).join('、')}`,'');
+  if(B.u.some(u=>u.site&&u.side==='E'))blog('島に敵の地対艦ミサイル陣地がある','am');
+  if(B.sup)blog(B.sup>=2?'敵は極超音速の対艦ミサイルを配備している':'敵は超音速の対艦ミサイルを配備している','am');
+  if(B.hot)blog('防衛出動が発令されている。武器の使用は自由','am');else blog('武器の使用は許可されていない。敵が撃つまで監視と警告のみ','');
+  detect();
+  $('#hq').hidden=true;$('#bt').hidden=false;fit();setSpeed(0);setView(B.view);uiRefresh(true);banner('作戦開始　速度ボタンで時間を進める','');
+  lastTs=performance.now();cancelAnimationFrame(raf);raf=requestAnimationFrame(frame);}
 function applyUnits(){
   for(const f of B.u){if(f.side!=='P'||f.cat!=='air'||f.dead)continue;const h=B.ui[f.home];
     if(h&&!h.dead){if(f.key==='aew')h.aew++;else{h.ftr+=f.n;h.aamS+=f.aam;h.asmS+=f.asm;}}else B.divert[f.key==='aew'?'aew':'ftr']+=f.n;}
-  S.pool.ftr+=B.divert.ftr;S.pool.aew+=B.divert.aew;const win=B.over.res==='win';
+  S.pool.ftr+=B.divert.ftr;S.pool.aew+=B.divert.aew;const win=B.over.res==='win',z=B.inc.sector,il=S.isl[z];
   for(const b of B.u){if(b.side!=='P'||b.ref==null)continue;const su=U(b.ref);if(!su)continue;
     if(b.dead){sink(su);continue;}
     const t=PT[su.type];su.hp=Math.max(5,Math.round(b.hp/b.max*100));su.load.sam=b.sam;
     if(t.fcap){su.load.aam=Math.min(t.aam,b.aamS);su.load.aasm=Math.min(t.aasm,b.asmS);su.ftr=b.ftr+b.turn.reduce((a,x)=>a+x.n,0);su.aew=b.aew;}else{su.load.asm=b.asm;su.load.torp=b.torp;}
     su.tr=Math.min(100,su.tr+(B.hot?5:2));su.rd=Math.max(0,su.rd-(B.hot?6:2));
     for(const o of S.off)if(o.post&&o.post.startsWith(su.id+':')){o.bt++;o.merit+=(B.hot?4:2)+(win?2:0);if(B.hot&&Math.random()<.3){const k=pick(ABK);if(o[k]<o.pot)o[k]++;}}}
+  // 陸上拠点の損害を守備隊と施設に戻す
+  for(const b of B.u){if(!b.site||!il)continue;
+    if(b.side==='P'){if(b.gref){const g=S.gnd.find(x=>x.id===b.gref);if(g){if(b.dead){S.gnd=S.gnd.filter(x=>x!==g);hlog(`${g.name}が壊滅`,'r');}else g.hp=Math.max(1,Math.round(g.hp*b.hp/b.max));}}
+      else if(b.fref&&b.hp<b.max)il.fac[b.fref]=b.dead?10:Math.min(il.fac[b.fref],Math.max(20,Math.round(100*b.hp/b.max)));}
+    else if(b.eg!=null&&b.dead&&il.egar[b.eg])il.egar[b.eg].hp=0;}
+  if(il&&il.egar.length>1)il.egar=il.egar.filter(e=>e.hp>0);
   for(const k of['avm','avo'])S.enl[k].n=Math.max(0,S.enl[k].n-B.pAir);
   S.pers.morale=clamp(S.pers.morale+(win?3:B.over.res==='draw'?-1:-4),5,100);_M=null;}
+
+/* ================= 地上戦(ターン制) ================= */
+// 9×11マスの島。地形：0海 1砂浜 2平地 3森 4丘 5市街
+const GW=9,GH=11,GN=GW*GH,GTN=['海','砂浜','平地','森','丘','市街'],GTD=[0,-.1,0,.25,.35,.4],GTC=['#0a2236','#b9a877','#3f6c49','#28503a','#6f6c58','#5d6470'];
+const SUPN={gun:'艦砲射撃',air:'爆撃',msl:'ミサイル攻撃'};
+let G=null;
+function rng32(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function gnb(i){const x=i%GW,a=[];if(x>0)a.push(i-1);if(x<GW-1)a.push(i+1);if(i>=GW)a.push(i-GW);if(i<GN-GW)a.push(i+GW);return a;}
+const gd2=(a,b)=>Math.abs(a%GW-b%GW)+Math.abs(Math.floor(a/GW)-Math.floor(b/GW));
+// 島の地形は島ごとの種から決まる。同じ島はいつも同じ形
+function genIsland(seed){const r=rng32(seed),t=new Array(GN).fill(0),c0=5*GW+4;
+  const ax=3.2+r()*.5,ay=4.3+r()*.5,ph=r()*6.28,p1=r()*6.28,p2=r()*6.28,p3=r()*6.28;
+  for(let y=0;y<GH;y++)for(let x=0;x<GW;x++){const dx=(x-4)/ax,dy=(y-5)/ay,a=Math.atan2(dy,dx);
+    if(dx*dx+dy*dy+Math.sin(a*3+ph)*.14+Math.sin(a*5+ph*1.7)*.08<1){const h=Math.sin(x*.9+p1)+Math.sin(y*.8+p2)+Math.sin((x+y)*.6+p3)+(r()-.5)*.8;t[y*GW+x]=h>1.15?4:h<-.95?3:r()<.1?3:2;}}
+  t[c0]=t[c0]||2;const seen=new Set([c0]),q=[c0];while(q.length){const c=q.pop();for(const n of gnb(c))if(t[n]&&!seen.has(n)){seen.add(n);q.push(n);}}
+  for(let i=0;i<GN;i++)if(t[i]&&!seen.has(i))t[i]=0;
+  const land=[];for(let i=0;i<GN;i++)if(t[i])land.push(i);
+  const isCoast=i=>{const x=i%GW,y=Math.floor(i/GW);return x===0||y===0||x===GW-1||y===GH-1||gnb(i).some(n=>!t[n]);},coast=land.filter(isCoast),inner=land.filter(i=>!isCoast(i)),used=new Set(),fac={};
+  const put=(k,cands,score)=>{let best=-1,bs=-1e9;for(const i of cands){if(used.has(i))continue;const s=score(i)+r()*.5;if(s>bs){bs=s;best=i;}}
+    if(best<0)for(const i of land)if(!used.has(i)){best=i;break;}used.add(best);fac[best]=k;return best;};
+  const hq=put('hq',inner.length?inner:land,i=>-gd2(i,c0));t[hq]=2;
+  t[put('town',inner.length>2?inner:land,i=>-Math.abs(gd2(i,hq)-1.2))]=5;
+  t[put('port',coast,i=>gd2(i,hq)*.3+r())]=2;
+  t[put('air',land,i=>(t[i]===2?2:0)+Math.min(3,gd2(i,hq))-(isCoast(i)?1:0))]=2;
+  put('radar',land,i=>(t[i]===4?3:0)+Math.min(4,gd2(i,hq))*.6);
+  t[put('depot',land,i=>-Math.abs(gd2(i,hq)-2)-(isCoast(i)?1:0))]=2;
+  const beach=[];for(const i of coast){if(used.has(i)||t[i]===4)continue;if(r()<.55){t[i]=1;beach.push(i);}}
+  for(const i of coast){if(beach.length>=6)break;if(!used.has(i)&&t[i]!==1){t[i]=1;beach.push(i);}}
+  return{t,fac,beach,hq};}
+
+/* ---------- 部隊と盤面 ---------- */
+const gi=u=>u.y*GW+u.x;
+const gAt=i=>G.u.find(u=>u.on&&u.hp>0&&u.y*GW+u.x===i);
+const gman=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
+const galive=side=>G.u.filter(u=>u.side===side&&u.on&&u.hp>0);
+const gq=u=>u.side==='P'?(.8+.4*u.tr/100)*(1+G.M.gndPow):1+.05*G.eT;
+const gcost=(type,i)=>{const t=G.t[i];return !t?99:t===3||t===4?(type==='arm'?3:2):1;};
+function gmk(side,type,hp,o){return Object.assign({id:++G.uid,x:0,y:0,on:false,moved:false,acted:false,done:false,dug:0,sup:0,spot:0,tr:60,name:(side==='E'?'敵 ':'')+GT[type].n},o||{},{side,type,hp});}
+function glog(msg,c){G.log.unshift({t:G.turn,msg,c:c||''});if(G.log.length>60)G.log.pop();}
+function gfx(u,d){G.fx.push({i:gi(u),d,t:performance.now()});if(!ui.gfast)setTimeout(()=>{if(G)gdraw();},1000);}
+function gkill(u){u.hp=0;G.lost[u.side]++;if(G.sel===u.id)G.sel=null;if(G.info===u.id)G.info=null;}
+// 移動できるマス。敵に隣接したマスに入ると、そこで止まる
+function greach(u){const s=gi(u),mv=GT[u.type].mv,best=new Map([[s,0]]),q=[s];
+  while(q.length){q.sort((a,b)=>best.get(a)-best.get(b));const c=q.shift(),cc=best.get(c);
+    if(c!==s&&gnb(c).some(n=>{const o=gAt(n);return o&&o.side!==u.side;}))continue;
+    for(const n of gnb(c)){const o=gAt(n);if(o&&o.side!==u.side)continue;const nc=cc+gcost(u.type,n);if(nc>mv||(best.has(n)&&best.get(n)<=nc))continue;best.set(n,nc);q.push(n);}}
+  for(const k of[...best.keys()])if(k!==s&&gAt(k))best.delete(k);
+  return best;}
+// 目標マスまでの道のり(部隊は無視)
+function gdmap(goal,type){const d=new Array(GN).fill(999),q=[goal];d[goal]=0;
+  while(q.length){q.sort((a,b)=>d[a]-d[b]);const c=q.shift();for(const n of gnb(c)){if(!G.t[n])continue;const nc=d[c]+gcost(type,n);if(nc<d[n]){d[n]=nc;q.push(n);}}}
+  return d;}
+function gvis(){const v=new Uint8Array(GN);if(G.fown[G.fidx.radar]==='P'&&G.fhp.radar>=50){v.fill(1);return G.vis=v;}
+  for(const u of galive('P')){const r=G.t[gi(u)]===4?3:2;for(let y=u.y-r;y<=u.y+r;y++)for(let x=u.x-r;x<=u.x+r;x++)if(x>=0&&y>=0&&x<GW&&y<GH&&Math.abs(x-u.x)+Math.abs(y-u.y)<=r)v[y*GW+x]=1;}
+  return G.vis=v;}
+const gseen=e=>e.side==='P'||!!G.vis[gi(e)]||e.spot>=G.turn;
+function gdmg(a,d,counter,flat){const A0=GT[a.type],D0=GT[d.type],ta=G.t[gi(a)],td=G.t[gi(d)],fk=G.fk[gi(d)];
+  let atk=A0.atk*(.45+.55*a.hp/10)*gq(a)*(a.sup?.6:1);
+  if(a.type==='arm'&&td>=3)atk*=.7;if(a.type==='art'&&gman(a,d)===1)atk*=.4;if(ta===1&&a.type!=='amp')atk*=.8;
+  const def=D0.def*gq(d)*(1+GTD[td]+(fk?(fk==='hq'||fk==='town'?.3:.12):0)+(d.dug?.25:0)+(d.side==='E'&&G.mode==='assault'?G.fort*.08:0));
+  const v=3.3*atk/def*(counter?.55:1)+(flat?0:R(-.6,.6));return clamp(Math.round(v),counter?0:1,7);}
+function gattack(a,d){const dist=gman(a,d),dm=gdmg(a,d,false);d.hp-=dm;a.acted=true;a.done=true;a.spot=G.turn+1;d.spot=Math.max(d.spot,G.turn);
+  if(a.type==='art'){d.sup=1;d.dug=0;}gfx(d,dm);let msg=`${a.name} → ${d.name}　−${dm}`;
+  if(d.hp<=0){gkill(d);msg+='　壊滅';}
+  else if(dist<=GT[d.type].rng&&!(a.type==='art'&&dist>1)){const cm=gdmg(d,a,true);if(cm>0){a.hp-=cm;msg+=`／反撃 −${cm}`;if(a.hp<=0){gkill(a);msg+='　壊滅';}}}
+  glog(msg,a.side==='P'?'b':'r');}
+
+/* ---------- 開始 ---------- */
+function gput(side,x,i,mob){const u=gmk(side,x.type,x.hp,x);u.x=i%GW;u.y=Math.floor(i/GW);u.on=true;u.dug=1;u.mob=!!mob;G.u.push(u);return u;}
+// 守る側の初期配置：歩兵は司令部と施設に、特科・高射・地対艦は司令部の近くに置く
+function gplaceDef(side,list){const order=['hq','town','air','port','radar','depot'].map(k=>G.fidx[k]),isSup=x=>x.type==='art'||x.type==='aa'||x.type==='ssm';
+  const line=list.filter(x=>!isSup(x)).sort((a,b)=>GT[b.type].def*b.hp-GT[a.type].def*a.hp),sup=list.filter(isSup);if(!line.length&&sup.length)line.push(sup.shift());
+  const near=()=>{let best=-1,bd=1e9;for(let i=0;i<GN;i++){if(!G.t[i]||gAt(i))continue;const d=gd2(i,G.hq)+(G.t[i]===1?2:0)-GTD[G.t[i]]+(G.fk[i]?-.3:0);if(d<bd){bd=d;best=i;}}return best;};
+  line.forEach((x,k)=>{const i=k<order.length&&!gAt(order[k])?order[k]:near();if(i>=0)gput(side,x,i,side==='E'&&(x.type==='arm'||(k>0&&x.type==='amp')||k>=3));});
+  for(const x of sup){const i=near();if(i>=0)gput(side,x,i,false);}}
+function startGround(mode,z){const drill=mode==='drill';if(drill)mode='assault';if(G||B)return;_M=null;
+  const il=drill?{seed:RI(1,999999999),fac:{hq:100,air:100,port:100,radar:100,depot:100,town:100},egar:[{t:'inf',hp:10},{t:'inf',hp:8},{t:'art',hp:8},{t:'aa',hp:7}],fort:1}:S.isl[z],map=genIsland(il.seed),gp=S.gpend;
+  G={mode,z,drill,M:mods(),eT:eTech(),turn:1,max:mode==='assault'?16:10,t:map.t,fk:map.fac,fidx:{},fown:{},fhp:Object.assign({},il.fac),beach:map.beach,hq:map.hq,u:[],uid:0,sel:null,info:null,act:null,reach:null,atk:null,
+    wait:[],ewait:[],landN:0,wave:1,ewave:2,L:gp?gp.L:2,lz:null,fort:il.fort||0,sup:{gun:0,air:0,msl:0},used:{},ships:[],log:[],over:null,busy:false,fx:[],vis:null,iname:drill?'演習島':ISL[z],coll:0,lost:{P:0,E:0},cd:null,g:null,ts:30,ox:0,oy:0,cw:300,ch:300,dpr:1};
+  for(const i in map.fac){G.fidx[map.fac[i]]=+i;G.fown[i]=mode==='assault'?'E':'P';}
+  // 海からの距離(艦砲の届く範囲)
+  const cd=new Array(GN).fill(99),q=[];for(let i=0;i<GN;i++)if(!G.t[i]){cd[i]=0;q.push(i);}for(let i=0;i<GN;i++){const x=i%GW,y=Math.floor(i/GW);if(G.t[i]&&(x===0||y===0||x===GW-1||y===GH-1)){cd[i]=1;q.push(i);}}
+  while(q.length){const c=q.shift();for(const n of gnb(c))if(cd[n]>cd[c]+1){cd[n]=cd[c]+1;q.push(n);}}G.cd=cd;
+  const ships=drill?[]:fightIn(z);G.ships=ships.map(u=>u.id);
+  if(drill)G.sup={gun:2,air:1,msl:1};
+  else G.sup={gun:Math.min(3,ships.filter(u=>PT[u.type].cat==='ship'&&PT[u.type].val>=30&&u.hp>30).length),air:Math.min(2,Math.floor(ships.reduce((a,u)=>a+(PT[u.type].fcap?u.ftr:0),0)/4)),msl:Math.min(2,Math.floor(ships.reduce((a,u)=>a+(u.load.asm||0),0)/4))};
+  if(mode==='assault'){
+    const emb=drill?[['amp',72],['amp',68],['inf',66],['art',64]].map((a,i)=>({id:-1-i,type:a[0],name:'演習 '+GT[a[0]].n,hp:10,tr:a[1]})):S.fleets.filter(f=>f.zone===z).reduce((a,f)=>a.concat(fleetLoad(f)),[]);
+    for(const g of emb){const u=gmk('P',g.type,g.hp,{ref:g.id,name:g.name,tr:g.tr});G.u.push(u);G.wait.push(u);}
+    G.wave=drill?2:Math.max(2,inZone(z).reduce((a,u)=>a+Math.ceil((PT[u.type].tcap||0)/2),0));
+    gplaceDef('E',il.egar.filter(e=>e.hp>0).map(e=>({type:e.t,hp:e.hp})));
+  }else{
+    gplaceDef('P',garrison(z).map(g=>({type:g.type,hp:g.hp,ref:g.id,name:g.name,tr:g.tr})));
+    G.ewait=gp.force.map(e=>({type:e.t,hp:e.hp}));G.ewave=gp.L>=2.6?3:2;if(G.fhp.air>=50)G.sup.air=Math.min(3,G.sup.air+1);
+    gvis();genemyLand();}
+  glog(mode==='assault'?`${G.iname}への上陸作戦を開始。司令部を制圧せよ`:`${G.iname}に敵が上陸。司令部を守り抜け`,'b');
+  if(mode==='assault')glog(`1ターンに揚げられるのは${G.wave}個部隊。水陸機動連隊は上陸した番から動ける`,'');
+  $('#hq').hidden=true;$('#gb').hidden=false;gfit();gvis();grefresh();gban(mode==='assault'?'上陸作戦　開始':'敵　上陸',mode==='assault'?'':'r');}
+
+/* ---------- 上陸・支援・施設 ---------- */
+function glandOK(){const s=new Set(G.beach.filter(i=>!gAt(i))),p=G.fidx.port;if(G.fown[p]==='P'&&!gAt(p))s.add(p);return s;}
+function gland(u,i){const ssm=galive('E').find(x=>x.type==='ssm');G.act=null;G.landN++;G.wait=G.wait.filter(x=>x!==u);
+  if(ssm&&Math.random()<.3){const d=RI(1,3);u.hp-=d;ssm.spot=G.turn+1;glog(`敵の地対艦ミサイルが揚陸艇を襲った　${u.name} −${d}`,'r');if(u.hp<=0){gkill(u);glog(`${u.name}は上陸前に壊滅`,'r');if(!gcheck())grefresh();return;}}
+  u.x=i%GW;u.y=Math.floor(i/GW);u.on=true;u.moved=false;u.done=u.type!=='amp';glog(`${u.name}が上陸`,'b');gvis();G.sel=u.done?null:u.id;G.info=null;gselCalc();grefresh();}
+function genemyLand(){if(!G.ewait.length)return;const dm=gdmap(G.hq,'inf');
+  if(G.lz==null){const bs=G.beach.filter(i=>!gAt(i));if(!bs.length)return;G.lz=bs.map(i=>[i,dm[i]+R(0,3)]).sort((a,b)=>a[1]-b[1])[0][0];}
+  let n=0;while(n<G.ewave&&G.ewait.length){const bs=G.beach.filter(i=>!gAt(i)).sort((a,b)=>gd2(a,G.lz)-gd2(b,G.lz));if(!bs.length)break;const x=G.ewait.shift(),ssm=galive('P').find(u=>u.type==='ssm');
+    if(ssm&&Math.random()<.35){x.hp-=RI(2,4);glog(`${ssm.name}が接岸前の揚陸艇を叩いた`,'g');if(x.hp<=0){G.lost.E++;glog('敵の1個部隊が上陸前に壊滅','g');continue;}}
+    const u=gmk('E',x.type,x.hp,{});u.x=bs[0]%GW;u.y=Math.floor(bs[0]/GW);u.on=true;u.spot=G.turn+1;G.u.push(u);n++;}
+  if(n){glog(`敵 ${n}個部隊が砂浜に上陸`,'r');if(G.turn>1)gban('敵の後続が上陸','r');}}
+function gtargets(k){const s=new Set();for(const e of galive('E'))if(gseen(e)&&(k!=='gun'||G.cd[gi(e)]<=3))s.add(gi(e));if(k==='msl')for(const i in G.fk)if(G.fown[i]==='E')s.add(+i);return s;}
+function gstrike(kind,i){const o=gAt(i),en=o&&o.side==='E'?o:null,k=G.fk[i],nm=SUPN[kind];G.sup[kind]--;G.used.any=1;G.act=null;
+  if(kind==='air'){const aa=galive('E').find(u=>u.type==='aa');if(aa&&Math.random()<.4){aa.spot=G.turn+1;let lost='';
+      if(!G.drill){const cv=G.ships.map(U).find(u=>u&&PT[u.type].fcap&&u.ftr>0);if(cv){cv.ftr--;lost='。戦闘機1機を喪失';}}glog(`爆撃は対空砲火に阻まれた${lost}`,'r');return grefresh();}}
+  let d=kind==='gun'?RI(1,2):kind==='air'?RI(2,4):RI(3,4);
+  if(en){en.hp-=d;en.dug=0;en.sup=1;en.spot=G.turn+1;gfx(en,d);glog(`${nm} → ${en.name}　−${d}${en.hp<=0?'　壊滅':''}`,'b');if(en.hp<=0)gkill(en);}
+  else glog(`${nm}：着弾地点に敵はいなかった`,'');
+  if(kind==='gun')for(const n of gnb(i)){const x=gAt(n);if(x&&x.side==='E'){x.hp-=1;x.dug=0;gfx(x,1);if(x.hp<=0){gkill(x);glog(`${x.name}　壊滅`,'b');}}}
+  if(k){G.fhp[k]=Math.max(0,G.fhp[k]-(kind==='gun'?15:kind==='air'?25:20));if(k==='town'){G.coll++;glog('市街地に被害が出た','am');}}
+  if(!G.drill){
+    if(kind==='gun'&&galive('E').some(u=>u.type==='art'||u.type==='ssm')&&Math.random()<.2){const s=pick(G.ships.map(U).filter(u=>u&&PT[u.type].cat==='ship'));if(s){const dd=RI(5,12);s.hp=Math.max(5,s.hp-dd);glog(`${s.name}が陸上からの反撃で損傷(船体 −${dd}%)`,'r');}}
+    if(kind==='msl'){let need=4;for(const id of G.ships){const s=U(id);if(!s)continue;const n=Math.min(need,s.load.asm||0);if(n){s.load.asm-=n;need-=n;}if(!need)break;}}}
+  gvis();if(!gcheck())grefresh();}
+function gcapture(side,k){if(k==='hq')return;
+  if(k==='port'){if(side==='P'&&G.mode==='assault'){G.wave++;glog('港湾を使えるようになった。1ターンに揚げられる部隊が増え、港にも直接揚げられる','g');}else if(side==='E'&&G.mode==='defend'&&!G.portB){G.portB=1;G.ewait.push({type:'inf',hp:8});glog('敵は港湾から増援を揚げようとしている','r');}}
+  else if(k==='radar'&&side==='P')glog('レーダーサイトを押さえた。島の全域が見える','g');
+  else if(k==='air')glog(side==='P'?'飛行場を押さえた。敵の爆撃が止まる':'飛行場を奪われた。敵の爆撃が始まる','');
+  else if(k==='depot')glog(side==='P'?'補給処を押さえた。近くの部隊が毎ターン回復する':'補給処を奪われた','');}
+// 動かず撃たなかった部隊は陣地を固める。施設の上で番を終えると制圧する
+// 司令部だけは、乗り込んだあと相手の番を持ちこたえて初めて落ちる
+function gendSide(side){for(const u of galive(side)){if(!u.moved&&!u.acted)u.dug=1;u.sup=0;u.moved=u.acted=u.done=false;u.ox=null;const i=gi(u),k=G.fk[i];if(i!==G.hq)u.hold=0;
+    if(!k||G.fown[i]===side)continue;
+    if(k==='hq'&&!u.hold){u.hold=1;glog(side==='P'?`${u.name}が司令部に突入。次の番まで持ちこたえれば制圧できる`:'敵が司令部に突入した。次の番で排除しなければ島は落ちる',side==='P'?'g':'r');if(side==='E')gban('司令部に敵　この番で排除せよ','r');continue;}
+    G.fown[i]=side;glog(`${side==='P'?u.name+'が':'敵が'}${FAC[k][0]}を${side==='P'?'制圧':'奪取'}`,side==='P'?'g':'r');gcapture(side,k);}}
+function gheal(side){const d=G.fidx.depot;if(G.fown[d]!==side||G.fhp.depot<50)return;for(const u of galive(side))if(u.hp<10&&gd2(gi(u),d)<=2)u.hp++;}
+function gcheck(){if(!G)return true;if(G.over)return true;const as=G.mode==='assault',Pon=galive('P'),Eon=galive('E');
+  if(G.fown[G.hq]!==(as?'E':'P')){gfinish(as?'win':'lose','hq');return true;}
+  if(as){if(!Eon.length){gfinish('win','kill');return true;}if(!Pon.length&&!G.wait.length){gfinish('lose','kill');return true;}if(G.turn>G.max){gfinish('lose','time');return true;}}
+  else{if(!Pon.length){gfinish('lose','kill');return true;}if(!Eon.length&&!G.ewait.length){gfinish('win','kill');return true;}if(G.turn>G.max){gfinish('win','time');return true;}}
+  return false;}
+
+/* ---------- 敵の番 ---------- */
+function genemySupport(){const P=galive('P');if(!P.length)return;const hit=(nm,d)=>{const t=pick(P);d=Math.max(1,d-(t.dug?1:0));t.hp-=d;t.sup=1;gfx(t,d);glog(`${nm} → ${t.name}　−${d}${t.hp<=0?'　壊滅':''}`,'r');if(t.hp<=0)gkill(t);};
+  const air=()=>{if(P.some(u=>u.type==='aa'&&u.hp>0)&&Math.random()<.6)glog('高射特科隊が敵の爆撃を退けた','g');else hit('敵の爆撃',RI(2,3));};
+  if(G.mode==='defend'){
+    if(G.turn<=3){if(P.some(u=>u.type==='ssm')&&Math.random()<.5)glog('地対艦ミサイル連隊が敵艦を牽制し、艦砲射撃を封じた','g');else hit('敵の艦砲射撃',RI(1,2));}
+    if(G.L>=2.4&&G.turn%2===0)air();
+  }else if(G.fown[G.fidx.air]==='E'&&G.fhp.air>=50&&G.turn%2===0)air();}
+function gaiMove(e,goal,keep){const dm=gdmap(goal,e.type),rc=greach(e),P=galive('P');let bi=gi(e),bs=1e9;
+  for(const i of rc.keys()){let s=dm[i]-GTD[G.t[i]]*.6;if(keep){const md=Math.min(...P.map(p=>gd2(i,gi(p))));if(md<2&&i!==gi(e))continue;s=Math.abs(md-3)*2+dm[i]*.1;}if(s<bs-1e-9){bs=s;bi=i;}}
+  if(bi!==gi(e)){e.x=bi%GW;e.y=Math.floor(bi/GW);e.moved=true;e.dug=0;}}
+function gai(e){const P=galive('P');if(!P.length||e.done)return;const T=GT[e.type],inR=()=>P.filter(p=>p.hp>0&&gman(e,p)<=T.rng),best=ts=>ts.slice().sort((a,b)=>gdmg(e,b,false,1)-gdmg(e,a,false,1)||a.hp-b.hp)[0],near=()=>P.slice().sort((a,b)=>gman(e,a)-gman(e,b))[0];
+  if(e.type==='art'){const ts=inR(),hi=ts.find(p=>gi(p)===G.hq&&G.mode==='assault');if(ts.length)return gattack(e,hi||best(ts));if(G.mode==='defend')gaiMove(e,gi(near()),true);return;}
+  let ts=inR();
+  if(G.mode==='assault'){const intr=P.find(p=>gi(p)===G.hq);
+    if(intr){if(gman(e,intr)>T.rng)gaiMove(e,G.hq);ts=inR();if(ts.length)gattack(e,ts.includes(intr)?intr:best(ts));return;}
+    if(ts.length)return gattack(e,best(ts));
+    if(!gAt(G.hq)&&greach(e).has(G.hq)){e.x=G.hq%GW;e.y=Math.floor(G.hq/GW);e.moved=true;e.dug=0;return;}
+    if(e.mob){const t=near();if(gman(e,t)<=5){gaiMove(e,gi(t));ts=inR();if(ts.length)gattack(e,best(ts));}}return;}
+  gaiMove(e,G.hq);ts=inR();if(ts.length)gattack(e,best(ts));}
+function gEnemyTurn(){genemySupport();gheal('E');if(gcheck())return;
+  const P=galive('P'),near=e=>Math.min(99,...P.map(p=>gman(e,p))),q=galive('E').filter(e=>!e.done).sort((a,b)=>(a.type==='art'?-10:0)-(b.type==='art'?-10:0)+near(a)-near(b));
+  const next=()=>{if(!G||G.over)return;const e=q.shift();if(!e)return gEnemyEnd();let vis=false;
+    if(e.hp>0){gai(e);gvis();vis=gseen(e);if(gcheck())return;if(!ui.gfast&&vis){gdraw();guiText();}}
+    if(ui.gfast||!vis)next();else setTimeout(next,320);};
+  next();}
+function gEnemyEnd(){gendSide('E');if(gcheck())return;if(G.mode==='defend')genemyLand();G.turn++;if(gcheck())return;gheal('P');G.landN=0;G.used={};G.busy=false;gvis();grefresh();
+  if(G.turn===G.max)gban(G.mode==='assault'?'最後のターン':'あと1ターン守り抜け','am');}
+function gendTurn(){if(!G||G.over||G.busy)return;G.sel=null;G.info=null;G.act=null;G.reach=G.atk=null;gendSide('P');if(gcheck())return;G.busy=true;grefresh();gEnemyTurn();}
+
+/* ---------- 入力 ---------- */
+function gselCalc(){const u=G.u.find(x=>x.id===G.sel);G.reach=G.atk=null;if(!u||u.side!=='P'||u.done||!u.on||u.hp<=0)return;
+  if(!u.moved)G.reach=greach(u);G.atk=new Set();
+  if(!(u.type==='art'&&u.moved))for(const e of galive('E'))if(gseen(e)&&gman(u,e)<=GT[u.type].rng)G.atk.add(gi(e));}
+function gtap(i){if(!G||G.over||G.busy)return;const u=gAt(i),s=G.u.find(x=>x.id===G.sel);
+  if(G.act){const a=G.act;
+    if(a.k==='land'){const w=G.u.find(x=>x.id===a.uid);if(w&&glandOK().has(i))return gland(w,i);}
+    else if(gtargets(a.k).has(i))return gstrike(a.k,i);
+    G.act=null;return grefresh();}
+  if(s&&s.side==='P'&&!s.done&&s.on){
+    if(G.atk&&G.atk.has(i)){gattack(s,gAt(i));G.sel=null;G.reach=G.atk=null;gvis();if(!gcheck())grefresh();return;}
+    if(G.reach&&G.reach.has(i)&&i!==gi(s)&&!u){const n0=galive('E').filter(gseen).length;s.ox=s.x;s.oy=s.y;s.odug=s.dug;s.x=i%GW;s.y=Math.floor(i/GW);s.moved=true;s.dug=0;gvis();
+      if(galive('E').filter(gseen).length>n0)s.ox=null;gselCalc();return grefresh();}}
+  if(u&&u.side==='P'){G.sel=u.id;G.info=null;gselCalc();}
+  else if(u&&gseen(u)){G.info=u.id;G.sel=null;G.reach=G.atk=null;}
+  else{G.sel=null;G.info=null;G.reach=G.atk=null;}
+  grefresh();}
+function gbtn(a){if(!G||G.over||G.busy)return;const p=a.split(':'),s=G.u.find(x=>x.id===G.sel);
+  if(p[0]==='cancel')G.act=null;
+  else if(p[0]==='wait'&&s){s.done=true;G.sel=null;G.reach=G.atk=null;}
+  else if(p[0]==='undo'&&s&&s.moved&&s.ox!=null&&!s.acted){s.x=s.ox;s.y=s.oy;s.dug=s.odug;s.moved=false;s.ox=null;gvis();gselCalc();}
+  else if(p[0]==='land'){if(G.landN>=G.wave)return;G.act={k:'land',uid:+p[1]};G.sel=null;G.reach=G.atk=null;}
+  else if(p[0]==='sup'){if(G.sup[p[1]]<=0||G.used.any)return;if(!gtargets(p[1]).size){toast(p[1]==='gun'?'艦砲の届く範囲(海から3マス)に、見えている敵がいない':'見えている敵がいない');return;}G.act={k:p[1]};G.sel=null;G.reach=G.atk=null;}
+  grefresh();}
+
+/* ---------- 表示 ---------- */
+function gban(msg,c){const el=$('#gban');el.textContent=msg;el.className='ban show '+(c||'');clearTimeout(gban.h);gban.h=setTimeout(()=>{el.className='ban';},2600);}
+function gfit(){if(!G)return;const cv=$('#gcv'),r=$('#gmap').getBoundingClientRect();G.dpr=Math.min(2,window.devicePixelRatio||1);G.cw=Math.max(50,r.width);G.ch=Math.max(50,r.height);cv.width=Math.round(G.cw*G.dpr);cv.height=Math.round(G.ch*G.dpr);G.g=cv.getContext('2d');
+  G.ts=Math.max(8,Math.floor(Math.min(G.cw/GW,(G.ch-30)/GH)));G.ox=Math.round((G.cw-G.ts*GW)/2);G.oy=Math.max(0,Math.round((G.ch-30-G.ts*GH)/2));}
+function gstatHTML(){const s=G.u.find(x=>x.id===G.sel),e=G.u.find(x=>x.id===G.info),as=G.mode==='assault';
+  const d=u=>{const i=gi(u),k=G.fk[i],t=GT[u.type];return `<b class="${u.side==='P'?'b':'r'}">${u.name}</b>　戦力 ${u.hp}/10　攻${t.atk} 防${t.def} 移${t.mv}${t.rng>1?' 射'+t.rng:''}<br><span class="mut">${GTN[G.t[i]]}${k?'・'+FAC[k][0]:''}${u.dug?'　陣地あり':''}${u.sup?'　<span class="am">制圧されている</span>':''}${u.side==='P'&&u.done?'　行動済み':''}</span>`;};
+  if(G.act)return `<b class="am">${G.act.k==='land'?'上陸する砂浜(黄色)をタップ':SUPN[G.act.k]+'の目標(橙の枠)をタップ'}</b>${G.act.k==='gun'?'<br><span class="mut">艦砲は海から3マスまで届き、隣のマスの敵も巻き込む</span>':G.act.k==='msl'?'<br><span class="mut">敵の施設なら、見えていなくても狙える</span>':''}`;
+  if(s&&s.on&&s.hp>0)return d(s)+(s.done?'':`<br><span class="mut">${s.moved?'':'水色のマスへ移動。'}${G.atk&&G.atk.size?'赤い枠の敵をタップで攻撃':s.type==='art'&&s.moved?'特科は動いた番には撃てない':'射程内に見えている敵はいない'}</span>`);
+  if(e&&e.on&&e.hp>0)return d(e);
+  return `<span class="mut">${as&&!galive('P').length?'下の「上陸」で部隊を選び、砂浜に揚げる。':'自部隊をタップで選択。'}司令部(司)に${as?'乗り込み、敵の番を持ちこたえれば奪還できる':'乗り込まれたら、次の番のうちに排除する'}。</span>`;}
+function gactHTML(){if(G.over)return'';if(G.busy)return'<button disabled>敵の行動中</button>';const s=G.u.find(x=>x.id===G.sel);let h='';
+  if(G.act)return '<button data-g="cancel">やめる</button>';
+  if(s&&s.side==='P'&&!s.done&&s.on){h+=`<button data-g="wait">${s.moved?'ここで待機':'待機(陣地を固める)'}</button>`;if(s.moved&&s.ox!=null)h+='<button data-g="undo">移動を取り消す</button>';}
+  if(G.mode==='assault'&&G.wait.length&&G.landN<G.wave)for(const w of G.wait.slice(0,4))h+=`<button data-g="land:${w.id}" class="g">上陸：${w.name.replace(/^演習 /,'')}</button>`;
+  for(const k of['gun','air','msl'])if(G.sup[k]>0)h+=`<button data-g="sup:${k}" class="am"${G.used.any?' disabled':''}>${SUPN[k]} 残${G.sup[k]}</button>`;
+  return h;}
+function guiText(){if(!G)return;const as=G.mode==='assault';
+  $('#gturn').textContent=`ターン ${Math.min(G.turn,G.max)}/${G.max}`;const r=$('#gside');r.textContent=`${G.drill?'図上演習':as?'上陸作戦':'島嶼防衛'}　${G.iname}`;r.className='roe '+(as?'auth':'hot');
+  $('#gobj').textContent=`目標：${as?'司令部を制圧する':'司令部を守り抜く'}`+(as&&G.wait.length?`　洋上待機 ${G.wait.length}個(このターンあと${Math.max(0,G.wave-G.landN)}個)`:'')+(!as&&G.ewait.length?'　敵の後続あり':'');
+  $('#gstat').innerHTML=gstatHTML();$('#gact').innerHTML=gactHTML();$('#gend').disabled=G.busy||!!G.over;
+  $('#glog').innerHTML=G.log.slice(0,30).map(l=>`<div class="${l.c}"><span>T${l.t}</span>${l.msg}</div>`).join('');}
+function grefresh(){if(!G)return;guiText();gdraw();}
+function gdraw(){const g=G&&G.g;if(!g)return;const ts=G.ts,ox=G.ox,oy=G.oy,now=performance.now();g.setTransform(G.dpr,0,0,G.dpr,0,0);g.fillStyle='#071a2b';g.fillRect(0,0,G.cw,G.ch);
+  const land=G.act&&G.act.k==='land'?glandOK():null,tg=G.act&&G.act.k!=='land'?gtargets(G.act.k):null,X=i=>ox+(i%GW)*ts,Y=i=>oy+Math.floor(i/GW)*ts;
+  g.textAlign='left';g.textBaseline='top';
+  for(let i=0;i<GN;i++){const x=X(i),y=Y(i),t=G.t[i];g.fillStyle=GTC[t];g.fillRect(x,y,ts,ts);if(!t)continue;
+    if(t===3){g.fillStyle='#1b3a29';for(const p of[[.3,.62],[.62,.42],[.7,.8]]){g.beginPath();g.moveTo(x+ts*p[0],y+ts*(p[1]-.22));g.lineTo(x+ts*(p[0]+.13),y+ts*p[1]);g.lineTo(x+ts*(p[0]-.13),y+ts*p[1]);g.fill();}}
+    else if(t===4){g.strokeStyle='#96917a';g.lineWidth=1.2;g.beginPath();g.arc(x+ts*.5,y+ts*.78,ts*.3,Math.PI*1.1,Math.PI*1.9);g.stroke();g.beginPath();g.arc(x+ts*.5,y+ts*.98,ts*.42,Math.PI*1.15,Math.PI*1.85);g.stroke();}
+    else if(t===5){g.fillStyle='#7d8590';for(const p of[[.16,.2],[.6,.24],[.3,.62],[.64,.64]])g.fillRect(x+ts*p[0],y+ts*p[1],ts*.2,ts*.18);}
+    g.strokeStyle='rgba(0,0,0,.2)';g.lineWidth=1;g.strokeRect(x+.5,y+.5,ts-1,ts-1);
+    const k=G.fk[i];if(k){const P=G.fown[i]==='P';g.fillStyle=P?'rgba(47,111,174,.4)':'rgba(181,72,63,.4)';g.fillRect(x+1,y+1,ts-2,ts-2);g.strokeStyle=P?'#5fb0ff':'#ff6b5e';g.lineWidth=1.6;g.strokeRect(x+1.5,y+1.5,ts-3,ts-3);}
+    if(!G.vis[i]){g.fillStyle='rgba(4,13,22,.5)';g.fillRect(x,y,ts,ts);}
+    if(G.reach&&G.reach.has(i)&&!gAt(i)){g.fillStyle='rgba(95,220,255,.34)';g.fillRect(x+2,y+2,ts-4,ts-4);}
+    if(land&&land.has(i)){g.fillStyle='rgba(255,224,102,.5)';g.fillRect(x+2,y+2,ts-4,ts-4);g.strokeStyle='#ffe066';g.lineWidth=2;g.strokeRect(x+2,y+2,ts-4,ts-4);}
+    if(tg&&tg.has(i)){g.strokeStyle='#ff9d3c';g.lineWidth=3;g.strokeRect(x+3,y+3,ts-6,ts-6);}}
+  const m=Math.round(ts*.16),w=ts-m*2;g.textAlign='center';g.textBaseline='middle';
+  for(const u of G.u){if(!u.on||u.hp<=0||!gseen(u))continue;const i=gi(u),x=X(i)+m,y=Y(i)+m,P=u.side==='P',sel=G.sel===u.id||G.info===u.id;
+    g.fillStyle=P?(u.done?'#2a4660':'#2f6fae'):'#b5483f';g.fillRect(x,y,w,w);g.strokeStyle=sel?'#fff':P?'#9fd0ff':'#ffb3aa';g.lineWidth=sel?2.5:1.2;g.strokeRect(x,y,w,w);
+    g.fillStyle=P&&u.done?'#9db2c4':'#fff';g.font=`bold ${Math.round(w*.5)}px sans-serif`;g.fillText(GT[u.type].s,x+w*.42,y+w*.46);
+    g.font=`${Math.max(9,Math.round(w*.34))}px sans-serif`;g.fillStyle=u.hp<=3?'#ffd166':'#fff';g.fillText(String(u.hp),x+w*.82,y+w*.8);
+    if(u.dug){g.fillStyle='#e8d9a0';g.fillRect(x,y+w-3,w,3);}
+    if(u.sup){g.fillStyle='#ff9d3c';g.beginPath();g.arc(x+w*.84,y+w*.18,Math.max(2.5,w*.1),0,6.3);g.fill();}
+    if(G.atk&&G.atk.has(i)&&!P){g.strokeStyle='#ff3b30';g.lineWidth=3;g.strokeRect(X(i)+1.5,Y(i)+1.5,ts-3,ts-3);}}
+  // 施設の記号は部隊の上に重ねて、乗っていても読めるようにする
+  g.textAlign='left';g.textBaseline='top';const fs=Math.max(9,Math.round(ts*.28));g.font=`${fs}px sans-serif`;
+  for(const i in G.fk){const x=X(+i),y=Y(+i),P=G.fown[i]==='P';g.fillStyle=P?'rgba(20,58,96,.92)':'rgba(110,34,28,.92)';g.fillRect(x+1,y+1,fs+4,fs+3);g.fillStyle='#fff';g.fillText(FAC[G.fk[i]][1],x+3,y+2);}
+  g.textAlign='center';g.textBaseline='middle';
+  G.fx=G.fx.filter(f=>now-f.t<950);g.font=`bold ${Math.round(ts*.42)}px sans-serif`;
+  for(const f of G.fx){const x=X(f.i)+ts/2,y=Y(f.i)+ts*.2;g.strokeStyle='#000';g.lineWidth=3;g.strokeText('−'+f.d,x,y);g.fillStyle='#ffe066';g.fillText('−'+f.d,x,y);}}
+
+/* ---------- 決着 ---------- */
+function gfinish(res,why){if(G.over)return;G.over={res,why};G.busy=false;const win=res==='win',as=G.mode==='assault',z=G.z,pl=G.u.filter(u=>u.side==='P'),L=[];let dS=0,dT=0;
+  const lostP=pl.filter(u=>u.hp<=0).length,lostE=G.lost.E,surv=G.u.filter(u=>u.side==='E'&&u.hp>0).map(u=>({t:u.type,hp:u.hp})).concat(G.ewait.map(e=>({t:e.type,hp:e.hp})));
+  if(!G.drill){
+    for(const u of pl){const g=S.gnd.find(x=>x.id===u.ref);if(!g)continue;if(u.hp<=0){S.gnd=S.gnd.filter(x=>x!==g);S.enl.gnd.n=Math.max(0,S.enl.gnd.n-RI(40,90));continue;}
+      g.hp=as&&!win&&u.on?Math.max(1,u.hp-1):u.hp;g.tr=Math.min(100,g.tr+(u.on?6:1));if(as&&win)g.loc='i'+z;}
+    const il=S.isl[z];for(const k in G.fhp)il.fac[k]=G.fhp[k];
+    if(as){if(win){liberate(z);S.stats.wins++;dS=8;dT=2;L.push(`${ISL[z]}を奪還した。上陸部隊はそのまま守備隊になる`);}
+      else{il.egar=surv.length?surv:[{t:'inf',hp:1}];S.stats.loss++;dS=-4;dT=1;L.push(why==='time'?'攻めきれず、上陸部隊は艦へ引き揚げた':why==='retreat'?'上陸部隊は艦へ引き揚げた':'上陸部隊は壊滅した');hlog(`${ISL[z]}：上陸作戦は失敗`,'r');}}
+    else{S.gpend=null;
+      if(win){S.stats.wins++;dS=6;dT=-1;S.sectors[z].threat=Math.max(5,S.sectors[z].threat-15);L.push(`守備隊が${ISL[z]}を守り抜いた`);hlog(`${ISL[z]}：守備隊が上陸した敵を撃退`,'g');}
+      else{S.stats.loss++;occupy(z,G.L,surv);dS=-6;dT=3;L.push(why==='hq'?'司令部を奪われ、島は敵の手に落ちた':'守備隊は壊滅し、島は敵の手に落ちた');}}
+    if(G.coll){dS-=Math.min(3,G.coll);L.push('市街地への被害が批判を呼んだ');}
+    polApply(dS,dT);S.pers.morale=clamp(S.pers.morale+(win?3:-4),5,100);_M=null;checkOver();save();}
+  guiText();gdraw();
+  const ttl=G.drill?'図上演習　終了':win?(as?'奪還成功':'防衛成功'):as?'作戦失敗':'陥落';
+  modal(`<div class="alert ${win?'g':'r'}">${ttl}</div><h2>${win?(as?(why==='hq'?'司令部を制圧し、島を取り戻した':'敵の守備隊を一掃し、島を取り戻した'):'上陸した敵を退けた'):as?(why==='retreat'?'上陸部隊を引き揚げた':why==='time'?'攻勢は限界に達した':'上陸部隊を失った'):'島を失った'}</h2>
+  <dl class="kv2"><dt>ターン</dt><dd>${Math.min(G.turn,G.max)}</dd><dt>敵の損害</dt><dd>壊滅 ${lostE}個部隊</dd><dt>我が損害</dt><dd>壊滅 ${lostP}個部隊</dd></dl>${G.drill?'<p class="sm mut">演習の結果は部隊や情勢に影響しない。</p>':L.map(l=>`<p class="sm">${l}。</p>`).join('')+`<div class="pol">支持率 ${sg(dS)}　緊張度 ${sg(dT)}</div>`}
+  <div class="mbtn"><button class="btn pri" data-m="ok">司令部へ戻る</button></div>`,{ok:()=>{closeModal();G=null;$('#gb').hidden=true;$('#hq').hidden=false;render();if(S.over)showOver();}});}
+function ginit(){
+  $('#gcv').addEventListener('click',e=>{if(!G)return;const r=$('#gcv').getBoundingClientRect(),x=Math.floor((e.clientX-r.left-G.ox)/G.ts),y=Math.floor((e.clientY-r.top-G.oy)/G.ts);if(x<0||y<0||x>=GW||y>=GH)return;gtap(y*GW+x);});
+  $('#gact').addEventListener('click',e=>{const b=e.target.closest('button[data-g]');if(b&&!b.disabled)gbtn(b.dataset.g);});
+  $('#gend').addEventListener('click',()=>{if(!G||G.over||G.busy)return;
+    if(G.mode==='assault'&&G.wait.length&&G.landN<G.wave&&glandOK().size)confirmM('まだ上陸させられる部隊がある。このままターンを終える。',gendTurn,'ターンを終える');else gendTurn();});
+  $('#gquit').addEventListener('click',()=>{if(!G||G.over||G.busy)return;confirmM(G.drill?'演習を打ち切る。':G.mode==='assault'?'上陸部隊を艦へ引き揚げる。作戦は失敗として扱われるが、与えた損害は残る。':'島を放棄する。守備隊は失われ、島は占領される。',()=>gfinish('lose','retreat'),G.mode==='assault'||G.drill?'引き揚げる':'放棄する');});
+  window.addEventListener('resize',()=>{if(G){gfit();gdraw();}});}
+ginit();
 
 /* ================= 3Dビュー ================= */
 // 立体モデル。x=艦首方向、y=左右、z=上。長さ1を基準にした低ポリゴン
@@ -1393,6 +2004,7 @@ const MDL={
   ddg:[].concat(prism([[-.5,-.07],[.2,-.07],[.5,0],[.2,.07],[-.5,.07]],0,.06,1,0),bx(0,.22,-.055,.055,.06,.16,2),bx(.08,.12,-.015,.015,.16,.27,3),bx(-.12,-.02,-.035,.035,.06,.13,3),bx(-.32,-.15,-.05,.05,.06,.11,2)),
   dd:[].concat(prism([[-.5,-.06],[.2,-.06],[.5,0],[.2,.06],[-.5,.06]],0,.055,1,0),bx(.02,.18,-.045,.045,.055,.13,2),bx(.08,.11,-.012,.012,.13,.23,3),bx(-.12,-.04,-.03,.03,.055,.12,3),bx(-.3,-.16,-.045,.045,.055,.105,2)),
   lst:[].concat(prism([[-.5,-.1],[.35,-.1],[.5,0],[.35,.1],[-.5,.1]],0,.08,1,0),bx(-.46,-.24,-.08,.08,.08,.2,2),bx(-.38,-.32,-.02,.02,.2,.28,3)),
+  site:[].concat(bx(-.3,.3,-.3,.3,0,.08,1),bx(-.16,.1,-.14,.14,.08,.2,2),bx(.14,.2,-.03,.03,.08,.42,3)),
   sub:[].concat(prism([[-.5,0],[-.4,-.05],[.35,-.05],[.5,0],[.35,.05],[-.4,.05]],-.03,.04,3,3),bx(0,.14,-.02,.02,.04,.11,3)),
   ftr:[flat([[.5,0,0],[-.3,-.08,0],[-.5,0,0],[-.3,.08,0]],2),flat([[.1,0,0],[-.35,-.38,0],[-.42,-.38,0],[-.3,0,0]],1),flat([[.1,0,0],[-.35,.38,0],[-.42,.38,0],[-.3,0,0]],1),flat([[-.28,0,0],[-.5,0,0],[-.5,0,.16]],3,[0,1,0])],
   bmr:[flat([[.5,0,0],[-.3,-.1,0],[-.5,0,0],[-.3,.1,0]],2),flat([[.18,0,0],[-.22,-.55,0],[-.4,-.55,0],[-.3,0,0]],1),flat([[.18,0,0],[-.22,.55,0],[-.4,.55,0],[-.3,0,0]],1),flat([[-.28,0,0],[-.5,0,0],[-.5,0,.2]],3,[0,1,0])],
@@ -1400,7 +2012,7 @@ const MDL={
     flat([0,1,2,3,4,5,6,7].map(i=>[-.1+Math.cos(i*.785)*.2,Math.sin(i*.785)*.2,.09]),2),flat([[-.3,0,0],[-.5,0,0],[-.5,0,.15]],3,[0,1,0])]
 };
 const MKEY={cvl:['cv',1.45],cv:['cv',1.8],ecv:['cv',1.7],ddg:['ddg',1.1],ddgx:['ddg',1.25],eddg:['ddg',1.1],ecg:['ddg',1.3],dd:['dd',1],dd2:['dd',1.08],ffm:['dd',.88],ffm2:['dd',.92],eff:['dd',.88],opv:['dd',.7],usv:['dd',.5],
-  aoe:['lst',1.15],elst:['lst',1.15],ss:['sub',.8],ssx:['sub',.9],ess:['sub',.8],ftr:['ftr',.55],eftr:['ftr',.55],estl:['ftr',.6],ebmr:['bmr',.8],aew:['aew',.7]};
+  aoe:['lst',1.15],elst:['lst',1.15],lst:['lst',1.1],lhd:['cv',1.2],site:['site',.7],eshore:['site',.7],ss:['sub',.8],ssx:['sub',.9],ess:['sub',.8],ftr:['ftr',.55],eftr:['ftr',.55],estl:['ftr',.6],ebmr:['bmr',.8],aew:['aew',.7]};
 const PAL={P:[[62,88,116],[92,124,154],[146,178,208],[40,58,80]],E:[[120,70,66],[150,94,88],[202,140,130],[80,46,46]]};
 const C3DEF={tx:250,ty:268,d:600,yaw:-.35,pit:.8};
 const ms3=()=>3*Math.pow(B.c3.d,.32),zAir3=()=>Math.max(9,B.c3.d*.05);
@@ -1528,7 +2140,7 @@ function initDOM(){
 }
 initDOM();
 S=load();
-if(S){render();if(S.over)showOver();else if(S.pending)showIncident();}
+if(S){render();if(S.over)showOver();else if(S.gpend)groundPrompt();else if(S.pending)showIncident();}
 else{newGame({});render();showTitle();}
 </script>
 </body>

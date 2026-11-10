@@ -27,7 +27,7 @@ function mkFlight(c,kind){const M=B.M,d=norm(B.sp.x-c.x,B.sp.y-c.y),base={side:'
       asm,asmR:110*(1+M.ftrAsmR),asmDmg:50*(1+M.asmDmg),pkB:M.asmPen,asmV:15*(1+M.asmSpd),fuel:150*(1+M.ftrFuel)}));
     if(kind==='cap'){f.dx=clamp(c.x+d.x*40,5,W-5);f.dy=clamp(c.y+d.y*40,5,H-5);}}
   return f;}
-const SLOTK={cv:'cvl',cvl:'cvl',ddg:'ddg',ddgx:'ddg',dd:'dd',dd2:'dd',ffm:'ffm',ffm2:'ffm',opv:'ffm',usv:'usv',ss:'ss',ssx:'ss',aoe:'aoe'};
+const SLOTK={cv:'cvl',cvl:'cvl',ddg:'ddg',ddgx:'ddg',dd:'dd',dd2:'dd',ffm:'ffm',ffm2:'ffm',opv:'ffm',usv:'usv',ss:'ss',ssx:'ss',aoe:'aoe',lst:'aoe',lhd:'aoe'};
 const SLOT={cvl:[[0,0],[-20,14]],ddg:[[26,-12],[26,12],[42,0]],dd:[[10,-31],[10,31],[-16,-26],[-16,26]],ffm:[[-24,0],[-28,-16],[-28,16],[-36,-8],[-36,8]],usv:[[18,0],[14,-18],[14,18]],ss:[[80,-34],[80,34],[100,0]],aoe:[[-40,0],[-44,12]]};
 function setupP(us,pc){const d=norm(B.sp.x-pc.x,B.sp.y-pc.y),p={x:-d.y,y:d.x},at=(a,b)=>({x:clamp(pc.x+d.x*a+p.x*b,8,W-8),y:clamp(pc.y+d.y*a+p.y*b,8,H-8)}),cnt={};
   for(const su of us){const k=SLOTK[su.type]||'ffm',i=cnt[k]=(cnt[k]||0)+1,sl=SLOT[k],s=sl[(i-1)%sl.length],ov=Math.floor((i-1)/sl.length),q=at(s[0]-ov*12,s[1]+ov*7);pShip(su,q.x,q.y);}}
@@ -47,30 +47,6 @@ function setupE(f){const sp=B.sp,o=B.obj,d=norm(o.x-sp.x,o.y-sp.y),p={x:-d.y,y:d
   const t0=B.sc==='airraid'?R(10,30):R(40,90);
   for(let i=0;i<n('ebmr');i++)B.pend.push({sp:1,t:t0+R(0,12),f:()=>{const q=at(R(-5,5),R(-40,40));mkE('ebmr',q.x,q.y,'bmr');}});
   for(const k2 of['eftr','estl'])for(let i=0;i<n(k2);i++)B.pend.push({sp:1,t:Math.max(1,t0+R(-3,6)),f:()=>{const q=at(R(0,10),R(-40,40));mkE(k2,q.x,q.y,'ftr');}});}
-function startBattle(inc){
-  const drill=!!inc.drill,us=S.units.filter(u=>u.mode==='normal'&&(drill||u.sector===inc.sector)),rein=drill?[]:reserve();
-  if(!us.length&&!rein.length){toast('出撃できる部隊がない');return;}
-  _M=null;const M=mods(),eT=inc.eT||0,C=S.cfg;
-  B={inc,drill,M,eT,sc:inc.type,iname:ISL[inc.sector]||'演習島',t:0,u:[],m:[],ui:{},mi:{},uid:0,mid:0,fx:[],log:[],pend:[],sel:[],tsel:null,hot:false,auth:false,pre:false,eWd:false,over:null,paused:true,speed:1,
-    obj:{x:255,y:285,r:22},pc:{x:125,y:405},base:{x:14,y:H-14},sp:pick([{x:260,y:22},{x:455,y:55},{x:472,y:240}]),cam:{x:W/2,y:H/2,z:1},k:1,cw:300,ch:300,dpr:1,g:null,
-    view:ui.view||'2d',c3:Object.assign({},C3DEF),fol:false,
-    dT:0,aT:0,intelT:15,intel:null,zoneT:0,landT:0,landNeed:Math.max(10,20+M.garr),warnCd:0,warnN:0,fireAt:null,vampCd:0,satT:Math.max(0,M.satT),sup:eT>=3?2:(inc.L>=2.6||eT>=1)?1:0,
-    antiSS:clamp(M.antiSS,0,.25),asmLow:clamp(M.asmLow,0,.6),antiLO:M.antiLO,jam:clamp(M.jam,0,.5),eIn:25*(1+clamp(M.eIntel,-.5,2)),reinT0:reinTime(),
-    willFire:inc.type!=='intrusion'||Math.random()<clamp((S.tension*C.eAggr-10)/80+.15,.25,.95),
-    eAir:0,pAir:0,eLost:0,eInit:0,pursuitK:0,divert:{ftr:0,aew:0},st:{sam:0,asm:0,aam:0,torp:0},ec:{},fn:0,tmax:420,intruded:false,logD:true,mk:null};
-  if(inc.type==='landing'||inc.type==='retake'){B.hot=true;B.auth=true;}
-  for(const k in inc.force)B.eInit+=ET[k].val*inc.force[k];
-  setupP(us,B.pc);setupE(inc.force);
-  if(rein.length)B.pend.push({rein:1,t:B.reinT0,f:()=>{setupP(rein,{x:B.pc.x-35,y:B.pc.y+35});blog(`母港からの増援が到着：${rein.map(u=>u.name).join('、')}`,'g');banner('増援　到着','g');if(B.speed>4)setSpeed(4);uiRefresh(true);}});
-  B.intel={x:B.pc.x+R(-B.eIn,B.eIn),y:B.pc.y+R(-B.eIn,B.eIn)};
-  blog(`${drill?'図上演習':SCN[B.sc].n}　目標：${SCN[B.sc].o}`,'b');
-  if(rein.length)blog(`母港の部隊が増援に向かっている。到着は${B.reinT0}分後(海域の南西)`,'');
-  if(B.sup)blog(B.sup>=2?'敵は極超音速の対艦ミサイルを配備している':'敵は超音速の対艦ミサイルを配備している','am');
-  if(B.hot)blog('防衛出動が発令されている。武器の使用は自由','am');else blog('武器の使用は許可されていない。敵が撃つまで監視と警告のみ','');
-  detect();
-  $('#hq').hidden=true;$('#bt').hidden=false;fit();setSpeed(0);setView(B.view);uiRefresh(true);banner('作戦開始　速度ボタンで時間を進める','');
-  lastTs=performance.now();cancelAnimationFrame(raf);raf=requestAnimationFrame(frame);}
-
 /* ---------- 兵装(高速ミサイル・被害軽減・回避を反映) ---------- */
 function fireASM(u,t,n,d0){n=Math.min(n,u.asm);const spd=u.side==='E'?(B.sup>=2?55:B.sup?32:15):(u.asmV||15);
   for(let i=0;i<n;i++)reg({side:u.side,type:'asm',x:u.x,y:u.y,spd,ss:spd>25,hs:spd>45,tgt:t.id,tm:false,dmg:u.asmDmg,pkB:u.pkB||0,life:60,delay:(d0||0)+i*.12});u.asm-=n;if(u.side==='P')B.st.asm+=n;return n;}
@@ -99,16 +75,60 @@ function detect(){const al=B.u.filter(u=>!u.dead);
   for(const m of B.m){if(m.dead||m.delay>0)continue;if(m.type!=='asm'&&m.type!=='torp'){m.seen=true;continue;}let s=false;const k=m.side==='P'&&m.type==='asm'?1-B.asmLow:1;
     for(const o of al){if(o.side===m.side)continue;const r=(m.type==='asm'?o.dM:o.so*.6)*k;if(r>0&&dist(o,m)<=r){s=true;break;}}
     if(s&&!m.rep&&m.side==='E'){m.rep=true;if(m.type==='asm')nv++;else nt++;}m.seen=s;}
-  if((nv||nt)&&B.vampCd<=0){B.vampCd=1.5;banner(nv?'対艦ミサイル接近':'魚雷音を探知','r');blog(nv?`敵対艦ミサイルを探知　${nv}発`:`敵魚雷を探知　${nt}本`,'r');if(B.speed>1)setSpeed(1);}}
+  if((nv||nt)&&B.vampCd<=0){B.vampCd=1.5;banner(nv?'対艦ミサイル接近':'魚雷音を探知','r');blog(nv?`敵対艦ミサイルを探知　${nv}発`:`敵魚雷を探知　${nt}本`,'r');if(B.speed>1)setSpeed(1);}}// 島の施設と守備隊は、海戦では動かない陸上の拠点として加わる
+function mkSite(o){return mk(Object.assign({side:'P',cat:'ship',key:'site',site:1,cvf:false,spd:0,hp:60,max:60,q:1,ciws:.2,turn:[],deckCd:0,ftr:0,aew:0,aamS:0,asmS:0,cool:6,stealth:0,quiet:0,dc:0,decoy:0,luck:0,cecS:0,hide:1,pkB:0,asmV:15},o));}
+function setupShore(z){const o=B.obj,M=B.M;let n=0;
+  if(facOK(z,'radar'))mkSite({name:ISL[z]+' レーダーサイト',lab:'レーダー',sym:'RDR',x:o.x-4,y:o.y-3,dA:320*(1+M.radA),dS:75,dM:45,fref:'radar'});
+  for(const g of garrison(z)){const q=(.8+.4*g.tr/100)*(1+M.gndPow),k=g.hp/10;
+    if(g.type==='ssm')mkSite({name:g.name,lab:'地対艦',sym:'SSM',x:o.x+3+n*2,y:o.y+4-n*2,hp:70,max:70,dS:60,dM:25,asm:Math.max(2,Math.round(8*k)),asmR:150*(1+M.asmR),asmDmg:50*(1+M.asmDmg),pkB:M.asmPen,asmV:15*(1+M.asmSpd),gref:g.id,q});
+    else if(g.type==='aa')mkSite({name:g.name,lab:'高射',sym:'SAM',x:o.x+5-n*2,y:o.y-4+n*2,dA:200,dS:40,dM:40*(1+M.radM),sam:Math.max(4,Math.round(16*k)),samR:40*(1+M.samRS),samPk:clamp((.55+M.samPk)*Math.min(1,q),0,.9),samRate:.35,cecS:clamp(M.cec,0,1),gref:g.id,q});
+    else continue;n++;}}
+function startBattle(inc){
+  const drill=!!inc.drill,z=inc.sector,us=drill?S.units.filter(u=>u.mode==='normal'&&u.sector>=0&&!PT[u.type].tcap):fightIn(z),rs=drill?{near:[],far:[],all:[]}:reserve(z);
+  if(!us.length&&!rs.all.length){toast('出撃できる部隊がない');return;}
+  _M=null;const M=mods(),eT=inc.eT||0,C=S.cfg,T=reinTime();
+  B={inc,drill,M,eT,sc:inc.type,iname:drill?'演習島':ISL[z],t:0,u:[],m:[],ui:{},mi:{},uid:0,mid:0,fx:[],log:[],pend:[],sel:[],tsel:null,hot:false,auth:false,pre:false,eWd:false,over:null,paused:true,speed:1,
+    obj:{x:255,y:285,r:22},pc:{x:125,y:405},base:{x:14,y:H-14},sp:pick([{x:260,y:22},{x:455,y:55},{x:472,y:240}]),cam:{x:W/2,y:H/2,z:1},k:1,cw:300,ch:300,dpr:1,g:null,
+    view:ui.view||'2d',c3:Object.assign({},C3DEF),fol:false,
+    dT:0,aT:0,intelT:15,intel:null,zoneT:0,landT:0,landNeed:Math.max(10,20+M.garr),warnCd:0,warnN:0,fireAt:null,vampCd:0,satT:Math.max(0,M.satT),sup:eT>=3?2:(inc.L>=2.6||eT>=1)?1:0,
+    antiSS:clamp(M.antiSS,0,.25),asmLow:clamp(M.asmLow,0,.6),antiLO:M.antiLO,jam:clamp(M.jam,0,.5),eIn:25*(1+clamp(M.eIntel,-.5,2)),reinT0:rs.near.length?T:T*2,
+    willFire:inc.type!=='intrusion'||Math.random()<clamp((S.tension*C.eAggr-10)/80+.15,.25,.95),
+    eAir:0,pAir:0,eLost:0,eInit:0,pursuitK:0,divert:{ftr:0,aew:0},st:{sam:0,asm:0,aam:0,torp:0},ec:{},fn:0,tmax:420,intruded:false,logD:true,mk:null};
+  if(inc.type==='landing'||inc.type==='retake'){B.hot=true;B.auth=true;}
+  for(const k in inc.force)B.eInit+=ET[k].val*inc.force[k];
+  setupP(us,B.pc);setupE(inc.force);
+  if(!drill&&ISLZ.includes(z)){
+    if(S.sectors[z].held)setupShore(z);
+    else S.isl[z].egar.forEach((e,i)=>{if(e.t==='ssm'&&e.hp>0)mkE('eshore',B.obj.x+R(-4,4),B.obj.y+R(-4,4),'guard',{site:1,eg:i,asm:Math.max(2,Math.round(8*e.hp/10))});});}
+  const arr=(list,t,more,pos)=>B.pend.push({rein:1,t,f:()=>{setupP(list,pos);blog(`増援が到着：${list.map(u=>u.name).join('、')}`,'g');banner('増援　到着','g');if(more)B.reinT0=T*2;if(B.speed>4)setSpeed(4);uiRefresh(true);}});
+  if(rs.near.length)arr(rs.near,T,rs.far.length>0,{x:B.pc.x-35,y:B.pc.y+35});
+  if(rs.far.length)arr(rs.far,T*2,false,{x:B.pc.x-15,y:B.pc.y+55});
+  B.intel={x:B.pc.x+R(-B.eIn,B.eIn),y:B.pc.y+R(-B.eIn,B.eIn)};
+  blog(`${drill?'図上演習':SCN[B.sc].n}　目標：${SCN[B.sc].o}`,'b');
+  if(rs.near.length)blog(`隣の海域から増援が向かっている。到着は${T}分後(海域の南西)`,'');
+  if(rs.far.length)blog(`2つ先の海域からも増援が向かっている。到着は${T*2}分後`,'');
+  if(B.u.some(u=>u.site&&u.side==='P'))blog(`${B.iname}の陸上拠点が戦闘に加わる：${B.u.filter(u=>u.site&&u.side==='P').map(u=>u.lab).join('、')}`,'');
+  if(B.u.some(u=>u.site&&u.side==='E'))blog('島に敵の地対艦ミサイル陣地がある','am');
+  if(B.sup)blog(B.sup>=2?'敵は極超音速の対艦ミサイルを配備している':'敵は超音速の対艦ミサイルを配備している','am');
+  if(B.hot)blog('防衛出動が発令されている。武器の使用は自由','am');else blog('武器の使用は許可されていない。敵が撃つまで監視と警告のみ','');
+  detect();
+  $('#hq').hidden=true;$('#bt').hidden=false;fit();setSpeed(0);setView(B.view);uiRefresh(true);banner('作戦開始　速度ボタンで時間を進める','');
+  lastTs=performance.now();cancelAnimationFrame(raf);raf=requestAnimationFrame(frame);}
 function applyUnits(){
   for(const f of B.u){if(f.side!=='P'||f.cat!=='air'||f.dead)continue;const h=B.ui[f.home];
     if(h&&!h.dead){if(f.key==='aew')h.aew++;else{h.ftr+=f.n;h.aamS+=f.aam;h.asmS+=f.asm;}}else B.divert[f.key==='aew'?'aew':'ftr']+=f.n;}
-  S.pool.ftr+=B.divert.ftr;S.pool.aew+=B.divert.aew;const win=B.over.res==='win';
+  S.pool.ftr+=B.divert.ftr;S.pool.aew+=B.divert.aew;const win=B.over.res==='win',z=B.inc.sector,il=S.isl[z];
   for(const b of B.u){if(b.side!=='P'||b.ref==null)continue;const su=U(b.ref);if(!su)continue;
     if(b.dead){sink(su);continue;}
     const t=PT[su.type];su.hp=Math.max(5,Math.round(b.hp/b.max*100));su.load.sam=b.sam;
     if(t.fcap){su.load.aam=Math.min(t.aam,b.aamS);su.load.aasm=Math.min(t.aasm,b.asmS);su.ftr=b.ftr+b.turn.reduce((a,x)=>a+x.n,0);su.aew=b.aew;}else{su.load.asm=b.asm;su.load.torp=b.torp;}
     su.tr=Math.min(100,su.tr+(B.hot?5:2));su.rd=Math.max(0,su.rd-(B.hot?6:2));
     for(const o of S.off)if(o.post&&o.post.startsWith(su.id+':')){o.bt++;o.merit+=(B.hot?4:2)+(win?2:0);if(B.hot&&Math.random()<.3){const k=pick(ABK);if(o[k]<o.pot)o[k]++;}}}
+  // 陸上拠点の損害を守備隊と施設に戻す
+  for(const b of B.u){if(!b.site||!il)continue;
+    if(b.side==='P'){if(b.gref){const g=S.gnd.find(x=>x.id===b.gref);if(g){if(b.dead){S.gnd=S.gnd.filter(x=>x!==g);hlog(`${g.name}が壊滅`,'r');}else g.hp=Math.max(1,Math.round(g.hp*b.hp/b.max));}}
+      else if(b.fref&&b.hp<b.max)il.fac[b.fref]=b.dead?10:Math.min(il.fac[b.fref],Math.max(20,Math.round(100*b.hp/b.max)));}
+    else if(b.eg!=null&&b.dead&&il.egar[b.eg])il.egar[b.eg].hp=0;}
+  if(il&&il.egar.length>1)il.egar=il.egar.filter(e=>e.hp>0);
   for(const k of['avm','avo'])S.enl[k].n=Math.max(0,S.enl[k].n-B.pAir);
   S.pers.morale=clamp(S.pers.morale+(win?3:B.over.res==='draw'?-1:-4),5,100);_M=null;}

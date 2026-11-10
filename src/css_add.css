@@ -39,3 +39,29 @@
 .zoom button.on{background:var(--cy);color:#06222a}
 .orow.w{flex-direction:column;align-items:stretch;gap:3px}
 .orow .o2{display:flex;justify-content:space-between;align-items:center;gap:8px}
+
+/* 作戦図・艦隊・陸上部隊・地上戦 */
+.tmap{width:100%;height:auto;display:block;margin-bottom:8px;touch-action:manipulation;border:1px solid var(--ln)}
+.tmap text{font-family:var(--go);pointer-events:none}
+.tmap .t1{fill:#dbe8f0;font-size:10.5px}.tmap .t2{fill:#86a0b3;font-size:9px}
+.tmap g{cursor:pointer}
+.zb{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:8px}
+.zb button{background:var(--pn2);border:1px solid var(--ln);border-radius:3px;padding:7px 1px;font-size:12px;color:var(--mut);white-space:nowrap;overflow:hidden}
+.zb button.on{background:#1d4e6b;color:#fff;border-color:#3b88ad}
+.zb button.dst{border-color:var(--am);color:#ffe0a6}
+.fb{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:#1d4e6b;border:1px solid var(--bl);font-size:12px;color:#fff;flex:0 0 auto;align-self:center}
+.facs{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin:6px 0}
+.facs div{background:var(--pn);padding:6px 8px;font-size:12.5px;border-left:2px solid var(--ln)}
+.facs div.dm{border-left-color:var(--rd)}
+.facs small{display:block;color:var(--mut);font-size:11.5px;line-height:1.4}
+.sbox{cursor:pointer}
+.zp{border-top:2px solid var(--cy)}
+#gb{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;background:#040d16}
+#gcv{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:manipulation}
+.gsp{flex:1}
+#gstat{font-size:12.5px;min-height:38px;line-height:1.5}
+#gact{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;min-height:38px}
+#gact button{background:var(--pn2);border:1px solid var(--ln);border-radius:3px;padding:8px 10px;font-size:13px;line-height:1.2}
+#gact button.am{border-color:var(--am);color:#ffe0a6}
+#gact button.g{border-color:var(--gr);color:#c6f5dd}
+#gact button:disabled{opacity:.35}
