@@ -241,7 +241,7 @@ function natNames(i){const N=NATS[i];if(N._nm)return N._nm;if(!N.ship)return N._
 const natSur=N=>N.sur?(N.sur.S?pick(N.sur.S)+pick(N.sur.E):pick(N.sur)):pick(NBASE.sur);
 function mkName(N){N=N||NAT;const s=natSur(N),g=pick(N.giv||NBASE.giv);return N.fmt===1?g+'・'+s:N.fmt===2?s+g:s+' '+g;}
 const seaName=(N,z)=>N.sea[z-1]+SEASUF[z];
-const eqName=k=>NAT.eq[['ftr','aew','sam','asm','aam','torp'].indexOf(k)];
+const eqName=k=>CUR.eq[EQK.indexOf(k)];
 const clsName=t=>NAMES[t]&&NAMES[t][0]?NAMES[t][0]+DSTY[NAT.ds].cls:'';
 const flName=(k,n)=>DSTY[NAT.ds].fl[k].replace('{n}',n);
 // 国の名称群を、ゲーム全体が参照する表に流し込む。新しく始めるときと、記録を読み込んだときに呼ぶ
@@ -252,8 +252,7 @@ function applyNation(ni,ri){ni=NATS[ni]?ni:0;const N=NAT=NATS[ni];RIV=NATS[ri]&&
   [1,4,7].forEach((z,i)=>{ZONES[z].isl=N.isl[i];});
   ZONES.forEach((Z,i)=>{SECT[i]=Z.n;ISL[i]=Z.isl||Z.n;});
   for(const p of POTH){const m=/^base:(\d)$/.exec(p[0]);if(m&&+m[1]>0){p[1]=ISL[+m[1]]+'基地隊司令';p[4]=SECT[+m[1]]+'の敵活動を抑える';}}
-  const e=N.eq;SHOPX.ftr.n=`艦上戦闘機「${e[0]}」×2機`;SHOPX.aew.n=`早期警戒機「${e[1]}」×1機`;SHOPX.sam.n=`艦対空ミサイル「${e[2]}」×16`;SHOPX.asm.n=`対艦ミサイル「${e[3]}」×8`;SHOPX.aam.n=`空対空ミサイル「${e[4]}」×16`;SHOPX.torp.n=`長魚雷「${e[5]}」・対潜弾 ×8`;
-  TXL=DSTY[N.ds].tx.concat(GSTY[N.gs].tx,RSTY[N.rk].tx);applyTheater(ni);}
+  TXL=DSTY[N.ds].tx.concat(GSTY[N.gs].tx,RSTY[N.rk].tx);applyTheater(ni);applyEdits(null);}
 // 画面に出す直前に、その国の用語へ言い換える
 function tx(s){s=String(s);for(const p of TXL)if(s.indexOf(p[0])>=0)s=s.split(p[0]).join(p[1]);return s;}
 // 旗は地色に帯1本。実在の旗に似ないよう、三色旗の形は避ける

@@ -83,3 +83,8 @@ canvas.wth{display:block;width:100%;border:1px solid var(--ln);margin-bottom:8px
 .nnav{position:sticky;top:-18px;background:var(--pn2,#0f2233);padding:8px 0;margin:-8px 0 8px;z-index:2;border-bottom:1px solid var(--ln)}
 .eqc{background:var(--pn);border-left:2px solid var(--cy);padding:8px 10px;margin:8px 0}
 .eqc .kv{margin:4px 0 0}
+
+/* 編集画面 */
+.edin{width:112px;background:var(--pn2);border:1px solid var(--ln);border-radius:3px;padding:7px 8px;color:var(--tx);font-size:14px;text-align:right;flex:0 0 auto}
+.edin.wide{width:auto;flex:1;min-width:0;text-align:left}
+.eqc .srow select,.sec>.srow select{flex:1;min-width:0;background:var(--pn2);border:1px solid var(--ln);border-radius:3px;padding:7px;color:var(--tx)}

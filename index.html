@@ -226,6 +226,11 @@ canvas.wth{display:block;width:100%;border:1px solid var(--ln);margin-bottom:8px
 .nnav{position:sticky;top:-18px;background:var(--pn2,#0f2233);padding:8px 0;margin:-8px 0 8px;z-index:2;border-bottom:1px solid var(--ln)}
 .eqc{background:var(--pn);border-left:2px solid var(--cy);padding:8px 10px;margin:8px 0}
 .eqc .kv{margin:4px 0 0}
+
+/* 編集画面 */
+.edin{width:112px;background:var(--pn2);border:1px solid var(--ln);border-radius:3px;padding:7px 8px;color:var(--tx);font-size:14px;text-align:right;flex:0 0 auto}
+.edin.wide{width:auto;flex:1;min-width:0;text-align:left}
+.eqc .srow select,.sec>.srow select{flex:1;min-width:0;background:var(--pn2);border:1px solid var(--ln);border-radius:3px;padding:7px;color:var(--tx)}
 </style>
 </head>
 <body>
@@ -771,7 +776,7 @@ function natNames(i){const N=NATS[i];if(N._nm)return N._nm;if(!N.ship)return N._
 const natSur=N=>N.sur?(N.sur.S?pick(N.sur.S)+pick(N.sur.E):pick(N.sur)):pick(NBASE.sur);
 function mkName(N){N=N||NAT;const s=natSur(N),g=pick(N.giv||NBASE.giv);return N.fmt===1?g+'・'+s:N.fmt===2?s+g:s+' '+g;}
 const seaName=(N,z)=>N.sea[z-1]+SEASUF[z];
-const eqName=k=>NAT.eq[['ftr','aew','sam','asm','aam','torp'].indexOf(k)];
+const eqName=k=>CUR.eq[EQK.indexOf(k)];
 const clsName=t=>NAMES[t]&&NAMES[t][0]?NAMES[t][0]+DSTY[NAT.ds].cls:'';
 const flName=(k,n)=>DSTY[NAT.ds].fl[k].replace('{n}',n);
 // 国の名称群を、ゲーム全体が参照する表に流し込む。新しく始めるときと、記録を読み込んだときに呼ぶ
@@ -782,8 +787,7 @@ function applyNation(ni,ri){ni=NATS[ni]?ni:0;const N=NAT=NATS[ni];RIV=NATS[ri]&&
   [1,4,7].forEach((z,i)=>{ZONES[z].isl=N.isl[i];});
   ZONES.forEach((Z,i)=>{SECT[i]=Z.n;ISL[i]=Z.isl||Z.n;});
   for(const p of POTH){const m=/^base:(\d)$/.exec(p[0]);if(m&&+m[1]>0){p[1]=ISL[+m[1]]+'基地隊司令';p[4]=SECT[+m[1]]+'の敵活動を抑える';}}
-  const e=N.eq;SHOPX.ftr.n=`艦上戦闘機「${e[0]}」×2機`;SHOPX.aew.n=`早期警戒機「${e[1]}」×1機`;SHOPX.sam.n=`艦対空ミサイル「${e[2]}」×16`;SHOPX.asm.n=`対艦ミサイル「${e[3]}」×8`;SHOPX.aam.n=`空対空ミサイル「${e[4]}」×16`;SHOPX.torp.n=`長魚雷「${e[5]}」・対潜弾 ×8`;
-  TXL=DSTY[N.ds].tx.concat(GSTY[N.gs].tx,RSTY[N.rk].tx);applyTheater(ni);}
+  TXL=DSTY[N.ds].tx.concat(GSTY[N.gs].tx,RSTY[N.rk].tx);applyTheater(ni);applyEdits(null);}
 // 画面に出す直前に、その国の用語へ言い換える
 function tx(s){s=String(s);for(const p of TXL)if(s.indexOf(p[0])>=0)s=s.split(p[0]).join(p[1]);return s;}
 // 旗は地色に帯1本。実在の旗に似ないよう、三色旗の形は避ける
@@ -986,7 +990,7 @@ function fill(){return enlTotal()/Math.max(1,reqPers());}
 function mods(){if(_M)return _M;const M={};for(const k in STAT)M[k]=0;
   for(const l of LINE){const v=lvOf(l[0]);if(v)M[l[3]]+=l[4]*v;}
   for(const p of PROJ)if(p.fx&&S.flags[p.k])for(const k in p.fx)M[k]+=p.fx[k];
-  const nn=NATS[S.cfg.nat]||NATS[0];for(const k in nn.fx)M[k]+=nn.fx[k];for(const k in nn.efx)M[k]+=nn.efx[k];
+  const nn=NATS[S.cfg.nat]||NATS[0];for(const k in nn.fx)M[k]+=nn.fx[k];for(const k in CUR.efx)M[k]+=CUR.efx[k];if(S.ed)for(const k in S.ed.fx)if(k in M)M[k]+=S.ed.fx[k];
   BITEM.forEach((b,i)=>{M[b[4]]+=b[5]*(S.bud[i]-2);});
   const pm=postMap(),has=(id,t)=>!!pm[id]&&pm[id].tr.includes(t),ab=(id,k)=>pm[id]?effAb(pm[id],k)-10:-4,cs=clamp(1+ab('hq:cs','adm')*.03,.8,1.4),st=(id,k)=>ab(id,k)*cs;
   M.reinT+=st('hq:n3','cmd')*1.5;M.q+=st('hq:n3','cmd')*.003;M.intel+=st('hq:n2','tec')*.02;M.satT+=st('hq:n2','tec');
@@ -1134,7 +1138,7 @@ function showFiscal(f){const p=a=>Math.round(askChance(a)*100);
 function begin(cfg){newGame(cfg);save();ui.tab='home';render();showHelp();}
 function showTitle(){const has=!!load();mq.length=0;
   modal(`<div class="alert">惑星${PLANET}　機動艦隊司令部</div><h2 class="big">蒼海の盾</h2><p class="sm">海が地表の大半を占める惑星${PLANET}。20の国が海を分け合い、島と航路をめぐって睨み合っている。一国の艦隊を預かり、撃たせず、撃たずに守り抜けるか。</p>${has?'<p class="sm mut">新しく始めると、いまの記録は上書きされる。</p>':''}<div class="mbtn">${has?`<button class="btn pri" data-m="c">続きから</button>`:''}<button class="btn ${has?'':'pri'}" data-m="n">国を選んで始める</button></div>`,
-  {c:()=>{closeModal();S=load();applyNation(S.cfg.nat,S.cfg.riv);_M=null;_PM=null;render();if(S.over)showOver();else if(S.gpend)groundPrompt();else if(S.pending)showIncident();},n:()=>{closeModal();ui.cs=null;ui.nview='list';ui.wsc=null;ui.nsc=0;showNation();}});}
+  {c:()=>{closeModal();S=load();applyNation(S.cfg.nat,S.cfg.riv);applyEdits(S.ed);_M=null;_PM=null;render();if(S.over)showOver();else if(S.gpend)groundPrompt();else if(S.pending)showIncident();},n:()=>{closeModal();ui.cs=null;ui.nview='list';ui.wsc=null;ui.nsc=0;showNation();}});}
 // 国を選ぶ画面。20か国の名称群を見比べて、対峙する国も決める
 function showNation(){if(ui.nat==null)ui.nat=0;const info=ui.nview==='info',i=ui.nat,N=NATS[i],rv=ui.riv==null||ui.riv===i||!NATS[ui.riv]?N.rv:ui.riv,D=DSTY[N.ds],sv=TXL;let html;
   if(!info){
@@ -1524,6 +1528,7 @@ function checkOver(){if(S.over)return;const occ=ISLZ.filter(i=>!S.sectors[i].hel
   else if(occ>=3)S.over={k:'lost',t:'敗北',d:'すべての島嶼が占領された。'};
   else if(!S.units.length)S.over={k:'lost',t:'艦隊壊滅',d:'指揮すべき艦が残っていない。'};
   else if(S.month>=y*12)S.over={k:'end',t:'任期満了',d:`${y}年の任期を全うした。`};
+  if(S.over&&S.edited)S.over.d+='(編集機能を使った記録)';
 }
 // 島嶼侵攻は即座の事案ではなく、泊地に集結する侵攻部隊として現れる
 function rollIncident(){if(S.month<1)return null;
@@ -1634,7 +1639,7 @@ VIEW.home=()=>{const inc=income(),cost=Math.round(monthCost()),al=alerts(),C=S.c
   if(al.length)h+=`<section class="sec"><h2>要対処</h2>${al.map(a=>`<p class="al ${a[1]}">${a[0]}</p>`).join('')}</section>`;
   h+=`<section class="sec"><h2>今月の見通し</h2><dl class="kv"><dt>防衛予算(月割)</dt><dd class="g">+${inc} 億円</dd><dt>維持費と各種経費</dt><dd>−${cost} 億円</dd><dt>差引</dt><dd class="${inc-cost<0?'r':'g'}">${sg(inc-cost)} 億円</dd><dt>国</dt><dd><i class="flag" style="${flagCSS(NAT)}"></i> ${esc(C.nation)}</dd><dt>対峙する国</dt><dd>${RIV.f}</dd><dt>国柄</dt><dd>${NAT.tr[0]}<br><span class="sm mut">${NAT.tr[1]}</span></dd><dt>抑止力(我／敵)</dt><dd>${Math.round(fleetPower())}／${enemyPower()}</dd><dt>陸上部隊</dt><dd>${S.gnd.length}個</dd><dt>技術の蓄積</dt><dd>${totalLv()}段階</dd><dt>戦績</dt><dd>${S.stats.wins}勝 ${S.stats.loss}敗(うち無血 ${S.stats.blood0})</dd><dt>任期</dt><dd>${Math.floor(S.month/12)+1}年目／全${C.years}年</dd></dl></section>`;
   h+=`<section class="sec"><h2>記録</h2>${S.log.length?S.log.slice(0,12).map(l=>`<p class="lg ${l.c}"><span>${dateStr(l.m)}</span>${l.msg}</p>`).join(''):'<p class="mut sm">まだ記録はない</p>'}</section>`;
-  h+=`<section class="sec"><div class="brow"><button class="btn sm" onclick="A.drill()">図上演習(海戦)</button><button class="btn sm" onclick="A.gdrill()">図上演習(上陸戦)</button><button class="btn sm" onclick="A.help()">遊び方</button><button class="btn sm" onclick="A.reset()">新しく始める</button></div></section>`;
+  h+=`<section class="sec"><div class="brow"><button class="btn sm" onclick="A.drill()">図上演習(海戦)</button><button class="btn sm" onclick="A.gdrill()">図上演習(上陸戦)</button><button class="btn sm" onclick="A.edit()">編集</button><button class="btn sm" onclick="A.help()">遊び方</button><button class="btn sm" onclick="A.reset()">新しく始める</button></div></section>`;
   return h;};
 VIEW.deploy=()=>{const fsel=ui.fsel!=null?FL(ui.fsel):null,T=reinTime();
   let h=`<section class="sec"><h2>作戦図</h2>${fsel?`<p class="al am">${esc(fsel.n)}の行き先を選ぶ。作戦図の海域をタップ</p>`:''}<canvas id="wth" class="wth"></canvas><div class="brow"><button class="btn sm" onclick="A.world()">世界地図を見る</button></div><p class="mut sm">艦隊は1か月に2海域ぶん進む。事案にはその海域の艦隊が当たり、隣の海域の艦は${T}分後、2つ先の海域の艦は${T*2}分後に増援として着く。海域をタップすると詳細、艦隊の番号をタップすると行き先を選べる。</p></section>`;
@@ -1680,7 +1685,7 @@ UV.gnd=()=>{let h=`<section class="sec"><h2>陸上部隊 ${S.gnd.length}個</h2>
   return h+'</section>';};
 // 装備の諸元。研究や国柄の補正を含めた、いまの値を出す
 UV.eq=()=>{const M=mods(),f=k=>M[k]||0,kt=v=>Math.round(v*60/1.852);
-  let h=`<section class="sec"><h2>${NAT.n}の装備</h2><p class="mut sm">研究・予算・国柄による補正を含めた現在の値。装備の型は国ごとに決まっていて、長所と短所がある。</p>${eqCards(NAT,f)}</section><section class="sec"><h2>艦艇</h2>`;
+  let h=`<section class="sec"><h2>${NAT.n}の装備</h2><p class="mut sm">研究・予算・国柄による補正を含めた現在の値。装備の型は国ごとに決まっていて、長所と短所がある。</p>${eqCards(CUR,f)}</section><section class="sec"><h2>艦艇</h2>`;
   for(const k of SHIPK){const t=PT[k];if(t.lock&&!S.unlock[k])continue;const sub=t.cat==='sub',r=[['船体',Math.round(t.hp*(1+(sub?f('subHp'):f('hp'))))],['速力',kt(t.spd*(1+(sub?f('subSpd'):f('spd'))))+'ノット']];
     if(t.dA)r.push(['対空レーダー',Math.round(t.dA*(1+f('radA')))+'km']);r.push(['対水上探知',Math.round(t.dS*(1+f('esm')))+'km']);if(t.so)r.push(['ソナー',Math.round(t.so*(1+(sub?f('sonarSub'):f('sonar'))))+'km']);
     if(t.sam)r.push(['艦対空ミサイル',`${Math.round(t.sam*(1+f('samCap')))}発、射程${Math.round(t.samR*(1+(t.samR>=100?f('samRL'):f('samRS'))))}km`]);if(t.asm)r.push(['対艦ミサイル',`${Math.round(t.asm*(1+f('asmCap')))}発、射程${Math.round(t.asmR*(1+f('asmR')))}km`]);
@@ -1759,6 +1764,111 @@ Object.assign(A,{
   nriv(i){ui.riv=i;const sc=$('#mbox').scrollTop;showNation();$('#mbox').scrollTop=sc;},
   csnat(){closeModal();ui.nat=ui.cs.nat;ui.riv=ui.cs.riv;ui.nview='list';ui.wsc=null;ui.nsc=0;showNation();},
   world(){modal(`<div class="alert">惑星${PLANET}</div><h2>世界地図</h2><p class="sm mut">白が${NAT.n}、赤が${RIV.n}。地図は指で動かせる。</p><div class="wscroll"><canvas class="wmap" data-mode="view" data-hi="${S.cfg.nat||0}" data-ri="${NATS.indexOf(RIV)}"></canvas></div><div class="mbtn"><button class="btn pri" data-m="ok">閉じる</button></div>`);}
+});
+
+/* ================= プレイ中の編集 ================= */
+// 装備の名前と型、能力の補正、艦種と陸上部隊の基準値、研究の段階、開発計画、資金や在庫を、遊びながら書き換える
+const PT0=JSON.parse(JSON.stringify(PT)),GT0=JSON.parse(JSON.stringify(GT));
+let CUR={eq:NATS[0].eq,eqa:NATS[0].eqa,efx:NATS[0].efx};
+ui.sub.edit='gen';ui.edk='ddg';
+const edS=()=>S.ed||(S.ed={fx:{},pt:{},gt:{},eqn:null,eqa:null});
+// 国の素の値に戻してから、書き換えた分だけを重ねる。E を渡さなければ素のまま
+function applyEdits(E){const N=NAT;
+  for(const k in PT0){for(const f in PT[k])if(!(f in PT0[k]))delete PT[k][f];Object.assign(PT[k],PT0[k]);}
+  for(const k in GT0)Object.assign(GT[k],GT0[k]);
+  if(E){for(const k in E.pt)if(PT[k])Object.assign(PT[k],E.pt[k]);for(const k in E.gt)if(GT[k])Object.assign(GT[k],E.gt[k]);}
+  const eqa=Object.assign({},N.eqa,E&&E.eqa||{}),efx={};for(const k of EQK){const f=EQARC[k][eqa[k]]?EQARC[k][eqa[k]][1]:{};for(const s in f)efx[s]=(efx[s]||0)+f[s];}
+  const e=E&&E.eqn?E.eqn:N.eq;CUR={eq:e,eqa,efx,n:N.n};
+  SHOPX.ftr.n=`艦上戦闘機「${e[0]}」×2機`;SHOPX.aew.n=`早期警戒機「${e[1]}」×1機`;SHOPX.sam.n=`艦対空ミサイル「${e[2]}」×16`;SHOPX.asm.n=`対艦ミサイル「${e[3]}」×8`;SHOPX.aam.n=`空対空ミサイル「${e[4]}」×16`;SHOPX.torp.n=`長魚雷「${e[5]}」・対潜弾 ×8`;
+  for(const k of GTK){SHOPX['g_'+k].n=GT[k].n;SHOPX['g_'+k].cost=GT[k].cost;SHOPX['g_'+k].build=GT[k].build;}
+  _M=null;}
+// 編集できる項目
+const EDEQ={ftr:['ftrRad','ftrFuel','ftrLoad','ftrAam','ftrAsmR','ftrSurv'],aew:['aewRad','deck'],sam:['samRL','samRS','samPk','samRate','samCap'],asm:['asmR','asmDmg','asmSpd','asmPen','asmCap'],aam:['ftrAamR','ftrAam'],torp:['torpR','torpDmg','torpPk']};
+const KT=1.852/60;
+// [項目, 表示名, 表示倍率, 下限, 上限]
+const EDPT=[['hp','船体',1,10,999],['spd','速力(ノット)',1/KT,3,60],['dA','対空レーダー(km)',1,0,900],['dS','対水上探知(km)',1,0,400],['dM','ミサイル探知(km)',1,0,300],['so','ソナー(km)',1,0,200],
+  ['sam','艦対空ミサイル(発)',1,0,200],['samR','SAMの射程(km)',1,5,400],['samPk','SAMの命中率(%)',100,5,95],['ciws','近接防御(%)',100,0,95],['ecm','電子妨害(%)',100,0,90],
+  ['asm','対艦ミサイル(発)',1,0,64],['asmR','SSMの射程(km)',1,20,600],['asmDmg','SSMの威力',1,10,200],['torp','魚雷・対潜弾(発)',1,0,48],['torpR','魚雷の射程(km)',1,5,80],
+  ['fcap','戦闘機(機)',1,0,60],['acap','警戒機(機)',1,0,8],['aam','空対空ミサイル(発)',1,0,300],['aasm','航空用の対艦ミサイル(発)',1,0,120],['tcap','輸送(個)',1,0,8],
+  ['crew','乗員(名)',1,0,3000],['cost','価格(億円)',1,10,20000],['up','維持費(億円/月)',1,0,200],['build','建造(か月)',1,1,60]];
+const EDGT=[['atk','攻撃',1,1,20],['def','防御',1,1,20],['mv','移動(マス)',1,1,6],['rng','射程(マス)',1,1,5],['cost','価格(億円)',1,10,5000],['up','維持費(億円/月)',1,0,50],['build','編成(か月)',1,1,36]];
+const edSc=k=>['%','-%','p'].includes(STAT[k][1])?100:1;
+const edIn=(lab,val,act,step)=>`<div class="srow"><label>${lab}</label><input class="edin" type="number" inputmode="decimal" step="${step||1}" value="${val}" onchange="${act}" aria-label="${String(lab).replace(/<[^>]*>/g,' ')}"></div>`;
+const edR=v=>Math.round(v*100)/100;
+function edDone(msg){S.edited=true;applyEdits(S.ed);save();render();if(msg)toast(msg);}
+
+const ED={};
+ED.gen=()=>{const st=S.stock;
+  let h=`<section class="sec"><h2>情勢と資金</h2>${edIn('資金(億円)',Math.round(S.funds),"A.edv('funds',+this.value)",100)}${edIn('年間の防衛予算(億円)',S.budget,"A.edv('budget',+this.value)",100)}${edIn('支持率(%)',Math.round(S.support),"A.edv('support',+this.value)")}${edIn('緊張度(%)',Math.round(S.tension),"A.edv('tension',+this.value)")}${edIn('士気',Math.round(S.pers.morale),"A.edv('morale',+this.value)")}</section>`;
+  h+=`<section class="sec"><h2>在庫</h2>${edIn(`艦対空ミサイル「${CUR.eq[2]}」`,st.sam,"A.edv('sam',+this.value)",8)}${edIn(`対艦ミサイル「${CUR.eq[3]}」`,st.asm,"A.edv('asm',+this.value)",8)}${edIn(`空対空ミサイル「${CUR.eq[4]}」`,st.aam,"A.edv('aam',+this.value)",8)}${edIn(`長魚雷「${CUR.eq[5]}」・対潜弾`,st.torp,"A.edv('torp',+this.value)",8)}${edIn(`予備の戦闘機「${CUR.eq[0]}」`,S.pool.ftr,"A.edv('pftr',+this.value)")}${edIn(`予備の警戒機「${CUR.eq[1]}」`,S.pool.aew,"A.edv('paew',+this.value)")}</section>`;
+  h+=`<section class="sec"><h2>まとめて書き換える</h2><div class="brow"><button class="btn sm" onclick="A.edall('rd')">全艦を整備完了にする</button><button class="btn sm" onclick="A.edall('tr')">全艦の練度 +10</button><button class="btn sm" onclick="A.edall('ammo')">全艦に弾薬を満載する</button><button class="btn sm" onclick="A.edall('gnd')">陸上部隊を全快させる</button><button class="btn sm" onclick="A.edall('fill')">曹士を定員まで満たす</button><button class="btn sm" onclick="A.edall('calm')">各海域の敵活動を下げる</button><button class="btn sm" onclick="A.edall('efl')">敵の侵攻部隊を消す</button></div></section>`;
+  return h;};
+ED.eq=()=>{const M=mods(),f=k=>M[k]||0,sp=eqSpec(CUR,f),E=S.ed||{fx:{}};
+  let h=`<section class="sec"><h2>装備</h2><p class="mut sm">名前と型を変えられる。「補正」は、型や研究とは別に足し引きする値で、0が素の状態。</p>`;
+  sp.forEach((e,i)=>{h+=`<div class="eqc"><div class="uh"><b>${EQL[e.k]}</b><span class="loc">${e.t}</span></div>
+    <div class="srow"><label>名前</label><input class="edin wide" value="${esc(CUR.eq[i])}" maxlength="14" onchange="A.edn(${i},this.value)" aria-label="${EQL[e.k]}の名前"></div>
+    <div class="srow"><label>型</label><select onchange="A.eda('${e.k}',+this.value)" aria-label="${EQL[e.k]}の型">${EQARC[e.k].map((a,k)=>`<option value="${k}" ${CUR.eqa[e.k]===k?'selected':''}>${a[0]}</option>`).join('')}</select></div>
+    ${EDEQ[e.k].map(k=>edIn(`補正：${STAT[k][0]}(${edSc(k)===100?(STAT[k][1]==='p'?'pt':'%'):'値'})`,edR(((E.fx||{})[k]||0)*edSc(k)),`A.edfx('${k}',+this.value)`)).join('')}
+    <dl class="kv">${e.r.map(x=>`<dt>${x[0]}</dt><dd>${x[1]}</dd>`).join('')}</dl></div>`;});
+  return h+`<div class="brow"><button class="btn sm" onclick="A.edreset('eq')">装備を国の初期値に戻す</button></div></section>`;};
+ED.ship=()=>{const k=PT[ui.edk]?ui.edk:'ddg',t=PT[k],b=PT0[k],ch=S.ed&&S.ed.pt[k];
+  let h=`<section class="sec"><h2>艦種の基準値</h2><p class="mut sm">その艦種のすべての艦に効く。就役済みの艦にも反映される。</p><div class="srow"><label>艦種</label><select onchange="A.edk(this.value)" aria-label="編集する艦種">${SHIPK.map(x=>`<option value="${x}" ${x===k?'selected':''}>${PT[x].n}${S.ed&&S.ed.pt[x]?'(変更あり)':''}</option>`).join('')}</select></div>`;
+  for(const d of EDPT){if(b[d[0]]==null)continue;h+=edIn(d[1]+(ch&&ch[d[0]]!=null?` <span class="am">元 ${edR(b[d[0]]*d[2])}</span>`:''),edR(t[d[0]]*d[2]),`A.edp('${k}','${d[0]}',+this.value)`);}
+  if(b.lock)h+=`<div class="srow"><label>調達</label><button class="btn sm" onclick="A.edun('${k}')">${S.unlock[k]?'解禁済み(取り消す)':'解禁する'}</button></div>`;
+  return h+`<div class="brow"><button class="btn sm" onclick="A.edreset('pt','${k}')">この艦種を元に戻す</button><button class="btn sm" onclick="A.edreset('pt')">すべての艦種を元に戻す</button></div></section>`;};
+ED.gnd=()=>{let h=`<section class="sec"><h2>陸上部隊の基準値</h2><p class="mut sm">地上戦と調達に反映される。</p>`;
+  for(const k of GTK){const t=GT[k],b=GT0[k],ch=S.ed&&S.ed.gt[k];h+=`<div class="eqc"><div class="uh"><b>${t.n}</b>${ch?'<span class="loc am">変更あり</span>':''}</div>${EDGT.map(d=>edIn(d[1]+(ch&&ch[d[0]]!=null?` <span class="am">元 ${b[d[0]]}</span>`:''),t[d[0]],`A.edg('${k}','${d[0]}',+this.value)`)).join('')}</div>`;}
+  return h+`<div class="brow"><button class="btn sm" onclick="A.edreset('gt')">陸上部隊を元に戻す</button></div></section>`;};
+ED.res=()=>{const d=ui.dom||0;
+  let h=`<section class="sec"><h2>研究　${totalLv()}／${LINE.length*10}段階</h2><div class="brow"><button class="btn sm" onclick="A.edra(-1,1)">全分野を +1</button><button class="btn sm" onclick="A.edra(-1,10)">全分野を最大に</button><button class="btn sm" onclick="A.edra(-1,0)">全分野を 0 に</button></div>
+  <div class="chips">${DOM.map((n,i)=>`<button class="${d===i?'on':''}" onclick="A.dom(${i})">${n}<small>${LINE.filter(l=>l[2]===i).reduce((a,l)=>a+lvOf(l[0]),0)}</small></button>`).join('')}</div>
+  <div class="brow"><button class="btn sm" onclick="A.edra(${d},1)">${DOM[d]}を +1</button><button class="btn sm" onclick="A.edra(${d},10)">最大に</button><button class="btn sm" onclick="A.edra(${d},0)">0 に</button></div>`;
+  for(const l of LINE.filter(l=>l[2]===d)){const lv=lvOf(l[0]);h+=`<div class="srow"><label>${l[1]}<br><small class="mut">${STAT[l[3]][0]}　${lv?fmtEff(l[3],l[4]*lv):'効果なし'}</small></label><div class="stp"><button onclick="A.edr('${l[0]}',-1)" aria-label="${l[1]}を下げる">－</button><span>${lv}</span><button onclick="A.edr('${l[0]}',1)" aria-label="${l[1]}を上げる">＋</button></div></div>`;}
+  h+=`</section><section class="sec"><h2>装備開発</h2><p class="mut sm">計画を完了済みにしたり、取り消したりできる。</p>`;
+  for(const p of PROJ){const dn=!!S.flags[p.k];h+=`<div class="srow"><label>${p.n}<br><small class="${dn?'g':'mut'}">${dn?'完了':S.projs[p.k]?'開発中':'未着手'}</small></label><button class="btn sm" onclick="A.edpj('${p.k}')">${dn?'取り消す':'完了にする'}</button></div>`;}
+  return h+'</section>';};
+ED.fx=()=>{const E=S.ed||{fx:{}},M=mods();
+  let h=`<section class="sec"><h2>能力補正</h2><p class="mut sm">研究・予算・人事・国柄とは別に、能力値へ直接足し引きする。0が素の状態。右の小さな数字は、すべてを合わせた現在の値。</p>`;
+  for(const k in STAT){const sc=edSc(k);h+=edIn(`${STAT[k][0]}<br><small class="mut">現在 ${fmtEff(k,M[k]||0)}</small>`,edR((E.fx[k]||0)*sc),`A.edfx('${k}',+this.value)`);}
+  return h+`<div class="brow"><button class="btn sm" onclick="A.edreset('fx')">補正をすべて 0 に戻す</button></div></section>`;};
+VIEW.edit=()=>`<section class="sec"><h2>編集</h2><p class="mut sm">遊びながら数値を直接書き換える。変更はすぐに反映され、記録にも残る。編集を使った記録は、任期の結果にその旨が出る。</p><div class="brow"><button class="btn sm" onclick="A.tab('home')">概況へ戻る</button></div></section>`+subtabs('edit',[['gen','全般'],['eq','装備'],['ship','艦種'],['gnd','陸上'],['res','研究'],['fx','補正']])+(ED[ui.sub.edit]||ED.gen)();
+{const rd0=VIEW.rd,un0=UV.eq;
+  VIEW.rd=()=>rd0()+`<section class="sec"><div class="brow"><button class="btn sm" onclick="A.edit('res')">研究と開発計画を編集する</button></div></section>`;
+  UV.eq=()=>`<section class="sec"><div class="brow"><button class="btn sm" onclick="A.edit('eq')">装備を編集する</button><button class="btn sm" onclick="A.edit('ship')">艦種を編集する</button></div></section>`+un0();}
+
+Object.assign(A,{
+  edit(sub){ui.tab='edit';if(sub)ui.sub.edit=sub;render();window.scrollTo(0,0);},
+  edk(k){ui.edk=k;render();},
+  edv(k,v){if(!isFinite(v))return render();
+    if(k==='funds')S.funds=clamp(Math.round(v),-99999,9999999);else if(k==='budget')S.budget=clamp(Math.round(v),1000,999999);else if(k==='support')S.support=clamp(v,1,100);else if(k==='tension')S.tension=clamp(v,0,100);
+    else if(k==='morale')S.pers.morale=clamp(v,5,100);else if(k==='pftr')S.pool.ftr=clamp(Math.round(v),0,999);else if(k==='paew')S.pool.aew=clamp(Math.round(v),0,99);else if(k in S.stock)S.stock[k]=clamp(Math.round(v),0,99999);
+    edDone();},
+  edall(w){let msg='';
+    if(w==='rd'){for(const u of S.units){u.rd=100;u.hp=100;}msg='全艦の整備度と船体を100にした';}
+    else if(w==='tr'){for(const u of S.units)u.tr=Math.min(100,u.tr+10);msg='全艦の練度を上げた';}
+    else if(w==='ammo'){_M=null;for(const u of S.units){const c=cap(u);for(const k in c)u.load[k]=c[k];}msg='全艦に弾薬を満載した';}
+    else if(w==='gnd'){for(const g of S.gnd){g.hp=10;g.tr=Math.min(100,g.tr+10);}msg='陸上部隊を全快させた';}
+    else if(w==='fill'){const rq=reqRates();for(const r of RATE)S.enl[r[0]].n=Math.max(S.enl[r[0]].n,rq[r[0]]);msg='曹士を定員まで満たした';}
+    else if(w==='calm'){S.sectors.forEach((s,i)=>{if(s.held&&s.threat>0){s.threat=Math.max(5,s.threat-20);s.est=s.threat;}});msg='各海域の敵活動を下げた';}
+    else if(w==='efl'){S.efl=[];S.fore=null;S.foreK=false;msg='敵の侵攻部隊と来月の兆候を消した';}
+    edDone(msg);},
+  edn(i,v){v=String(v).replace(/[<>&"'`「」]/g,'').trim().slice(0,14);const E=edS();if(!E.eqn)E.eqn=NAT.eq.slice();E.eqn[i]=v||NAT.eq[i];edDone();},
+  eda(k,i){if(!EQARC[k]||!EQARC[k][i])return;const E=edS();E.eqa=E.eqa||{};E.eqa[k]=i;edDone(`${EQL[k]}を${EQARC[k][i][0]}にした`);},
+  edfx(k,v){if(!STAT[k]||!isFinite(v))return render();const E=edS(),sc=edSc(k),x=clamp(v/sc,sc===100?-.9:-999,sc===100?5:999);if(x)E.fx[k]=x;else delete E.fx[k];edDone();},
+  edp(t,f,v){const d=EDPT.find(x=>x[0]===f);if(!d||!PT0[t]||PT0[t][f]==null||!isFinite(v))return render();const E=edS(),x=clamp(v,d[3],d[4])/d[2];(E.pt[t]=E.pt[t]||{})[f]=d[2]===1?Math.round(x):x;
+    if(Math.abs(E.pt[t][f]-PT0[t][f])<1e-6){delete E.pt[t][f];if(!Object.keys(E.pt[t]).length)delete E.pt[t];}edDone();},
+  edg(t,f,v){const d=EDGT.find(x=>x[0]===f);if(!d||!GT0[t]||!isFinite(v))return render();const E=edS();(E.gt[t]=E.gt[t]||{})[f]=Math.round(clamp(v,d[3],d[4]));
+    if(E.gt[t][f]===GT0[t][f]){delete E.gt[t][f];if(!Object.keys(E.gt[t]).length)delete E.gt[t];}edDone();},
+  edun(t){if(!PT0[t]||!PT0[t].lock)return;if(S.unlock[t])delete S.unlock[t];else S.unlock[t]=1;edDone(S.unlock[t]?`${PT[t].n}を調達できるようにした`:`${PT[t].n}の解禁を取り消した`);},
+  edr(id,d){const l=LINE.find(x=>x[0]===id);if(!l)return;const lv=clamp(lvOf(id)+d,0,10);if(lv)S.res[id]={lv,prog:0};else delete S.res[id];for(const lab of S.labs)if(lab.cur===id&&lv>=10)lab.cur=null;edDone();},
+  edra(dom,mode){for(const l of LINE){if(dom>=0&&l[2]!==dom)continue;const lv=mode===1?Math.min(10,lvOf(l[0])+1):mode;if(lv)S.res[l[0]]={lv,prog:0};else delete S.res[l[0]];}
+    for(const lab of S.labs)if(lab.cur&&lvOf(lab.cur)>=10)lab.cur=null;edDone(mode===10?'研究を最大にした':mode===0?'研究を0に戻した':'研究を1段階進めた');},
+  edpj(k){const p=PROJ.find(x=>x.k===k);if(!p)return;
+    if(S.flags[k]){delete S.flags[k];if(p.kind==='unit')delete S.unlock[k];if(p.kind==='kit')delete S.kits[k];}else{delete S.projs[k];S.flags[k]=1;if(p.kind==='unit')S.unlock[k]=1;if(p.kind==='kit')S.kits[k]=1;}
+    edDone(`${p.n}：${S.flags[k]?'完了にした':'取り消した'}`);},
+  edreset(w,k){const E=edS();
+    if(w==='eq'){E.eqn=null;E.eqa=null;for(const g in EDEQ)for(const s of EDEQ[g])delete E.fx[s];}else if(w==='pt'){if(k)delete E.pt[k];else E.pt={};}else if(w==='gt')E.gt={};else if(w==='fx')E.fx={};
+    edDone('元に戻した');}
 });
 
 /* ================= 戦闘 ================= */
@@ -2586,7 +2696,7 @@ function initDOM(){
 }
 initDOM();
 S=load();
-if(S){applyNation(S.cfg.nat,S.cfg.riv);render();if(S.over)showOver();else if(S.gpend)groundPrompt();else if(S.pending)showIncident();}
+if(S){applyNation(S.cfg.nat,S.cfg.riv);applyEdits(S.ed);render();if(S.over)showOver();else if(S.gpend)groundPrompt();else if(S.pending)showIncident();}
 else{newGame({});render();showTitle();}
 </script>
 </body>

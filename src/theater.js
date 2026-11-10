@@ -168,6 +168,7 @@ function checkOver(){if(S.over)return;const occ=ISLZ.filter(i=>!S.sectors[i].hel
   else if(occ>=3)S.over={k:'lost',t:'敗北',d:'すべての島嶼が占領された。'};
   else if(!S.units.length)S.over={k:'lost',t:'艦隊壊滅',d:'指揮すべき艦が残っていない。'};
   else if(S.month>=y*12)S.over={k:'end',t:'任期満了',d:`${y}年の任期を全うした。`};
+  if(S.over&&S.edited)S.over.d+='(編集機能を使った記録)';
 }
 // 島嶼侵攻は即座の事案ではなく、泊地に集結する侵攻部隊として現れる
 function rollIncident(){if(S.month<1)return null;
