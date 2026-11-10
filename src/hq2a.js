@@ -12,15 +12,15 @@ function render(){if(!S)return;
   $('#gs').textContent=Math.round(S.support)+'%';const sb=$('#gsb');sb.style.width=S.support+'%';sb.className=S.support<25?'r':S.support<45?'am':'g';
   $('#gt').textContent=Math.round(S.tension)+'%';const tb=$('#gtb');tb.style.width=S.tension+'%';tb.className=S.tension>=65?'r':S.tension>=40?'am':'g';
   document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===ui.tab));
-  $('#view').innerHTML=VIEW[ui.tab]();$('#next').disabled=!!S.over;}
+  $('#view').innerHTML=tx(VIEW[ui.tab]());$('#next').disabled=!!S.over;}
 
 /* ---------- モーダル・トースト ---------- */
 const mq=[];
-function showM(){$('#mbox').innerHTML=mq[0].html;$('#modal').hidden=false;$('#mbox').scrollTop=0;}
+function showM(){$('#mbox').innerHTML=tx(mq[0].html);$('#modal').hidden=false;$('#mbox').scrollTop=0;}
 function modal(html,cbs){mq.push({html,cbs:cbs||{}});if(mq.length===1)showM();}
 function closeModal(){mq.shift();if(mq.length)showM();else $('#modal').hidden=true;}
 function confirmM(text,yes,yl,no){modal(`<p>${text}</p><div class="mbtn"><button class="btn pri" data-m="y">${yl||'実行する'}</button><button class="btn" data-m="n">やめる</button></div>`,{y:()=>{closeModal();yes();},n:()=>{closeModal();if(no)no();}});}
-function toast(msg){const t=$('#toast');t.textContent=msg;t.className='show';clearTimeout(toast.h);toast.h=setTimeout(()=>{t.className='';},2600);}
+function toast(msg){const t=$('#toast');t.textContent=tx(msg);t.className='show';clearTimeout(toast.h);toast.h=setTimeout(()=>{t.className='';},2600);}
 function showOver(){const o=S.over,occ=ISLZ.filter(i=>!S.sectors[i].held).length,st=S.stats;
   const score=st.wins*100+st.blood0*80+Math.round(S.support)*5-st.pSunk*60-occ*250+Math.min(S.month,60)*10+totalLv()+(o.k==='peace'?800:0);
   const rank=score>=2000?'S':score>=1400?'A':score>=900?'B':score>=400?'C':'D';
@@ -37,8 +37,24 @@ function showFiscal(f){const p=a=>Math.round(askChance(a)*100);
 /* ---------- タイトルとカスタムスタート ---------- */
 function begin(cfg){newGame(cfg);save();ui.tab='home';render();showHelp();}
 function showTitle(){const has=!!load();mq.length=0;
-  modal(`<div class="alert">機動護衛群司令部</div><h2 class="big">蒼海の盾</h2><p class="sm">現代の海で、艦隊の指揮と運営を担う。撃たせず、撃たずに守り抜けるか。</p>${has?'<p class="sm mut">新しく始めると、いまの記録は上書きされる。</p>':''}<div class="mbtn">${has?`<button class="btn pri" data-m="c">続きから</button>`:''}<button class="btn ${has?'':'pri'}" data-m="s">標準の設定で始める</button><button class="btn" data-m="k">カスタムスタート</button></div>`,
-  {c:()=>{closeModal();S=load();_M=null;_PM=null;render();if(S.over)showOver();else if(S.gpend)groundPrompt();else if(S.pending)showIncident();},s:()=>{closeModal();begin({});},k:()=>{closeModal();ui.cs=JSON.parse(JSON.stringify(DEFCFG));showSetup();}});}
+  modal(`<div class="alert">惑星${PLANET}　機動艦隊司令部</div><h2 class="big">蒼海の盾</h2><p class="sm">海が地表の大半を占める惑星${PLANET}。20の国が海を分け合い、島と航路をめぐって睨み合っている。一国の艦隊を預かり、撃たせず、撃たずに守り抜けるか。</p>${has?'<p class="sm mut">新しく始めると、いまの記録は上書きされる。</p>':''}<div class="mbtn">${has?`<button class="btn pri" data-m="c">続きから</button>`:''}<button class="btn ${has?'':'pri'}" data-m="n">国を選んで始める</button></div>`,
+  {c:()=>{closeModal();S=load();applyNation(S.cfg.nat,S.cfg.riv);_M=null;_PM=null;render();if(S.over)showOver();else if(S.gpend)groundPrompt();else if(S.pending)showIncident();},n:()=>{closeModal();ui.cs=null;showNation();}});}
+// 国を選ぶ画面。20か国の名称群を見比べて、対峙する国も決める
+function showNation(){if(ui.nat==null)ui.nat=0;const i=ui.nat,N=NATS[i],rv=ui.riv==null||ui.riv===i?N.rv:ui.riv,nm=natNames(i),D=DSTY[N.ds],sv=TXL;TXL=D.tx.concat(GSTY[N.gs].tx,RSTY[N.rk].tx);
+  const ex=k=>tx(PT[k].n)+'「'+nm[k].slice(0,2).join('」「')+'」',ppl=[0,1,2].map(()=>mkName(N)).join('、');
+  const html=`<div class="alert">惑星${PLANET}</div><h2>国を選ぶ</h2><p class="sm mut">国によって、艦や人の名前、海と島の名、装備の名、艦種や階級の呼び方が変わる。国柄は小さな得意分野になる。</p>
+  <div class="nlist">${NATS.map((x,k)=>`<button class="${k===i?'on':''}" onclick="A.nsel(${k})"><i class="flag" style="${flagCSS(x,k)}"></i>${x.n}</button>`).join('')}</div>
+  <div class="ncard" id="ncard"><div class="uh"><i class="flag big" style="${flagCSS(N,i)}"></i><b>${N.f}</b></div><p class="sm">${N.d}。</p>
+  <dl class="kv2"><dt>首都</dt><dd>${N.cap}</dd><dt>海軍</dt><dd>${N.n}${N.navy}</dd><dt>国柄</dt><dd><b class="am">${N.tr[0]}</b><br><span class="sm">${tx(N.tr[1])}</span></dd>
+  <dt>艦の名</dt><dd class="sm">${ex('cvl')}<br>${ex('ddg')}<br>${ex('dd')}<br>${ex('ss')}</dd><dt>人の名</dt><dd class="sm">${ppl}</dd><dt>階級</dt><dd class="sm">${RSTY[N.rk].rank.slice(3).join('・')}</dd>
+  <dt>装備</dt><dd class="sm">戦闘機「${N.eq[0]}」、警戒機「${N.eq[1]}」<br>SAM「${N.eq[2]}」、SSM「${N.eq[3]}」<br>AAM「${N.eq[4]}」、魚雷「${N.eq[5]}」</dd>
+  <dt>陸上部隊</dt><dd class="sm">${GTK.slice(0,4).map(k=>tx(GT[k].n)).join('、')} ほか</dd><dt>守る島</dt><dd class="sm">${[1,4,7].map((z,k)=>seaName(N,z)+'の'+N.isl[k]).join('、')}</dd><dt>海域</dt><dd class="sm">${[2,3,5,6].map(z=>seaName(N,z)).join('、')}</dd></dl>
+  <div class="srow"><label>対峙する国</label><select onchange="A.nriv(+this.value)" aria-label="対峙する国">${NATS.map((x,k)=>k===i?'':`<option value="${k}" ${k===rv?'selected':''}>${x.f}${k===N.rv?'(宿敵)':''}</option>`).join('')}</select></div></div>
+  <div class="mbtn"><button class="btn pri" data-m="go">${N.n}で着任する(標準の設定)</button><button class="btn" data-m="k">カスタムスタート</button><button class="btn" data-m="back">戻る</button></div>`;
+  const out=tx(html);TXL=sv;const pick1=()=>({nat:i,riv:rv,nation:N.f,fleetName:D.hq});
+  if(mq.length&&mq[0].nat){const sc=$('#mbox').scrollTop;mq[0].html=html;mq[0].cbs.cur=pick1;$('#mbox').innerHTML=out;$('#mbox').scrollTop=sc;return;}
+  modal(html,{cur:pick1,go:()=>{const c=mq[0].cbs.cur();closeModal();begin(c);},k:()=>{const c=mq[0].cbs.cur();closeModal();ui.cs=Object.assign(ui.cs||JSON.parse(JSON.stringify(DEFCFG)),c);showSetup();},back:()=>{closeModal();showTitle();}});
+  mq[mq.length-1].nat=1;$('#mbox').innerHTML=out;}
 function showSetup(){const c=ui.cs,f=c.fleet;
   const st=(k,lbl,step,min,max,unit)=>`<div class="srow"><label>${lbl}</label><div class="stp"><button onclick="A.cs('${k}',${-step},${min},${max})" aria-label="${lbl}を減らす">－</button><span>${c[k].toLocaleString()}${unit||''}</span><button onclick="A.cs('${k}',${step},${min},${max})" aria-label="${lbl}を増やす">＋</button></div></div>`;
   const fs=(k,lbl,step,max)=>`<div class="srow"><label>${lbl}</label><div class="stp"><button onclick="A.csf('${k}',${-step},${max})" aria-label="${lbl}を減らす">－</button><span>${f[k]||0}</span><button onclick="A.csf('${k}',${step},${max})" aria-label="${lbl}を増やす">＋</button></div></div>`;
@@ -46,6 +62,9 @@ function showSetup(){const c=ui.cs,f=c.fleet;
   let up=0,crew=0,val=0;for(const k of FLEETK){const n=f[k]||0;up+=PT[k].up*n;crew+=PT[k].crew*n;val+=PT[k].val*n;}
   const gs=(k,max)=>`<div class="srow"><label>${GT[k].n}</label><div class="stp"><button onclick="A.csg('${k}',-1,${max})" aria-label="${GT[k].n}を減らす">－</button><span>${c.gnd[k]||0}</span><button onclick="A.csg('${k}',1,${max})" aria-label="${GT[k].n}を増やす">＋</button></div></div>`;
   const html=`<div class="alert">カスタムスタート</div><h2>任期の条件を決める</h2><div class="brow">${PRESET.map((p,i)=>`<button class="btn sm" onclick="A.csp(${i})">${p[0]}</button>`).join('')}</div>
+  <h3 class="sub">国</h3>
+  <div class="srow"><label><i class="flag" style="${flagCSS(NATS[c.nat],c.nat)}"></i> ${NATS[c.nat].n}</label><button class="btn sm" onclick="A.csnat()">国を選び直す</button></div>
+  <p class="sm mut">対峙する国：${NATS[c.riv==null?NATS[c.nat].rv:c.riv].f}　国柄：${NATS[c.nat].tr[0]}</p>
   <h3 class="sub">名前</h3>
   <div class="srow"><label>司令官</label><input value="${esc(c.cmdr)}" placeholder="(任意)" oninput="ui.cs.cmdr=this.value" maxlength="16" aria-label="司令官の名前"></div>
   <div class="srow"><label>国名</label><input value="${esc(c.nation)}" oninput="ui.cs.nation=this.value" maxlength="12" aria-label="国名"></div>
@@ -65,5 +84,5 @@ function showSetup(){const c=ui.cs,f=c.fleet;
   <h3 class="sub">技術と増援</h3>
   ${sg2('techLv','技術水準',[[0,'現行'],[1,'やや進む'],[2,'進む'],[3,'先進']])}${st('labs','研究所の数',1,1,8,'')}${sg2('reinT','増援の到着',[[60,'60分'],[90,'90分'],[120,'120分'],[150,'150分']])}
   <div class="mbtn"><button class="btn pri" data-m="go">この条件で着任する</button><button class="btn" data-m="back">戻る</button></div>`;
-  if(mq.length&&mq[0].setup){const sc=$('#mbox').scrollTop;mq[0].html=html;$('#mbox').innerHTML=html;$('#mbox').scrollTop=sc;}
-  else{modal(html,{go:()=>{closeModal();begin(ui.cs);},back:()=>{closeModal();showTitle();}});mq[mq.length-1].setup=1;}}
+  if(mq.length&&mq[0].setup){const sc=$('#mbox').scrollTop;mq[0].html=html;$('#mbox').innerHTML=tx(html);$('#mbox').scrollTop=sc;}
+  else{modal(html,{go:()=>{closeModal();begin(ui.cs);},back:()=>{closeModal();showNation();}});mq[mq.length-1].setup=1;}}

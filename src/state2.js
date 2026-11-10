@@ -9,7 +9,7 @@ const lineById={};LINE.forEach(l=>{lineById[l[0]]=l;});
 const lvOf=id=>(S.res[id]||{}).lv||0;
 const lineCost=(l,L)=>Math.round(l[5]*L*(1+L*.15));
 const totalLv=()=>{let s=0;for(const k in S.res)s+=S.res[k].lv;return s;};
-function dateStr(m){const a=m+3;return `${S.cfg.y0+Math.floor(a/12)}年${a%12+1}月`;}
+function dateStr(m){const a=m+3;return `海暦${S.cfg.y0+Math.floor(a/12)}年${a%12+1}月`;}
 function hlog(msg,c){S.log.unshift({m:S.month,msg,c:c||''});if(S.log.length>60)S.log.pop();}
 function fmtEff(st,v){const f=STAT[st][1],a=Math.abs(v),s=v>=0?'+':'−',pc=x=>(x*100).toFixed(1).replace(/\.0$/,'');
   if(f==='p')return s+pc(a)+'pt';if(f==='%')return s+pc(a)+'%';if(f==='-%')return (v>=0?'−':'+')+pc(a)+'%';if(f==='-p')return (v>=0?'−':'+')+pc(a)+'pt';
@@ -29,7 +29,7 @@ function allPosts(){const a=[];
   return a;}
 function pickW(a){return a[Math.floor(Math.random()*a.length)];}
 function genOff(rank){const sp=pickW([0,0,0,0,1,1,2,3,3,4,5,6]),b=4+rank*1.1;
-  const o={id:++S.oid,name:pick(SUR)+' '+pick(GIV),rank,age:23+rank*5+RI(0,4)+(rank>4?RI(0,3):0),sp,pot:RI(11,20),merit:RI(0,20)+rank*4,tig:RI(0,3),sat:RI(55,85),post:null,sch:null,tr:[],bt:0};
+  const o={id:++S.oid,name:mkName(),rank,age:23+rank*5+RI(0,4)+(rank>4?RI(0,3):0),sp,pot:RI(11,20),merit:RI(0,20)+rank*4,tig:RI(0,3),sat:RI(55,85),post:null,sch:null,tr:[],bt:0};
   for(const k of ABK)o[k]=clamp(Math.round(b+R(-2.5,3.5)),2,19);
   for(const k of [['cmd','atk','def'],['atk','cool'],['asw','cool'],['tec'],['adm'],['tec','cool'],['tec','adm']][sp])o[k]=clamp(o[k]+RI(1,3),2,20);
   if(Math.random()<.45)o.tr.push(pick(TRAIT)[0]);if(Math.random()<.1){const t=pick(TRAIT)[0];if(!o.tr.includes(t))o.tr.push(t);}
@@ -52,6 +52,7 @@ function fill(){return enlTotal()/Math.max(1,reqPers());}
 function mods(){if(_M)return _M;const M={};for(const k in STAT)M[k]=0;
   for(const l of LINE){const v=lvOf(l[0]);if(v)M[l[3]]+=l[4]*v;}
   for(const p of PROJ)if(p.fx&&S.flags[p.k])for(const k in p.fx)M[k]+=p.fx[k];
+  const nf=(NATS[S.cfg.nat]||NATS[0]).fx;for(const k in nf)M[k]+=nf[k];
   BITEM.forEach((b,i)=>{M[b[4]]+=b[5]*(S.bud[i]-2);});
   const pm=postMap(),has=(id,t)=>!!pm[id]&&pm[id].tr.includes(t),ab=(id,k)=>pm[id]?effAb(pm[id],k)-10:-4,cs=clamp(1+ab('hq:cs','adm')*.03,.8,1.4),st=(id,k)=>ab(id,k)*cs;
   M.reinT+=st('hq:n3','cmd')*1.5;M.q+=st('hq:n3','cmd')*.003;M.intel+=st('hq:n2','tec')*.02;M.satT+=st('hq:n2','tec');

@@ -208,6 +208,15 @@ dl.kv2 dt{color:var(--mut);white-space:nowrap}dl.kv2 dd{margin:0}
 #gact button.am{border-color:var(--am);color:#ffe0a6}
 #gact button.g{border-color:var(--gr);color:#c6f5dd}
 #gact button:disabled{opacity:.35}
+
+/* 国を選ぶ画面 */
+.flag{display:inline-block;width:18px;height:12px;border:1px solid rgba(255,255,255,.35);vertical-align:-1px;margin-right:5px;flex:0 0 auto}
+.flag.big{width:36px;height:24px;margin-right:8px;align-self:center}
+.nlist{display:grid;grid-template-columns:repeat(2,1fr);gap:5px;margin:8px 0 12px}
+.nlist button{display:flex;align-items:center;background:var(--pn2);border:1px solid var(--ln);border-radius:3px;padding:8px 8px;font-size:13px;color:var(--tx);text-align:left;white-space:nowrap;overflow:hidden}
+.nlist button.on{background:#1d4e6b;border-color:#3b88ad;color:#fff}
+.ncard{background:var(--pn);border-top:2px solid var(--cy);padding:10px 12px;margin-bottom:10px}
+.ncard .srow select{flex:1;min-width:0;background:var(--pn2);border:1px solid var(--ln);border-radius:3px;padding:6px;color:var(--tx)}
 </style>
 </head>
 <body>
@@ -342,9 +351,9 @@ const NAMES={
 const STK={sam:'sam',asm:'asm',torp:'torp',aam:'aam',aasm:'asm'},AMN={sam:'SAM',asm:'SSM',torp:'魚雷',aam:'AAM',aasm:'ASM'};
 const SCN={
   intrusion:{n:'領海侵入事案',d:i=>`国籍不明の艦艇群が${ISL[i.sector]}の領海へ向けて航行している。監視と警告で退去させよ。こちらから先に撃てば、政治的な代償はきわめて大きい。`,o:'50km以内に寄せて警告し、退去させる(敵が撃つまで武器は使えない)'},
-  airraid:{n:'航空攻撃の兆候',d:i=>`${SECT[i.sector]}の我が部隊へ向かう爆撃機編隊を探知した。対艦ミサイル攻撃の公算が高い。敵が発射するまで手は出せない。艦隊防空を固めよ。`,o:'ミサイル攻撃を凌ぎ、艦隊を守る'},
-  landing:{n:'島嶼侵攻',d:i=>`揚陸艦を伴う侵攻部隊が${ISL[i.sector]}へ向かっている。防衛出動が発令された。上陸を阻止せよ。揚陸艦が島に達すると、守備隊との地上戦になる。`,o:'揚陸艦を島に到達させない'},
-  retake:{n:'制海戦闘',d:i=>`${ISL[i.sector]}の周辺に居座る敵艦隊を排除する。制海を得れば、準備攻撃と上陸作戦に進める。`,o:'島の周辺から敵艦隊を排除する'}
+  airraid:{n:'航空攻撃の兆候',d:i=>`${SECT[i.sector]}の我が部隊へ向かう、${RIV.n}軍機とみられる爆撃機編隊を探知した。対艦ミサイル攻撃の公算が高い。敵が発射するまで手は出せない。艦隊防空を固めよ。`,o:'ミサイル攻撃を凌ぎ、艦隊を守る'},
+  landing:{n:'島嶼侵攻',d:i=>`揚陸艦を伴う${RIV.n}の侵攻部隊が${ISL[i.sector]}へ向かっている。防衛出動が発令された。上陸を阻止せよ。揚陸艦が島に達すると、守備隊との地上戦になる。`,o:'揚陸艦を島に到達させない'},
+  retake:{n:'制海戦闘',d:i=>`${ISL[i.sector]}の周辺に居座る${RIV.n}の艦隊を排除する。制海を得れば、準備攻撃と上陸作戦に進める。`,o:'島の周辺から敵艦隊を排除する'}
 };
 
 /* ---------- 能力値の一覧 [表示名, 書式] ---------- */
@@ -489,7 +498,7 @@ const RQ={ship:{gun:.12,tor:.06,rdr:.1,com:.06,nav:.14,eng:.2,dcn:.06,ele:.08,su
 const COURSE=[['csc','指揮幕僚課程',12,6,{cmd:2,adm:2},[2,4]],['adv','高級課程',10,8,{cmd:2,cool:2,adm:1},[4,5]],['war','術科・戦術課程',6,3,{atk:2,def:2,asw:1},[0,3]],['eng','技術課程',6,3,{tec:3},[0,4]],['abr','海外留学',12,10,{cool:2,adm:2},[2,5]]];
 
 /* ---------- カスタムスタート ---------- */
-const DEFCFG={cmdr:'',nation:'瑞穂国',fleetName:'第1機動護衛群',y0:2030,years:5,eGrow:1,eAggr:1,incF:1,prePen:1,reinT:90,budget:7200,funds:700,tension:32,support:55,tr:65,techLv:0,labs:4,sandbox:false,
+const DEFCFG={cmdr:'',nation:'瑞穂国',fleetName:'第1機動護衛群',y0:487,nat:0,riv:null,years:5,eGrow:1,eAggr:1,incF:1,prePen:1,reinT:90,budget:7200,funds:700,tension:32,support:55,tr:65,techLv:0,labs:4,sandbox:false,
   fleet:{cvl:1,ddg:2,dd:2,ffm:1,ss:2,lst:1,opv:0,aoe:0,ftr:8,aew:1},gnd:{inf:6,amp:2,arm:0,art:1,aa:0,ssm:1}};
 const PRESET=[['標準',{}],['小艦隊の苦境',{fleet:{cvl:0,ddg:1,dd:2,ffm:2,ss:1,opv:0,aoe:0,ftr:0,aew:0},funds:400,budget:5600,tension:45}],
   ['大艦隊',{fleet:{cvl:2,ddg:4,dd:4,ffm:3,ss:4,lst:2,opv:2,aoe:1,ftr:20,aew:2},gnd:{inf:6,amp:2,arm:1,art:2,aa:1,ssm:2},budget:12000,funds:1500,eGrow:1.5,labs:5}],
@@ -510,6 +519,142 @@ const GTK=['amp','inf','arm','art','aa','ssm'];
 const FAC={hq:['司令部','司'],air:['飛行場','飛'],port:['港湾','港'],radar:['レーダーサイト','電'],depot:['補給処','庫'],town:['市街','街']};
 const FACD={hq:'ここを取った側が島を制する',air:'海域の敵活動を抑える',port:'この海域の艦は整備度が落ちにくい',radar:'海戦で島のレーダーが探知に加わる',depot:'守備隊の戦力が毎月回復する',town:'守りやすい'};
 
+/* ================= 惑星ペラギアの20か国(名称群テンプレート) ================= */
+// 国ごとに、艦名・人名・海と島の名・装備名・艦種や階級の呼び方が変わる。国も地名もすべて架空
+const PLANET='ペラギア';
+const WL=s=>s.split(' ').map(x=>x==='_'?'':x);
+// 艦種の呼び方(4系統)。tx=言い換え、fl=艦隊名[戦闘,潜水,輸送,新編]、hq=司令部名、cls=艦級の接尾
+const DSTY=[
+  {n:'護衛艦式',tx:[],fl:['第{n}護衛隊群','潜水隊群','輸送・支援隊','第{n}任務部隊'],hq:'第1機動護衛群',cls:'型'},
+  {n:'駆逐艦式',tx:[['多用途航空母艦','航空母艦'],['航空護衛艦','軽空母'],['ミサイル護衛艦','ミサイル駆逐艦'],['汎用護衛艦','駆逐艦'],['多機能護衛艦','フリゲート'],['護衛艦','駆逐艦'],['輸送艦','揚陸艦']],fl:['第{n}艦隊','潜水艦隊','揚陸・支援隊','第{n}任務群'],hq:'機動艦隊',cls:'級'},
+  {n:'巡洋艦式',tx:[['多用途航空母艦','正規空母'],['航空護衛艦','巡洋空母'],['ミサイル護衛艦','防空巡洋艦'],['汎用護衛艦','艦隊駆逐艦'],['多機能護衛艦','コルベット'],['護衛艦','駆逐艦'],['輸送艦','戦車揚陸艦']],fl:['第{n}戦隊','潜水戦隊','輸送戦隊','第{n}分遣隊'],hq:'遠征艦隊',cls:'級'},
+  {n:'フリゲート式',tx:[['多用途航空母艦','航空母艦'],['航空護衛艦','航空巡洋艦'],['ミサイル護衛艦','防空フリゲート'],['汎用護衛艦','フリゲート'],['多機能護衛艦','軽フリゲート'],['護衛艦','フリゲート'],['輸送艦','揚陸艦']],fl:['第{n}機動群','潜水群','支援群','第{n}哨戒群'],hq:'外洋艦隊',cls:'型'}
+];
+// 陸上部隊の呼び方(3系統)
+const GSTY=[
+  {n:'普通科式',tx:[]},
+  {n:'歩兵式',tx:[['水陸機動連隊','海兵連隊'],['普通科連隊','歩兵連隊'],['戦車中隊','戦車大隊'],['高射特科隊','防空大隊'],['特科隊','砲兵大隊'],['地対艦ミサイル連隊','沿岸ミサイル連隊'],['水陸機動','海兵'],['普通科','歩兵'],['高射特科','防空'],['特科','砲兵']]},
+  {n:'陸戦隊式',tx:[['水陸機動連隊','海軍陸戦隊'],['普通科連隊','守備連隊'],['戦車中隊','機甲中隊'],['高射特科隊','高射砲隊'],['特科隊','野砲隊'],['地対艦ミサイル連隊','沿岸砲兵連隊'],['水陸機動','陸戦隊'],['普通科','守備隊'],['高射特科','高射砲'],['特科','野砲']]}
+];
+// 階級と人事用語(3系統)
+const RTX=[['幹部','士官'],['曹士','下士官兵'],['予備自衛官','予備役'],['新隊員','新兵'],['自衛官','軍人']];
+const RSTY=[
+  {n:'佐尉式',rank:WL('3尉 2尉 1尉 3佐 2佐 1佐 将補 将'),tx:[]},
+  {n:'将校式',rank:WL('少尉 中尉 大尉 少佐 中佐 大佐 少将 中将'),tx:RTX},
+  {n:'提督式',rank:WL('少尉 中尉 大尉 少佐 中佐 大佐 准将 提督'),tx:RTX}
+];
+const SEASUF=['','海','海','洋','海','海','海峡','海'];
+// n=通称 f=正式名称 cap=首都 navy=海軍の名 d=紹介 c=旗の地色と帯の色 fv=帯の向き ds/gs/rk=呼び方の系統 fmt=人名の書式(0:姓 名 1:名・姓 2:姓名)
+// ship=艦名の部品(前×後) sur/giv=姓と名 sea=海域7つ isl=島3つ eq=装備6種[戦闘機,警戒機,SAM,SSM,AAM,魚雷] tr=国柄 fx=その効果 rv=宿敵
+const NATS=[
+{n:'瑞穂',f:'瑞穂国',cap:'千早京',navy:'海上防衛軍',d:'弧状の列島に暮らす海洋国。艦にはひらがなの名を付ける',c:['#12356b','#c9a23a'],fv:0,ds:0,gs:0,rk:0,fmt:0,
+ sea:WL('氷霧 鏡 暁 翠玉 深淵 嵐門 南溟'),isl:WL('雪見島 中之瀬島 南嶺本島'),eq:WL('蒼隼 千里 白虹 海燕 雷光 鯱'),tr:['精兵主義','練度の伸び +10%、警告の成功率 +3pt'],fx:{trGain:.1,warn:.03},rv:15},
+{n:'グラウベルク',f:'グラウベルク連邦共和国',cap:'ノイハーフェン',navy:'連邦海軍',d:'北の工業国。鋼と精密機械で知られる',c:['#2b2b2b','#b9b9b9'],fv:0,ds:1,gs:1,rk:1,fmt:1,
+ ship:{S:WL('アイゼン シュタル グラウ ヴォルフ アドラー ノルト ブラウ レーヴェ リッター ファルケ ヴィント ヴァイス'),E:WL('ベルク ブルク ハフェン フルト フェルト ヴァルト タール ホルム')},
+ sur:{S:WL('ハルト ライン ヴァイス シュタイン ブラント クロイツ ローゼン'),E:WL('マン ベルガー ホフ ナー バッハ フェルト')},giv:WL('ハンス カール エーリヒ ヨハン クラウス ディーター ルーカス フェリクス ヴェルナー マティアス グレーテ ハンナ エルザ リーゼ'),
+ sea:WL('フロスト シュピーゲル オスト メーヴェン ティーフ シュトルム ズューデン'),isl:WL('アイスホルン島 ミッテル島 ズュートリフ島'),eq:WL('ヴィントファルケ アドラーアウゲ シルトヴァル ゼーシュペーア ブリッツ ヘヒト'),tr:['精密工業','建造期間 −8%、調達価格 −4%'],fx:{buildT:.08,buildC:.04},rv:6},
+{n:'スカルヴィク',f:'スカルヴィク王国',cap:'フィヨルハウン',navy:'王立海軍',d:'フィヨルドの王国。潜水艦乗りの伝統を誇る',c:['#174a5a','#e8f0f4'],fv:1,ds:3,gs:1,rk:1,fmt:1,
+ ship:{S:WL('ヴェル スカル ビョルン ハル トール フレイ グリム ソル ノル エイ ラグナ シグル'),E:WL('ヘイム ガルド ヴィク スタッド ダール ネス ボルグ フィヨル')},
+ sur:{S:WL('エリク ハラル オーラ スヴェン グンナ トルビョ イングヴァ'),E:WL('ソン セン ストロム ベリ ルンド クヴィスト')},giv:WL('エリク ラース オーラヴ スヴェン ビョルン マグヌス レイフ トルステン ニルス アンデシュ イングリッド アストリッド フレイヤ シグリッド'),
+ sea:WL('ニヴル スペイル モルゲン スキェール デュープ ストルム セーデル'),isl:WL('ヴィトホルム島 ミズガル島 ソルネス島'),eq:WL('ラヴン フギン スキョル グングニル ミョル ナルヴァル'),tr:['静かなる潜水艦','潜水艦が探知されにくい(−5%)、潜水艦のソナー +8%'],fx:{quiet:.05,sonarSub:.08},rv:16},
+{n:'エルドミア',f:'エルドミア連合王国',cap:'キングスヘイヴン',navy:'王立海軍',d:'古い海軍国。士官教育に定評がある',c:['#6b1d2a','#c9a23a'],fv:1,ds:2,gs:1,rk:2,fmt:1,
+ ship:{S:WL('アイアン サンダー ストーム グレイ ブラック ホワイト ノース ウェスト キングス クイン ハイ ロング'),E:WL('フォード ベリー ハム ウィック マス ストン フェル ヘイヴン')},
+ sur:{S:WL('ハート ウィン アシュ ブラック ホル ノー ペン'),E:WL('フォード リー ウッド トン ウェル フィールド')},giv:WL('アーサー ジェームズ ヘンリー エドワード ウィリアム ジョージ オリバー トーマス チャールズ ヒュー エリザ メアリー アリス ヴィクトリア'),
+ sea:WL('ノーザン ミラー サンライズ エメラルド アビス ゲイル サザン'),isl:WL('フロスト島 ミドル島 クラウン島'),eq:WL('シーグリフォン ウォッチタワー シールドウォール シーランス スパーク モレイ'),tr:['伝統ある士官教育','幹部の成長 +15%、士気 +0.1/月'],fx:{offGrow:.15,morale:.1},rv:5},
+{n:'ソレンツァ',f:'ソレンツァ共和国',cap:'ポルト・アウレオ',navy:'共和国海軍',d:'内海の商業共和国。造船所の腕は星でも指折り',c:['#1f6a5a','#e9c63a'],fv:0,ds:1,gs:1,rk:1,fmt:1,
+ ship:{S:WL('モンテ ポルト カステル サン ヴィラ ロッカ ヴァル トッレ カーポ リーヴァ ボルゴ フォンテ'),E:WL('ヴェルデ ロッソ ビアンコ マーレ フィオレ ドーロ ネーロ ルーチェ')},
+ sur:WL('ロッセッティ ビアンコーネ モレッリ コンティーニ マリネッリ ヴェントゥーリ サルヴァトーリ デルマーレ カステッラーニ フォンターナ リッチャルディ バルディーニ ガッロ トスカーニ'),giv:WL('マルコ ルカ ジョヴァンニ アントニオ ロレンツォ マッテオ エンツォ ダリオ フランコ パオロ ジュリア キアラ ソフィア エレナ'),
+ sea:WL('ブリーナ スペッキオ アウローラ スメラルド アビッソ テンペスタ メリディオ'),isl:WL('ネーヴェ島 コラッロ島 ソーレ島'),eq:WL('ファルコーネ ヴェデッタ スクード トリデンテ フルミネ スクアーロ'),tr:['造船の名門','水上艦の速力 +4%、ドック整備 +15%'],fx:{spd:.04,dockSpd:.15},rv:7},
+{n:'リュミエール',f:'リュミエール共和国',cap:'ベルリヴァージュ',navy:'国家海軍',d:'艦隊航空に力を注ぐ共和国',c:['#243f8f','#e8a0b0'],fv:1,ds:1,gs:1,rk:1,fmt:1,
+ ship:{S:WL('ボー モン シャトー ベル サン ロシュ ヴァル フォン クレール グラン ポン ヴィル'),E:WL('リーヴ セレスト ヴァロン ヴェール ドール ヌーヴ ロワ マラン')},
+ sur:WL('デュモン ルフェーヴル モロー ベルナール ジラール ルクレール フォンテーヌ シュヴァリエ ボーモン デュヴァル マルシャン ヴァランタン ラコンブ ティボー'),giv:WL('ジャン ピエール ルイ アントワーヌ エティエンヌ マチュー リュカ ユーゴ ガブリエル レミ マリー クレール エロイーズ カミーユ'),
+ sea:WL('ジーヴル ミロワール オーロール エムロード アビーム オラージュ メリディエ'),isl:WL('ネージュ島 コライユ島 ソレイユ島'),eq:WL('エペルヴィエ ヴィジー ブクリエ エスパドン エクレール ミュレーヌ'),tr:['艦隊航空','空対空ミサイルの命中率 +3pt、発着艦 +10%'],fx:{ftrAam:.03,deck:.1},rv:3},
+{n:'ザレチア',f:'ザレチア連邦',cap:'ノヴォグラード',navy:'連邦海軍',d:'大河と凍土の連邦。対艦ミサイルの飽和攻撃を教義とする',c:['#2a4f9c','#b3202c'],fv:0,ds:2,gs:1,rk:1,fmt:1,
+ ship:{S:WL('ノヴォ ヴェリ クラス ビェリ チェルノ ズラト セヴェロ ヴィソ スラヴ ドブロ ミロ ヤロ'),E:WL('グラード ゴルスク ポリ ミール スラフ ボルグ ドンスク ヴォド')},
+ sur:WL('ヴォルコフ ソコロフ クズネツォフ オルロフ ザハロフ ミハイロフ ペトレンコ コヴァレンコ レベデフ モロゾフ ヴィノグラドフ ベロウソフ ドブルィニン ヤロシェンコ'),giv:WL('アレクセイ ドミトリー イワン セルゲイ ニコライ ユーリ ミハイル ヴィクトル パーヴェル ボリス アンナ エレーナ ナターシャ オリガ'),
+ sea:WL('リョード ゼルカロ ザリャー イズムルド ベズドナ ブーリャ ユージノ'),isl:WL('スネグ島 コラル島 ソルンツェ島'),eq:WL('ソーコル ゾルキー シチート オストロガ ヴスピシカ オクニ'),tr:['ミサイル飽和','対艦ミサイルの射程 +8%、威力 +5%'],fx:{asmR:.08,asmDmg:.05},rv:1},
+{n:'カリステア',f:'カリステア海洋同盟',cap:'ネアリメナ',navy:'同盟艦隊',d:'島々の都市が結ぶ同盟。海運の富が艦隊を支える',c:['#1c5fa8','#f0b040'],fv:1,ds:3,gs:1,rk:2,fmt:1,
+ ship:{S:WL('アステ タラ ニケ ヘリ カリ エウ リュ ネレ ペラ クリ テオ ゾエ'),E:WL('リオン ポリス ドロス クレス マコス フォロス ステネス ニコス')},
+ sur:WL('パパディス カラニス ステファノス ニコライデス アンドレウ デメトリオ ヴァシラキス コンスタス マヴロス ゼルヴァス リガス サマラキス トリアンディス ヨアニデス'),giv:WL('ニコス ヨルゴス コスタス ディミトリ アレコス スピロス ヤニス ペトロス ステリオス タキス エレニ マリア ソフィア カテリナ'),
+ sea:WL('クリュオス カトプトロ エオス スマラグド アビュッソス ラエラプス ノティオス'),isl:WL('キオニ島 コラリ島 イリオス島'),eq:WL('イエラクス アルゴス アスピダ トリアイナ ケラヴノス クシフィアス'),tr:['海運の富','予算折衝の成功率 +5pt、諸経費 −3%'],fx:{budg:.05,cost:.03},rv:4},
+{n:'サハルーン',f:'サハルーン首長国',cap:'マディナ・ヌール',navy:'首長国海軍',d:'砂漠と湾岸の首長国。資源の富で艦隊を養う',c:['#1d6b45','#1a1a1a'],fv:0,ds:3,gs:1,rk:1,fmt:1,
+ ship:{S:WL('アル・ バニ・ ウム・ ラス・ タル・ ワディ・ アイン・ カスル・'),E:WL('サクル ナジュム カマル ファジル ザフラ バドル ヌール ラアド シャムス ハディ リーフ マルジャ')},
+ sur:WL('ラシード ハキーム マンスール ファリード ザイヤート カッサーム ナッジャール サッバーグ ハッダード トゥルキー ジャービル マフムード サーリム バクリー'),giv:WL('ハーリド ユースフ ターリク オマル サーミー ファイサル ナーセル ジャマール カリーム ラーミー ライラ ヌール サルマ ファーティマ'),
+ sea:WL('サルジュ ミルアー ファジュル ズムッルド ハーウィヤ アーシファ ジャヌーブ'),isl:WL('バルド島 マルジャン島 シャムス島'),eq:WL('バーシク ラキーブ ディルウ ハルバ バルク キルシュ'),tr:['資源の富','部隊の維持費 −5%、弾薬の価格 −10%'],fx:{upk:.05,ammoC:.1},rv:9},
+{n:'ファルザーン',f:'ファルザーン帝国',cap:'シャフレ・ノウ',navy:'帝国海軍',d:'高原の古い帝国。沿岸を要塞で固める',c:['#5b1f6e','#c9a23a'],fv:0,ds:2,gs:2,rk:1,fmt:1,
+ ship:{S:WL('シャー ミフル アーザル バフラ ファッル ダルヤ ゴル ルーズ ホルシ ペイ ジャハ ノウ'),E:WL('ダード バード ガーン ザード ヴァンド スターン マーン シャハル')},
+ sur:WL('ファルハーディ ロスタミ カーヴェ ダーラービ ジャムシディ ホスラヴィ ナーデリ バフラミ シーラーズィ キヤーニ アルダラーン メフラービ ザンディ パールスィ'),giv:WL('ダーラ キヤン バフラム アーラシュ ロスタム シャハブ ファルハド ナヴィド カーヴェ ミラド シーリーン ロクサナ ヤスミン パリサ'),
+ sea:WL('バルフィン アーイネ バームダード ゾモッロド ジャルファ トゥーファン ジョヌーブ'),isl:WL('バルフ島 マルジャーン島 ホルシード島'),eq:WL('シャーバーズ ディーデバーン セパル ネイゼ アーザラフシュ クーセ'),tr:['沿岸要塞','陸上部隊の戦闘力 +8%、敵の上陸完了が4分遅れる'],fx:{gndPow:.08,garr:4},rv:8},
+{n:'オルダカン',f:'オルダカン汗国',cap:'アルタンバリク',navy:'汗国艦隊',d:'草原から海へ出た騎馬の民。陸の兵は星で最強と恐れられる',c:['#1f6fb5','#e9c63a'],fv:0,ds:3,gs:2,rk:1,fmt:1,
+ ship:{S:WL('アルタン テムル ボルテ カラ アク ウル バヤン チャガン トゥメン エルデ スブ ノヨ'),E:WL('バートル ウルス オルド カガン トグ ダライ ホト テンゲル')},
+ sur:WL('ボルジュ タイガン ケレン ナイマル オングル バルラク ジャラル ウリヤス メルゲン コンギル スルドゥ バーリク ドルベイ オイラク'),giv:WL('テムル バトゥ スブタイ ジョチ カイドゥ ノガイ アルグ ベルケ トガン エセン サルナイ オユン ツェツェグ アルタナ'),
+ sea:WL('ムズ キュズギ タン ヤシル トゥプ ボラン ジャヌプ'),isl:WL('カル島 マルジャ島 クヤシュ島'),eq:WL('ラチン カラウル カルカン スングー ヤシン チョルタン'),tr:['強兵の伝統','陸上部隊の戦闘力 +12%、入隊者数 +10%'],fx:{gndPow:.12,recruit:.1},rv:12},
+{n:'チャンドラーナ',f:'チャンドラーナ共和国',cap:'ナヴァプラ',navy:'共和国海軍',d:'大河の流域に十億が暮らす。人材の層が厚い',c:['#e07b1a','#1f7a4d'],fv:1,ds:1,gs:1,rk:1,fmt:1,
+ ship:{S:WL('ヴィジャ ラージャ マハー スーリヤ チャンダ インドラ ヴィーラ シャクタ アグニ ヴァーユ サーガラ ジャヤ'),E:WL('プラ ナガル ギリ ドゥルグ ヴァティ ケートゥ ラトナ デーヴ')},
+ sur:WL('シャルマ ヴァルマ ラージャン チャウハン メノン デサイ クリシュナン バット ナーヤル セーティ ダッタ ゴーシュ ピライ タークル'),giv:WL('アルジュン ヴィクラム ラヴィ アナンド カラン ローハン スレーシュ デーヴ ニキル プラカシュ プリヤ アヌーシャ ミーラ カヴィタ'),
+ sea:WL('ヒマ ダルパナ ウシャス マラカタ パーターラ ジャンジャー ダクシナ'),isl:WL('ヒマ島 プラヴァーラ島 スーリヤ島'),eq:WL('シェーナ ドリシュティ カヴァチャ バーナ ヴァジュラ マカラ'),tr:['豊富な人材','入隊者数 +25%、離職率 −10%'],fx:{recruit:.25,attr:.1},rv:18},
+{n:'翠嵐',f:'翠嵐共和国',cap:'碧都',navy:'国民海軍',d:'大陸東岸の共和国。造船所は昼夜を問わず艦を送り出す',c:['#167a6a','#f2f2ee'],fv:0,ds:1,gs:1,rk:1,fmt:2,
+ ship:{S:WL('蒼 翠 紅 白 玄 金 銀 瑠 紫 青 丹 碧'),E:WL('嶺 河 風 雲 星 月 霞 波')},
+ sur:WL('蒼 林 高 白 石 柳 藍 岳 洪 夏 秦 江 燕 黎'),giv:WL('明遠 海峰 志遠 雲龍 建華 文泉 天翔 立波 子涵 永安 麗華 雪梅 春蘭 静怡'),
+ sea:WL('北霜 明鏡 曙光 瑠璃 幽淵 風門 朱南'),isl:WL('白霜島 珊瑚嶼 朱雀島'),eq:WL('飛廉 千里眼 穹盾 海矛 迅雷 海蛇'),tr:['量産体制','建造期間 −12%、弾薬の価格 −8%'],fx:{buildT:.12,ammoC:.08},rv:10},
+{n:'ティアロア',f:'ティアロア諸島連合',cap:'ハレモアナ',navy:'海洋警備軍',d:'千の環礁の連合。外洋を渡る術は星のどの民にも勝る',c:['#0e8fa0','#f2e9c8'],fv:1,ds:3,gs:1,rk:1,fmt:1,
+ ship:{S:WL('カイ マヌ ロア ヒナ タネ ランギ モアナ アオ ヘイ トア ヴァイ ノホ'),E:WL('ロア ヌイ ケア マナ レア ティア ホヌ ウラ')},
+ sur:{S:WL('カラ マヒ ケア ナホ トゥイ パオ ラウ'),E:WL('ニ ロア カイ マナ ヌイ レレ')},giv:WL('ケアヌ カイ マウイ タネ ロノ マカナ イカイカ ナル コア ヘミ レイラニ モアナ ヒナ カイア'),
+ sea:WL('アヌ ワイアタ アタフ ポウナム ホホヌ タフィリ ラロ'),isl:WL('フカ島 アカウ島 ラー島'),eq:WL('イオ キロ パレ イヘ ウイラ マノ'),tr:['外洋の民','展開中の整備度低下 −15%、水上艦の速力 +3%'],fx:{rdDecay:.15,spd:.03},rv:17},
+{n:'グウィンラン',f:'グウィンラン大公国',cap:'カエル・モル',navy:'大公国海軍',d:'霧の岬の大公国。耳の早さで大国と渡り合う',c:['#1f5c3a','#c9a23a'],fv:1,ds:2,gs:2,rk:2,fmt:1,
+ ship:{S:WL('カエル ダン グレン ペン アベル ブリン リン トレ キル バリ イニス ロス'),E:WL('モル ウェン ドゥ グラス ルア ファダ ヴェグ マウル')},
+ sur:WL('マクリール オドゥラン グウィンフォル ブレナン カドガン モルガン ケンドリク ペンハロウ トレヴァン ロスリン ダンモア ブリンモル タリエシン リースアプ'),giv:WL('オウェン リース ブラン ダヴィズ エムリス グリフィズ ロナン フィン ケイル タリン ブリジッド ニアヴ エイリス ケリドウェン'),
+ sea:WL('エイラ ドリフ グウォウル エメルド ディヴン ストルム デヘイ'),isl:WL('イア島 クーレル島 ハイル島'),eq:WL('グワルフ グウィリウル タリアン グワイウ メルテン モルフラン'),tr:['諜報網','敵情の精度 +12pt、兆候を掴む確率 +8pt'],fx:{intel:.12,foresee:.08},rv:19},
+{n:'セプティミア',f:'セプティミア帝国',cap:'ノヴァ・アウグスタ',navy:'帝国艦隊',d:'七つの丘の帝国。鉄の規律で艦隊を律する',c:['#8c1c2a','#1a1a1a'],fv:0,ds:2,gs:2,rk:2,fmt:1,
+ ship:{S:WL('ヴィクト フェロ アウダ グロリ コンス フルミ ヴァレ セヴェ マグ ルク ノビ アエテ'),E:WL('リア リクス ンティア ヌス リウス ニア ルム トール')},
+ sur:WL('ヴァレリウス コルネリウス アウレリウス フラウィウス クラウディウス セルウィリウス ユニウス カッシウス ルキリウス オクタウィウス ペトロニウス ドミティウス マルキウス ウィテリウス'),giv:WL('マルクス ルキウス ガイウス ティトゥス クィントゥス セクストゥス デキムス アウルス プブリウス グナエウス ユリア リウィア クラウディア オクタウィア'),
+ sea:WL('グラキエス スペクルム アウロラ ウィリディス アビュスス プロケラ アウステル'),isl:WL('ニクス島 メディア島 ソル島'),eq:WL('アクィラ スペクラトル スクトゥム ピルム フルメン ムレナ'),tr:['鉄の規律','士気 +0.15/月、練度の伸び +6%'],fx:{morale:.15,trGain:.06},rv:0},
+{n:'ハルヤンネ',f:'ハルヤンネ共和国',cap:'ウーシサタマ',navy:'共和国海軍',d:'森と湖の共和国。小さな国を研究で支える',c:['#e8eef4','#1c4f9c'],fv:0,ds:3,gs:1,rk:1,fmt:1,
+ ship:{S:WL('ハル ヴァイ イル ポホ クーラ ルミ メリ タイ ソタ ウッコ ヴェシ ラウタ'),E:WL('ヤルヴィ ネン ランタ サーリ マー ヴァーラ コスキ ニエミ')},
+ sur:WL('ヴィルタネン コルホネン マキネン ヘイッキラ ライティネン カッリオ サロネン ニエミネン ハルユ ランタラ コスキネン アールト ヴァータネン ケットゥネン'),giv:WL('ミカ ユハ アンッティ ヴィッレ ペッカ エーロ トゥオマス ラウリ オスカリ ヨーナス アイノ ヘルミ サーラ イルマ'),
+ sea:WL('ルミ ペイリ コイット スマラ シュヴァ ミュルスキ エテラ'),isl:WL('ハンキ島 カリ島 アウリンコ島'),eq:WL('ハウッカ ヴァルティヤ キルピ ケイハス サラマ ハウキ'),tr:['研究立国','研究ポイント +8%、開発の遅延リスク −4pt'],fx:{rp:.08,projRisk:.04},rv:2},
+{n:'ケツァラン',f:'ケツァラン太陽連邦',cap:'テオカリ',navy:'連邦艦隊',d:'密林と高地の連邦。電波の戦いを得意とする',c:['#c23b2e','#e9c63a'],fv:1,ds:3,gs:2,rk:1,fmt:1,
+ ship:{S:WL('ケツァ トラ イツ シウ テオ コア ミク オセ クアウ ヨワ チャル ウィツ'),E:WL('コアトル テペク トラン ミトル パン ナワク ティトラン ショチ')},
+ sur:WL('イツコア テソソモ アシャヤ クアウテ ネサワル トラカエ モテク チマルポ ショチトル ウィツィリ オセロトル ミシュコア アカマピ テノチ'),giv:WL('イツァ クアウ トラロ ネサ アカトル シウ テペ ヨロ コヨ マサ ショチ シトラリ イシュチェル ナワ'),
+ sea:WL('セトル テスカ トラウィ チャルチ ミクトラ エエカ ウィツラ'),isl:WL('セパヤ島 タパチ島 トナティ島'),eq:WL('クアウトリ トラチア チマリ トラコチ トラウィテ シパク'),tr:['電子戦','電子妨害の成功率 +3pt、敵の対空反応 −6%'],fx:{ecm:.03,jam:.06},rv:13},
+{n:'ムワンガザ',f:'ムワンガザ共和国',cap:'バンダリ・ムピャ',navy:'共和国海軍',d:'大陸東岸の港湾共和国。調停役として諸国に顔が利く',c:['#1a1a1a','#e9c63a'],fv:1,ds:3,gs:1,rk:1,fmt:1,
+ ship:{S:WL('シンバ ニョタ バハリ ウペポ ジュア タイ ンドヴ チュイ モト ウモジャ ウフル アマニ'),E:WL('_ ・クー ・ムピャ ・ンジェマ ・ハリ ・ダイマ ・ムウェマ ・ウォテ')},
+ sur:WL('ムワンギ オティエノ カマウ ンジョロゲ ムテンベイ キプロノ ワンジル オニャンゴ ムシャ ニェレ チェルイヨ バラカ ジュマ キマニ'),giv:WL('ジュマ バラカ アマニ ダウディ ハミシ サイディ ムサ オマリ ラシディ コンボ アイシャ ネエマ ザワディ ファラジャ'),
+ sea:WL('バリディ キオオ アルファジリ ズムリディ キナ ドルバ クシニ'),isl:WL('セルジ島 マタンベ島 ジュア島'),eq:WL('ムウェウェ ムリンジ ンガオ ムクキ ラディ パパ'),tr:['調停外交','緊張度が毎月 0.08 下がる、支持率 +0.1/月'],fx:{tension:.08,support:.1},rv:11},
+{n:'ザルケス',f:'ザルケス企業連合体',cap:'セクター・ゼロ',navy:'保安艦隊',d:'企業が統治する人工島群。艦を無人化して人手を補う',c:['#22262e','#19c2c2'],fv:0,ds:1,gs:1,rk:1,fmt:1,
+ ship:{S:WL('ゼク ヴェク ネル オル クァ ザル テル イグ ユニ シグ アク ノヴ'),E:WL('トラ ロン シス ニクス ヴァル ダイン ケス リオ')},
+ sur:{S:WL('ケイ ヴァン レク ドラ ミル ソーン ハル'),E:WL('ス ダー ヴィク ロウ セン トン')},giv:WL('レイ カイ ノア ゼン アッシュ ヴィク ジン ロウ テオ キース ミラ ニナ エル アイリス'),
+ sea:WL('クライオ リフレク イースタ ヴィリド アビサル タービュラ オースタ'),isl:WL('ノルド島 セントラ島 オースト島'),eq:WL('レイザー パノプト バリア スティレット アーク ヴァイパー'),tr:['無人化','無人艇の能力 +10%、部隊の維持費 −3%'],fx:{usv:.1,upk:.03},rv:14}
+];
+const NCNT={cv:4,cvl:6,ddg:9,ddgx:6,dd:11,dd2:7,ffm:9,ffm2:7,ss:9,ssx:6,opv:8,aoe:5,lst:6,lhd:3};
+const NBASE={names:JSON.parse(JSON.stringify(NAMES)),sur:SUR.slice(),giv:GIV.slice()};
+let NAT=NATS[0],RIV=NATS[15],TXL=[];
+// 艦名：前と後の部品を掛け合わせ、国ごとに決まった順で艦種へ割り振る
+function natNames(i){const N=NATS[i];if(N._nm)return N._nm;if(!N.ship)return N._nm=NBASE.names;
+  const r=rng32(7919*(i+1)),all=[];for(const a of N.ship.S)for(const b of N.ship.E)if(a!==b)all.push(a+b);
+  for(let k=all.length-1;k>0;k--){const j=Math.floor(r()*(k+1)),t=all[k];all[k]=all[j];all[j]=t;}
+  const o={usv:[]};let p=0;for(const k in NCNT){o[k]=all.slice(p,p+NCNT[k]);p+=NCNT[k];}return N._nm=o;}
+const natSur=N=>N.sur?(N.sur.S?pick(N.sur.S)+pick(N.sur.E):pick(N.sur)):pick(NBASE.sur);
+function mkName(N){N=N||NAT;const s=natSur(N),g=pick(N.giv||NBASE.giv);return N.fmt===1?g+'・'+s:N.fmt===2?s+g:s+' '+g;}
+const seaName=(N,z)=>N.sea[z-1]+SEASUF[z];
+const eqName=k=>NAT.eq[['ftr','aew','sam','asm','aam','torp'].indexOf(k)];
+const clsName=t=>NAMES[t]&&NAMES[t][0]?NAMES[t][0]+DSTY[NAT.ds].cls:'';
+const flName=(k,n)=>DSTY[NAT.ds].fl[k].replace('{n}',n);
+// 国の名称群を、ゲーム全体が参照する表に流し込む。新しく始めるときと、記録を読み込んだときに呼ぶ
+function applyNation(ni,ri){ni=NATS[ni]?ni:0;const N=NAT=NATS[ni];RIV=NATS[ri]&&ri!==ni?NATS[ri]:NATS[N.rv];
+  const nm=natNames(ni);for(const k in NAMES)NAMES[k]=nm[k]||[];
+  RSTY[N.rk].rank.forEach((x,i)=>{RANK[i]=x;});
+  for(let z=1;z<=7;z++){const full=seaName(N,z);ZONES[z].n=full;ZS[z]=full.length<=6?full:N.sea[z-1];}
+  [1,4,7].forEach((z,i)=>{ZONES[z].isl=N.isl[i];});
+  ZONES.forEach((Z,i)=>{SECT[i]=Z.n;ISL[i]=Z.isl||Z.n;});
+  for(const p of POTH){const m=/^base:(\d)$/.exec(p[0]);if(m&&+m[1]>0){p[1]=ISL[+m[1]]+'基地隊司令';p[4]=SECT[+m[1]]+'の敵活動を抑える';}}
+  const e=N.eq;SHOPX.ftr.n=`艦上戦闘機「${e[0]}」×2機`;SHOPX.aew.n=`早期警戒機「${e[1]}」×1機`;SHOPX.sam.n=`艦対空ミサイル「${e[2]}」×16`;SHOPX.asm.n=`対艦ミサイル「${e[3]}」×8`;SHOPX.aam.n=`空対空ミサイル「${e[4]}」×16`;SHOPX.torp.n=`長魚雷「${e[5]}」・対潜弾 ×8`;
+  TXL=DSTY[N.ds].tx.concat(GSTY[N.gs].tx,RSTY[N.rk].tx);}
+// 画面に出す直前に、その国の用語へ言い換える
+function tx(s){s=String(s);for(const p of TXL)if(s.indexOf(p[0])>=0)s=s.split(p[0]).join(p[1]);return s;}
+// 旗は地色に帯1本。実在の旗に似ないよう、三色旗の形は避ける
+const flagCSS=N=>`background:linear-gradient(${N.fv?90:180}deg,${N.c[0]} 38%,${N.c[1]} 38% 62%,${N.c[0]} 62%)`;
+
 /* ================= 状態 ================= */
 let S=null,_M=null,_PM=null;
 const ui={tab:'home',fsel:null,zsel:null,sub:{rd:'labs',bud:'alloc',pers:'sum',units:'ships'},of:{rank:-1,spec:-1,free:0,page:0},pg:'hq',dom:0,bcat:0};
@@ -521,7 +666,7 @@ const lineById={};LINE.forEach(l=>{lineById[l[0]]=l;});
 const lvOf=id=>(S.res[id]||{}).lv||0;
 const lineCost=(l,L)=>Math.round(l[5]*L*(1+L*.15));
 const totalLv=()=>{let s=0;for(const k in S.res)s+=S.res[k].lv;return s;};
-function dateStr(m){const a=m+3;return `${S.cfg.y0+Math.floor(a/12)}年${a%12+1}月`;}
+function dateStr(m){const a=m+3;return `海暦${S.cfg.y0+Math.floor(a/12)}年${a%12+1}月`;}
 function hlog(msg,c){S.log.unshift({m:S.month,msg,c:c||''});if(S.log.length>60)S.log.pop();}
 function fmtEff(st,v){const f=STAT[st][1],a=Math.abs(v),s=v>=0?'+':'−',pc=x=>(x*100).toFixed(1).replace(/\.0$/,'');
   if(f==='p')return s+pc(a)+'pt';if(f==='%')return s+pc(a)+'%';if(f==='-%')return (v>=0?'−':'+')+pc(a)+'%';if(f==='-p')return (v>=0?'−':'+')+pc(a)+'pt';
@@ -541,7 +686,7 @@ function allPosts(){const a=[];
   return a;}
 function pickW(a){return a[Math.floor(Math.random()*a.length)];}
 function genOff(rank){const sp=pickW([0,0,0,0,1,1,2,3,3,4,5,6]),b=4+rank*1.1;
-  const o={id:++S.oid,name:pick(SUR)+' '+pick(GIV),rank,age:23+rank*5+RI(0,4)+(rank>4?RI(0,3):0),sp,pot:RI(11,20),merit:RI(0,20)+rank*4,tig:RI(0,3),sat:RI(55,85),post:null,sch:null,tr:[],bt:0};
+  const o={id:++S.oid,name:mkName(),rank,age:23+rank*5+RI(0,4)+(rank>4?RI(0,3):0),sp,pot:RI(11,20),merit:RI(0,20)+rank*4,tig:RI(0,3),sat:RI(55,85),post:null,sch:null,tr:[],bt:0};
   for(const k of ABK)o[k]=clamp(Math.round(b+R(-2.5,3.5)),2,19);
   for(const k of [['cmd','atk','def'],['atk','cool'],['asw','cool'],['tec'],['adm'],['tec','cool'],['tec','adm']][sp])o[k]=clamp(o[k]+RI(1,3),2,20);
   if(Math.random()<.45)o.tr.push(pick(TRAIT)[0]);if(Math.random()<.1){const t=pick(TRAIT)[0];if(!o.tr.includes(t))o.tr.push(t);}
@@ -564,6 +709,7 @@ function fill(){return enlTotal()/Math.max(1,reqPers());}
 function mods(){if(_M)return _M;const M={};for(const k in STAT)M[k]=0;
   for(const l of LINE){const v=lvOf(l[0]);if(v)M[l[3]]+=l[4]*v;}
   for(const p of PROJ)if(p.fx&&S.flags[p.k])for(const k in p.fx)M[k]+=p.fx[k];
+  const nf=(NATS[S.cfg.nat]||NATS[0]).fx;for(const k in nf)M[k]+=nf[k];
   BITEM.forEach((b,i)=>{M[b[4]]+=b[5]*(S.bud[i]-2);});
   const pm=postMap(),has=(id,t)=>!!pm[id]&&pm[id].tr.includes(t),ab=(id,k)=>pm[id]?effAb(pm[id],k)-10:-4,cs=clamp(1+ab('hq:cs','adm')*.03,.8,1.4),st=(id,k)=>ab(id,k)*cs;
   M.reinT+=st('hq:n3','cmd')*1.5;M.q+=st('hq:n3','cmd')*.003;M.intel+=st('hq:n2','tec')*.02;M.satT+=st('hq:n2','tec');
@@ -685,15 +831,15 @@ function render(){if(!S)return;
   $('#gs').textContent=Math.round(S.support)+'%';const sb=$('#gsb');sb.style.width=S.support+'%';sb.className=S.support<25?'r':S.support<45?'am':'g';
   $('#gt').textContent=Math.round(S.tension)+'%';const tb=$('#gtb');tb.style.width=S.tension+'%';tb.className=S.tension>=65?'r':S.tension>=40?'am':'g';
   document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===ui.tab));
-  $('#view').innerHTML=VIEW[ui.tab]();$('#next').disabled=!!S.over;}
+  $('#view').innerHTML=tx(VIEW[ui.tab]());$('#next').disabled=!!S.over;}
 
 /* ---------- モーダル・トースト ---------- */
 const mq=[];
-function showM(){$('#mbox').innerHTML=mq[0].html;$('#modal').hidden=false;$('#mbox').scrollTop=0;}
+function showM(){$('#mbox').innerHTML=tx(mq[0].html);$('#modal').hidden=false;$('#mbox').scrollTop=0;}
 function modal(html,cbs){mq.push({html,cbs:cbs||{}});if(mq.length===1)showM();}
 function closeModal(){mq.shift();if(mq.length)showM();else $('#modal').hidden=true;}
 function confirmM(text,yes,yl,no){modal(`<p>${text}</p><div class="mbtn"><button class="btn pri" data-m="y">${yl||'実行する'}</button><button class="btn" data-m="n">やめる</button></div>`,{y:()=>{closeModal();yes();},n:()=>{closeModal();if(no)no();}});}
-function toast(msg){const t=$('#toast');t.textContent=msg;t.className='show';clearTimeout(toast.h);toast.h=setTimeout(()=>{t.className='';},2600);}
+function toast(msg){const t=$('#toast');t.textContent=tx(msg);t.className='show';clearTimeout(toast.h);toast.h=setTimeout(()=>{t.className='';},2600);}
 function showOver(){const o=S.over,occ=ISLZ.filter(i=>!S.sectors[i].held).length,st=S.stats;
   const score=st.wins*100+st.blood0*80+Math.round(S.support)*5-st.pSunk*60-occ*250+Math.min(S.month,60)*10+totalLv()+(o.k==='peace'?800:0);
   const rank=score>=2000?'S':score>=1400?'A':score>=900?'B':score>=400?'C':'D';
@@ -710,8 +856,24 @@ function showFiscal(f){const p=a=>Math.round(askChance(a)*100);
 /* ---------- タイトルとカスタムスタート ---------- */
 function begin(cfg){newGame(cfg);save();ui.tab='home';render();showHelp();}
 function showTitle(){const has=!!load();mq.length=0;
-  modal(`<div class="alert">機動護衛群司令部</div><h2 class="big">蒼海の盾</h2><p class="sm">現代の海で、艦隊の指揮と運営を担う。撃たせず、撃たずに守り抜けるか。</p>${has?'<p class="sm mut">新しく始めると、いまの記録は上書きされる。</p>':''}<div class="mbtn">${has?`<button class="btn pri" data-m="c">続きから</button>`:''}<button class="btn ${has?'':'pri'}" data-m="s">標準の設定で始める</button><button class="btn" data-m="k">カスタムスタート</button></div>`,
-  {c:()=>{closeModal();S=load();_M=null;_PM=null;render();if(S.over)showOver();else if(S.gpend)groundPrompt();else if(S.pending)showIncident();},s:()=>{closeModal();begin({});},k:()=>{closeModal();ui.cs=JSON.parse(JSON.stringify(DEFCFG));showSetup();}});}
+  modal(`<div class="alert">惑星${PLANET}　機動艦隊司令部</div><h2 class="big">蒼海の盾</h2><p class="sm">海が地表の大半を占める惑星${PLANET}。20の国が海を分け合い、島と航路をめぐって睨み合っている。一国の艦隊を預かり、撃たせず、撃たずに守り抜けるか。</p>${has?'<p class="sm mut">新しく始めると、いまの記録は上書きされる。</p>':''}<div class="mbtn">${has?`<button class="btn pri" data-m="c">続きから</button>`:''}<button class="btn ${has?'':'pri'}" data-m="n">国を選んで始める</button></div>`,
+  {c:()=>{closeModal();S=load();applyNation(S.cfg.nat,S.cfg.riv);_M=null;_PM=null;render();if(S.over)showOver();else if(S.gpend)groundPrompt();else if(S.pending)showIncident();},n:()=>{closeModal();ui.cs=null;showNation();}});}
+// 国を選ぶ画面。20か国の名称群を見比べて、対峙する国も決める
+function showNation(){if(ui.nat==null)ui.nat=0;const i=ui.nat,N=NATS[i],rv=ui.riv==null||ui.riv===i?N.rv:ui.riv,nm=natNames(i),D=DSTY[N.ds],sv=TXL;TXL=D.tx.concat(GSTY[N.gs].tx,RSTY[N.rk].tx);
+  const ex=k=>tx(PT[k].n)+'「'+nm[k].slice(0,2).join('」「')+'」',ppl=[0,1,2].map(()=>mkName(N)).join('、');
+  const html=`<div class="alert">惑星${PLANET}</div><h2>国を選ぶ</h2><p class="sm mut">国によって、艦や人の名前、海と島の名、装備の名、艦種や階級の呼び方が変わる。国柄は小さな得意分野になる。</p>
+  <div class="nlist">${NATS.map((x,k)=>`<button class="${k===i?'on':''}" onclick="A.nsel(${k})"><i class="flag" style="${flagCSS(x,k)}"></i>${x.n}</button>`).join('')}</div>
+  <div class="ncard" id="ncard"><div class="uh"><i class="flag big" style="${flagCSS(N,i)}"></i><b>${N.f}</b></div><p class="sm">${N.d}。</p>
+  <dl class="kv2"><dt>首都</dt><dd>${N.cap}</dd><dt>海軍</dt><dd>${N.n}${N.navy}</dd><dt>国柄</dt><dd><b class="am">${N.tr[0]}</b><br><span class="sm">${tx(N.tr[1])}</span></dd>
+  <dt>艦の名</dt><dd class="sm">${ex('cvl')}<br>${ex('ddg')}<br>${ex('dd')}<br>${ex('ss')}</dd><dt>人の名</dt><dd class="sm">${ppl}</dd><dt>階級</dt><dd class="sm">${RSTY[N.rk].rank.slice(3).join('・')}</dd>
+  <dt>装備</dt><dd class="sm">戦闘機「${N.eq[0]}」、警戒機「${N.eq[1]}」<br>SAM「${N.eq[2]}」、SSM「${N.eq[3]}」<br>AAM「${N.eq[4]}」、魚雷「${N.eq[5]}」</dd>
+  <dt>陸上部隊</dt><dd class="sm">${GTK.slice(0,4).map(k=>tx(GT[k].n)).join('、')} ほか</dd><dt>守る島</dt><dd class="sm">${[1,4,7].map((z,k)=>seaName(N,z)+'の'+N.isl[k]).join('、')}</dd><dt>海域</dt><dd class="sm">${[2,3,5,6].map(z=>seaName(N,z)).join('、')}</dd></dl>
+  <div class="srow"><label>対峙する国</label><select onchange="A.nriv(+this.value)" aria-label="対峙する国">${NATS.map((x,k)=>k===i?'':`<option value="${k}" ${k===rv?'selected':''}>${x.f}${k===N.rv?'(宿敵)':''}</option>`).join('')}</select></div></div>
+  <div class="mbtn"><button class="btn pri" data-m="go">${N.n}で着任する(標準の設定)</button><button class="btn" data-m="k">カスタムスタート</button><button class="btn" data-m="back">戻る</button></div>`;
+  const out=tx(html);TXL=sv;const pick1=()=>({nat:i,riv:rv,nation:N.f,fleetName:D.hq});
+  if(mq.length&&mq[0].nat){const sc=$('#mbox').scrollTop;mq[0].html=html;mq[0].cbs.cur=pick1;$('#mbox').innerHTML=out;$('#mbox').scrollTop=sc;return;}
+  modal(html,{cur:pick1,go:()=>{const c=mq[0].cbs.cur();closeModal();begin(c);},k:()=>{const c=mq[0].cbs.cur();closeModal();ui.cs=Object.assign(ui.cs||JSON.parse(JSON.stringify(DEFCFG)),c);showSetup();},back:()=>{closeModal();showTitle();}});
+  mq[mq.length-1].nat=1;$('#mbox').innerHTML=out;}
 function showSetup(){const c=ui.cs,f=c.fleet;
   const st=(k,lbl,step,min,max,unit)=>`<div class="srow"><label>${lbl}</label><div class="stp"><button onclick="A.cs('${k}',${-step},${min},${max})" aria-label="${lbl}を減らす">－</button><span>${c[k].toLocaleString()}${unit||''}</span><button onclick="A.cs('${k}',${step},${min},${max})" aria-label="${lbl}を増やす">＋</button></div></div>`;
   const fs=(k,lbl,step,max)=>`<div class="srow"><label>${lbl}</label><div class="stp"><button onclick="A.csf('${k}',${-step},${max})" aria-label="${lbl}を減らす">－</button><span>${f[k]||0}</span><button onclick="A.csf('${k}',${step},${max})" aria-label="${lbl}を増やす">＋</button></div></div>`;
@@ -719,6 +881,9 @@ function showSetup(){const c=ui.cs,f=c.fleet;
   let up=0,crew=0,val=0;for(const k of FLEETK){const n=f[k]||0;up+=PT[k].up*n;crew+=PT[k].crew*n;val+=PT[k].val*n;}
   const gs=(k,max)=>`<div class="srow"><label>${GT[k].n}</label><div class="stp"><button onclick="A.csg('${k}',-1,${max})" aria-label="${GT[k].n}を減らす">－</button><span>${c.gnd[k]||0}</span><button onclick="A.csg('${k}',1,${max})" aria-label="${GT[k].n}を増やす">＋</button></div></div>`;
   const html=`<div class="alert">カスタムスタート</div><h2>任期の条件を決める</h2><div class="brow">${PRESET.map((p,i)=>`<button class="btn sm" onclick="A.csp(${i})">${p[0]}</button>`).join('')}</div>
+  <h3 class="sub">国</h3>
+  <div class="srow"><label><i class="flag" style="${flagCSS(NATS[c.nat],c.nat)}"></i> ${NATS[c.nat].n}</label><button class="btn sm" onclick="A.csnat()">国を選び直す</button></div>
+  <p class="sm mut">対峙する国：${NATS[c.riv==null?NATS[c.nat].rv:c.riv].f}　国柄：${NATS[c.nat].tr[0]}</p>
   <h3 class="sub">名前</h3>
   <div class="srow"><label>司令官</label><input value="${esc(c.cmdr)}" placeholder="(任意)" oninput="ui.cs.cmdr=this.value" maxlength="16" aria-label="司令官の名前"></div>
   <div class="srow"><label>国名</label><input value="${esc(c.nation)}" oninput="ui.cs.nation=this.value" maxlength="12" aria-label="国名"></div>
@@ -738,8 +903,8 @@ function showSetup(){const c=ui.cs,f=c.fleet;
   <h3 class="sub">技術と増援</h3>
   ${sg2('techLv','技術水準',[[0,'現行'],[1,'やや進む'],[2,'進む'],[3,'先進']])}${st('labs','研究所の数',1,1,8,'')}${sg2('reinT','増援の到着',[[60,'60分'],[90,'90分'],[120,'120分'],[150,'150分']])}
   <div class="mbtn"><button class="btn pri" data-m="go">この条件で着任する</button><button class="btn" data-m="back">戻る</button></div>`;
-  if(mq.length&&mq[0].setup){const sc=$('#mbox').scrollTop;mq[0].html=html;$('#mbox').innerHTML=html;$('#mbox').scrollTop=sc;}
-  else{modal(html,{go:()=>{closeModal();begin(ui.cs);},back:()=>{closeModal();showTitle();}});mq[mq.length-1].setup=1;}}
+  if(mq.length&&mq[0].setup){const sc=$('#mbox').scrollTop;mq[0].html=html;$('#mbox').innerHTML=tx(html);$('#mbox').scrollTop=sc;}
+  else{modal(html,{go:()=>{closeModal();begin(ui.cs);},back:()=>{closeModal();showNation();}});mq[mq.length-1].setup=1;}}
 
 /* ---------- 人事 ---------- */
 const PV={};
@@ -902,12 +1067,13 @@ const A={
   cs(k,d,min,max){ui.cs[k]=clamp(ui.cs[k]+d,min,max);showSetup();},
   csf(k,d,max){ui.cs.fleet[k]=clamp((ui.cs.fleet[k]||0)+d,0,max);showSetup();},
   css(k,v){ui.cs[k]=v;showSetup();},
-  csp(i){const keep={cmdr:ui.cs.cmdr,nation:ui.cs.nation,fleetName:ui.cs.fleetName},p=PRESET[i][1];ui.cs=Object.assign(JSON.parse(JSON.stringify(DEFCFG)),JSON.parse(JSON.stringify(p)),keep);ui.cs.fleet=Object.assign({},DEFCFG.fleet,p.fleet||{});ui.cs.gnd=Object.assign({},DEFCFG.gnd,p.gnd||{});showSetup();}
+  csp(i){const keep={cmdr:ui.cs.cmdr,nation:ui.cs.nation,fleetName:ui.cs.fleetName,nat:ui.cs.nat,riv:ui.cs.riv},p=PRESET[i][1];ui.cs=Object.assign(JSON.parse(JSON.stringify(DEFCFG)),JSON.parse(JSON.stringify(p)),keep);ui.cs.fleet=Object.assign({},DEFCFG.fleet,p.fleet||{});ui.cs.gnd=Object.assign({},DEFCFG.gnd,p.gnd||{});showSetup();}
 };
 window.A=A;
 
 /* ================= 広域作戦：海域・艦隊・島・陸上部隊 ================= */
-const ZS=['本土','オホーツク','日本海','北西太平洋','東シナ海','フィリピン海','バシー','南シナ海','敵北方','敵南方'];
+// 海域の短い呼び名。海の名は国ごとに applyNation が入れ替える
+const ZS=['本土','','','','','','','','敵北方','敵南方'];
 const EBASE={1:8,4:9,7:9};
 for(const k of GTK)SHOPX['g_'+k]={kind:'gnd',n:GT[k].n,cost:GT[k].cost,build:GT[k].build,q:1,d:GT[k].d};
 // 敵の泊地を通らない最短経路
@@ -942,15 +1108,17 @@ function addUnit(type,o){o=o||{};const free=(NAMES[type]||[]).filter(n=>!S.used.
 function addGnd(type,loc,o){o=o||{};S.gseq[type]=(S.gseq[type]||0)+1;
   const g={id:++S.gid,type,name:`第${S.gseq[type]}${GT[type].n}`,hp:10,tr:o.tr==null?RI(55,70):o.tr,loc:loc||'home'};S.gnd.push(g);_M=null;return g;}
 const mkIsl=()=>({seed:RI(1,999999999),fac:{hq:100,air:100,port:100,radar:100,depot:100,town:100},egar:[],fort:0,cover:0,blk:0,prep:{}});
-function autoFleets(){const mkF=(n,zone)=>{const f={id:++S.fid,n,zone,dest:null};S.fleets.push(f);return f;};
+function autoFleets(){const mkF=(n,zone,role)=>{const f={id:++S.fid,n,zone,dest:null,role};S.fleets.push(f);return f;};
   const cb=S.units.filter(u=>{const t=PT[u.type];return t.cat==='ship'&&!t.tcap&&!t.sup&&t.val>=30;}),cv=cb.filter(u=>PT[u.type].fcap),es=cb.filter(u=>!PT[u.type].fcap).sort((a,b)=>PT[b.type].val-PT[a.type].val);
   const n=cb.length?clamp(Math.max(cv.length,es.length>=9?3:es.length>=4?2:1),1,Math.max(1,Math.min(3,Math.floor(cb.length/2)))):0,fs=[];
-  const posts=[7,4,1];for(let i=0;i<n;i++)fs.push(mkF(`第${i+1}護衛隊群`,posts[i]));
+  const posts=[7,4,1];for(let i=0;i<n;i++)fs.push(mkF(flName(0,i+1),posts[i],'cf'));
   cv.forEach((u,i)=>{u.fl=fs[i%n].id;});es.forEach((u,i)=>{u.fl=fs[(i+cv.length)%n].id;});
-  const ss=S.units.filter(u=>PT[u.type].cat==='sub');if(ss.length){const f=mkF('潜水隊群',n<3?posts[n]:0);for(const u of ss)u.fl=f.id;}
-  const rest=S.units.filter(u=>!u.fl);if(rest.length){const f=mkF('輸送・支援隊',0);for(const u of rest)u.fl=f.id;}
+  const ss=S.units.filter(u=>PT[u.type].cat==='sub');if(ss.length){const f=mkF(flName(1),n<3?posts[n]:0,'ss');for(const u of ss)u.fl=f.id;}
+  const rest=S.units.filter(u=>!u.fl);if(rest.length){const f=mkF(flName(2),0,'tr');for(const u of rest)u.fl=f.id;}
   syncSectors();}
 function newGame(c){c=c||{};const C=Object.assign({},DEFCFG,c);C.fleet=Object.assign({},DEFCFG.fleet,c.fleet||{});C.gnd=Object.assign({},DEFCFG.gnd,c.gnd||{});_M=null;_PM=null;
+  // 国を決め、その国の名称群に切り替えてから部隊を作る
+  C.nat=NATS[C.nat]?C.nat:0;if(!NATS[C.riv]||C.riv===C.nat)C.riv=NATS[C.nat].rv;applyNation(C.nat,C.riv);if(c.nation==null)C.nation=NAT.f;if(c.fleetName==null)C.fleetName=DSTY[NAT.ds].hq;
   S={v:3,cfg:C,month:0,fy:0,funds:C.funds,budget:C.budget,support:C.support,tension:C.tension,bud:BITEM.map(()=>2),units:[],used:[],seq:0,pool:{ftr:0,aew:0},
     stock:{sam:48,asm:24,aam:32,torp:16},orders:[],debts:[],ledger:[],ext:0,pers:{morale:62,pipe:[],auto:true,pol:'auto',rep:[],sp:0,resv:0,resvEnd:0},off:[],enl:{},
     res:{},labs:[],projs:{},flags:{},unlock:{},kits:{},
@@ -1160,7 +1328,7 @@ function theaterSVG(){const P=i=>ZONES[i],fsel=ui.fsel!=null?FL(ui.fsel):null;
   for(let i=0;i<ZONES.length;i++)for(const j of ADJ[i])if(j>i){const a=P(i),b=P(j),en=a.enemy||b.enemy;s+=`<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="${en?'#7a3a36':'#28506a'}" stroke-width="${en?1:1.5}"${en?' stroke-dasharray="2 4"':''}/>`;}
   for(const f of S.fleets)if(f.dest!=null){const p=zpath(f.zone,f.dest);if(p)s+=`<polyline points="${p.map(z=>P(z).x+','+P(z).y).join(' ')}" fill="none" stroke="#5fb0ff" stroke-width="2.5" stroke-dasharray="6 4" opacity=".85"/>`;}
   ZONES.forEach((Z,i)=>{const sec=S.sectors[i],isI=ISLZ.includes(i),sel=ui.zsel===i,x=Z.x,y=Z.y;let col='#5fb0ff',st='';
-    if(Z.enemy)col='#ff6b5e';else if(Z.home)st='母港';
+    if(Z.enemy){col='#ff6b5e';st=RIV.n;}else if(Z.home)st='母港';
     else{col=thrCol(i);st=isI?(sec.held?'敵活動 '+thr(i).t:'占領下'):thr(i).v>=60?'通商妨害':'航路 '+thr(i).t;}
     s+=`<g onclick="A.zone(${i})"><circle cx="${x}" cy="${y}" r="28" fill="#000" fill-opacity="0"/>`;
     s+=Z.enemy?`<rect x="${x-13}" y="${y-13}" width="26" height="26" transform="rotate(45 ${x} ${y})" fill="${col}" fill-opacity="${sel?.3:.14}" stroke="${sel?'#fff':col}" stroke-opacity=".8"/>`
@@ -1181,7 +1349,7 @@ function gRow(g,act){const t=GT[g.type];return `<div class="unit ${g.loc==='home
 function zonePanel(z){const Z=ZONES[z],s=S.sectors[z],il=S.isl[z],here=inZone(z),fl=S.fleets.filter(f=>f.zone===z);
   let h=`<section class="sec zp"><h2>${Z.n}${il?'　'+Z.isl:''}</h2>`;
   if(Z.enemy){const es=S.efl.filter(e=>e.known&&EBASE[e.z]===z);
-    return h+`<p class="sm">敵の泊地。専守防衛のもとでは、こちらから踏み込めない。侵攻部隊はここに集結してから島へ向かう。</p>${es.map(e=>`<p class="al r">揚陸部隊が${e.eta>=2?'集結している':'出撃した'}。目標は${ISL[e.z]}、到達まであと${e.eta}か月</p>`).join('')||'<p class="sm mut">目立った動きは確認されていない。</p>'}</section>`;}
+    return h+`<p class="sm">${RIV.f}の泊地。専守防衛のもとでは、こちらから踏み込めない。侵攻部隊はここに集結してから島へ向かう。</p>${es.map(e=>`<p class="al r">揚陸部隊が${e.eta>=2?'集結している':'出撃した'}。目標は${ISL[e.z]}、到達まであと${e.eta}か月</p>`).join('')||'<p class="sm mut">目立った動きは確認されていない。</p>'}</section>`;}
   const rs=reserve(z);h+='<dl class="kv2">';
   if(Z.home)h+='<dt>役割</dt><dd>母港と本土。ここにいる艦は整備度が回復する。演習とドック整備、陸上部隊の編成もここで行う</dd>';
   else if(Z.lane)h+=`<dt>航路の脅威</dt><dd class="${thr(z).c}">${thr(z).t}${thr(z).v>=60&&!here.length?'。通商妨害で毎月の収入と支持が削られている':''}</dd>`;
@@ -1204,7 +1372,7 @@ VIEW.home=()=>{const inc=income(),cost=Math.round(monthCost()),al=alerts(),C=S.c
     h+=`<div class="sbox ${s.held?'':'occ'}" onclick="A.goz(${i})"><b>${ISL[i]}</b><span class="${s.held?lv.c:'r'}">${s.held?'敵活動 '+lv.t:'占領下'}</span>${bar(s.held?lv.v:100,s.held?lv.c:'r')}<small>${SECT[i]}<br>${fl.length?fl.map(f=>esc(f.n)).join('・'):'艦隊なし'}<br>守備隊 ${s.held?gn+'個':'―'}</small></div>`;}
   h+=`</div><p class="mut sm">島をタップすると作戦図が開く。</p></section>`;
   if(al.length)h+=`<section class="sec"><h2>要対処</h2>${al.map(a=>`<p class="al ${a[1]}">${a[0]}</p>`).join('')}</section>`;
-  h+=`<section class="sec"><h2>今月の見通し</h2><dl class="kv"><dt>防衛予算(月割)</dt><dd class="g">+${inc} 億円</dd><dt>維持費と各種経費</dt><dd>−${cost} 億円</dd><dt>差引</dt><dd class="${inc-cost<0?'r':'g'}">${sg(inc-cost)} 億円</dd><dt>抑止力(我／敵)</dt><dd>${Math.round(fleetPower())}／${enemyPower()}</dd><dt>陸上部隊</dt><dd>${S.gnd.length}個</dd><dt>技術の蓄積</dt><dd>${totalLv()}段階</dd><dt>戦績</dt><dd>${S.stats.wins}勝 ${S.stats.loss}敗(うち無血 ${S.stats.blood0})</dd><dt>任期</dt><dd>${Math.floor(S.month/12)+1}年目／全${C.years}年</dd></dl></section>`;
+  h+=`<section class="sec"><h2>今月の見通し</h2><dl class="kv"><dt>防衛予算(月割)</dt><dd class="g">+${inc} 億円</dd><dt>維持費と各種経費</dt><dd>−${cost} 億円</dd><dt>差引</dt><dd class="${inc-cost<0?'r':'g'}">${sg(inc-cost)} 億円</dd><dt>国</dt><dd><i class="flag" style="${flagCSS(NAT,C.nat||0)}"></i> ${esc(C.nation)}</dd><dt>対峙する国</dt><dd>${RIV.f}</dd><dt>国柄</dt><dd>${NAT.tr[0]}<br><span class="sm mut">${NAT.tr[1]}</span></dd><dt>抑止力(我／敵)</dt><dd>${Math.round(fleetPower())}／${enemyPower()}</dd><dt>陸上部隊</dt><dd>${S.gnd.length}個</dd><dt>技術の蓄積</dt><dd>${totalLv()}段階</dd><dt>戦績</dt><dd>${S.stats.wins}勝 ${S.stats.loss}敗(うち無血 ${S.stats.blood0})</dd><dt>任期</dt><dd>${Math.floor(S.month/12)+1}年目／全${C.years}年</dd></dl></section>`;
   h+=`<section class="sec"><h2>記録</h2>${S.log.length?S.log.slice(0,12).map(l=>`<p class="lg ${l.c}"><span>${dateStr(l.m)}</span>${l.msg}</p>`).join(''):'<p class="mut sm">まだ記録はない</p>'}</section>`;
   h+=`<section class="sec"><div class="brow"><button class="btn sm" onclick="A.drill()">図上演習(海戦)</button><button class="btn sm" onclick="A.gdrill()">図上演習(上陸戦)</button><button class="btn sm" onclick="A.help()">遊び方</button><button class="btn sm" onclick="A.reset()">新しく始める</button></div></section>`;
   return h;};
@@ -1221,9 +1389,9 @@ VIEW.deploy=()=>{const fsel=ui.fsel!=null?FL(ui.fsel):null,T=reinTime();
   return h;};
 const UV={};
 UV.ships=()=>{const st=S.stock,pm=postMap();
-  let h=`<section class="sec"><h2>在庫</h2><dl class="kv"><dt>艦対空ミサイル</dt><dd>${st.sam}</dd><dt>対艦ミサイル</dt><dd>${st.asm}</dd><dt>空対空ミサイル</dt><dd>${st.aam}</dd><dt>魚雷・対潜弾</dt><dd>${st.torp}</dd><dt>予備機(戦闘機／早期警戒機)</dt><dd>${S.pool.ftr}／${S.pool.aew}</dd></dl><p class="mut sm">弾薬は月が替わるときに在庫から各艦へ自動で補給される。</p></section><section class="sec"><h2>艦艇 ${S.units.length}隻</h2>`;
+  let h=`<section class="sec"><h2>在庫</h2><dl class="kv"><dt>艦対空ミサイル「${eqName('sam')}」</dt><dd>${st.sam}</dd><dt>対艦ミサイル「${eqName('asm')}」</dt><dd>${st.asm}</dd><dt>空対空ミサイル「${eqName('aam')}」</dt><dd>${st.aam}</dd><dt>長魚雷「${eqName('torp')}」・対潜弾</dt><dd>${st.torp}</dd><dt>予備の戦闘機「${eqName('ftr')}」</dt><dd>${S.pool.ftr}</dd><dt>予備の警戒機「${eqName('aew')}」</dt><dd>${S.pool.aew}</dd></dl><p class="mut sm">弾薬は月が替わるときに在庫から各艦へ自動で補給される。</p></section><section class="sec"><h2>艦艇 ${S.units.length}隻</h2>`;
   for(const u of S.units){const t=PT[u.type],c=cap(u),ps=shipPosts(u),vac=ps.filter(p=>!pm[u.id+':'+p[0]]).length;
-    h+=`<div class="unit ${u.sector!==0?'away':''}"><div class="uh"><span class="tag">${t.s}</span><b>${u.name}</b><small>${t.n}</small><span class="loc">${u.refit?`改修中 あと${u.refit.left}か月`:u.mode==='dock'?'ドック整備中':u.mode==='drill'?'演習中':u.tz>0?`合流中 あと${u.tz}か月`:SECT[u.sector]}</span></div>
+    h+=`<div class="unit ${u.sector!==0?'away':''}"><div class="uh"><span class="tag">${t.s}</span><b>${u.name}</b><small>${clsName(u.type)} ${t.n}</small><span class="loc">${u.refit?`改修中 あと${u.refit.left}か月`:u.mode==='dock'?'ドック整備中':u.mode==='drill'?'演習中':u.tz>0?`合流中 あと${u.tz}か月`:SECT[u.sector]}</span></div>
       <div class="st3"><div><label>練度 ${Math.round(u.tr)}</label>${bar(u.tr,'b')}</div><div><label>整備度 ${Math.round(u.rd)}</label>${bar(u.rd,u.rd<40?'r':u.rd<60?'am':'g')}</div><div><label>船体 ${Math.round(u.hp)}%</label>${bar(u.hp,u.hp<50?'r':u.hp<80?'am':'g')}</div></div>
       <div class="amm">${Object.keys(c).filter(k=>c[k]).map(k=>`<span class="${(u.load[k]||0)<c[k]?'am':''}">${AMN[k]} ${u.load[k]||0}/${c[k]}</span>`).join('')}${t.tcap?`<span>陸上部隊 ${t.tcap}個を輸送</span>`:''}<span class="mut">戦闘効率 ${Math.round(unitQ(u)*100)}%</span></div>
       <div class="urow"><label>所属</label><select onchange="A.ufl(${u.id},+this.value)" aria-label="${u.name}の所属" ${u.tz>0?'disabled':''}><option value="0">母港(無所属)</option>${S.fleets.map(f=>`<option value="${f.id}" ${u.fl===f.id?'selected':''}>${esc(f.n)}(${ZS[f.zone]})</option>`).join('')}</select></div>
@@ -1255,7 +1423,7 @@ VIEW.shop=()=>{
   let h=`<section class="sec"><h2>発注中</h2>${S.orders.length?S.orders.map(o=>`<div class="drow"><div style="flex:1">${o.n}</div><div class="mut">あと ${o.due-S.month} か月</div></div>`).join(''):'<p class="mut sm">発注中のものはない</p>'}</section><section class="sec"><h2>調達</h2><p class="mut sm">400億円以上のものは、一括払いか分割払いかを選べる。艦は母港で就役し、陸上部隊は本土で編成される。</p>`;
   const item=(k,n,d)=>{const c=price(k);return `<div class="item"><div class="uh"><b>${n}</b><span class="loc">${c.toLocaleString()}億円／${buildMo(k)}か月</span></div><p class="sm mut">${d}</p><button class="btn sm" ${canPay(c)||c>=400?'':'disabled'} onclick="A.buy('${k}')">発注する</button></div>`;};
   h+='<h3 class="sub">艦艇</h3>';const locked=[];
-  for(const k of SHIPK){const t=PT[k];if(t.lock&&!S.unlock[k]){locked.push(t.n);continue;}h+=item(k,t.n,`${t.d}。乗員${t.crew}名、維持費は月${t.up}億円`);}
+  for(const k of SHIPK){const t=PT[k];if(t.lock&&!S.unlock[k]){locked.push(t.n);continue;}h+=item(k,t.n+(clsName(k)?`<small class="mut">　${clsName(k)}</small>`:''),`${t.d}。乗員${t.crew}名、維持費は月${t.up}億円`);}
   if(locked.length)h+=`<p class="sm mut">開発計画を終えると調達できる：${locked.join('、')}</p>`;
   h+='<h3 class="sub">陸上部隊</h3>';for(const k of GTK){const t=GT[k];h+=item('g_'+k,t.n,`${t.d}。攻撃${t.atk}・防御${t.def}・移動${t.mv}、維持費は月${t.up}億円`);}
   h+='<h3 class="sub">航空機</h3>';for(const k of['ftr','aew'])h+=item(k,SHOPX[k].n,SHOPX[k].d);
@@ -1265,7 +1433,8 @@ function showIncident(){const inc=S.pending;if(!inc)return;const z=inc.sector,us
   const rn=(rs.near.length?`隣の海域から：${rs.near.map(u=>u.name).join('、')}<br><span class="mut sm">戦闘開始の${T}分後に着く</span>`:'')+(rs.near.length&&rs.far.length?'<br>':'')+(rs.far.length?`2つ先の海域から：${rs.far.map(u=>u.name).join('、')}<br><span class="mut sm">${T*2}分後に着く</span>`:'');
   modal(`<div class="alert r">${rt?'作戦計画':'事案発生'}</div><h2>${SECT[z]}　${SCN[inc.type].n}</h2><p>${SCN[inc.type].d(inc)}</p><dl class="kv2"><dt>敵情(推定)</dt><dd>${inc.intel}</dd><dt>現場の兵力</dt><dd>${us.length?us.map(u=>u.name).join('、'):'<b class="r">所在の艦隊なし</b>'}</dd><dt>増援</dt><dd>${rn||'なし'}</dd>${inc.type==='landing'?`<dt>島の守備隊</dt><dd>${gar.length?gar.map(g=>g.name).join('、'):'<b class="r">なし</b>'}</dd>`:''}</dl><div class="mbtn">${can?`<button class="btn pri" data-m="fight">出撃し、自ら指揮を執る</button><button class="btn" data-m="auto">現場指揮官に任せる(自動解決)</button>`:''}<button class="btn" data-m="ignore">${rt?'作戦を中止する':can?'静観する':'対処できない(静観)'}</button></div>`,
   {fight:()=>{closeModal();if(can)startBattle(inc);else ignoreInc(inc);},auto:()=>{closeModal();if(can)autoResolve(inc);else ignoreInc(inc);},ignore:()=>{closeModal();if(rt){S.pending=null;save();render();}else ignoreInc(inc);}});}
-function showHelp(){const C=S.cfg;modal(`<div class="alert">着任</div><h2>${esc(C.fleetName)}司令部</h2><p>${C.cmdr?esc(C.cmdr)+'司令。':''}あなたは${esc(C.nation)}海上防衛軍を預かる。任期の${C.years}年間、オホーツク海・東シナ海・南シナ海にある3つの島を守り抜く。支持率が0%になれば更迭される。</p>
+function showHelp(){const C=S.cfg;modal(`<div class="alert">着任</div><h2>${esc(C.fleetName)}司令部</h2><p>${C.cmdr?esc(C.cmdr)+'司令。':''}惑星${PLANET}。あなたは${esc(C.nation)}の${NAT.navy}で艦隊を預かる。対峙するのは${RIV.f}。任期の${C.years}年間、${[1,4,7].map(z=>SECT[z]+'の'+ISL[z]).join('、')}を守り抜く。支持率が0%になれば更迭される。</p>
+<p class="sm mut">国柄「${NAT.tr[0]}」：${NAT.tr[1]}</p>
 <ul class="sm"><li><b>作戦</b>：艦隊を海域へ送る。事案にはその海域の艦隊が当たり、隣と2つ先の海域からは増援が遅れて着く。シーレーンを空けたままにすると収入が減る</li><li><b>部隊</b>：艦の所属と演習・整備・改修、艦隊の編成、陸上部隊の輸送</li><li><b>陸上部隊</b>：島の守備隊になる。敵に上陸されると地上戦になり、守備隊がいなければ無抵抗で占領される</li><li><b>奪還</b>：占領された島は、制海を得て、砲爆撃で叩き、上陸して司令部を制圧すれば取り戻せる</li><li><b>人事・開発・予算</b>：幹部の補職、研究と装備開発、64費目の配分と年度の折衝</li><li><b>翌月へ進む</b>で時間が進む</li></ul>
 <p><b>海戦の操作</b></p><ul class="sm"><li>自部隊をタップで選択、海面をタップで移動、敵をタップで目標に指定。右下の「3D」で立体表示</li><li>敵が撃つか領海に居座るまで、武器は使えない。艦を相手の50km以内に寄せて「警告」し、退去させれば最良の結果になる</li></ul>
 <p><b>地上戦の操作</b></p><ul class="sm"><li>ターン制。自部隊をタップして、水色のマスへ移動、赤い枠の敵をタップで攻撃</li><li>動かず撃たなかった部隊は陣地を固める。森・丘・市街は守りやすい</li><li>艦砲射撃・爆撃・ミサイルは、その海域にいる艦隊が支援する。施設を制圧すると効果が自軍に移る</li></ul>
@@ -1280,7 +1449,7 @@ Object.assign(A,{
   zone(z){if(ui.fsel!=null&&!ZONES[z].enemy){const id=ui.fsel;ui.fsel=null;return A.fdest(id,z);}ui.fsel=null;ui.zsel=ui.zsel===z?null:z;render();},
   fsel(id){ui.fsel=ui.fsel===id?null:id;render();},
   fdest(id,z){const f=FL(id);if(!f||ZONES[z].enemy)return;f.dest=z===f.zone?null:z;save();render();toast(f.dest==null?`${f.n}：${SECT[f.zone]}にとどまる`:`${f.n}：${SECT[z]}へ向かう(${Math.ceil(HOP[f.zone][z]/2)}か月)`);},
-  fnew(){if(S.fleets.length>=12)return toast('艦隊はこれ以上編成できない');let n=1;while(S.fleets.some(f=>f.n===`第${n}任務部隊`))n++;S.fleets.push({id:++S.fid,n:`第${n}任務部隊`,zone:0,dest:null});save();render();toast('母港で艦隊を編成した。「艦艇」で艦を所属させること');},
+  fnew(){if(S.fleets.length>=12)return toast('艦隊はこれ以上編成できない');let n=1;while(S.fleets.some(f=>f.n===flName(3,n)))n++;S.fleets.push({id:++S.fid,n:flName(3,n),zone:0,dest:null});save();render();toast('母港で艦隊を編成した。「艦艇」で艦を所属させること');},
   fname(id){const f=FL(id);if(!f)return;modal(`<h2>艦隊の名前</h2><div class="srow"><input id="fnm" value="${esc(f.n)}" maxlength="14" aria-label="艦隊の名前"></div><div class="mbtn"><button class="btn pri" data-m="ok">決める</button><button class="btn" data-m="n">やめる</button></div>`,
     {ok:()=>{const v=$('#fnm').value.replace(/[<>&"'`]/g,'').trim();closeModal();if(v){f.n=v;save();render();}},n:closeModal});},
   fdel(id){const f=FL(id);if(!f)return;if(fleetLoad(f).length)return toast('陸上部隊を乗せている。先に下船させること');
@@ -1312,7 +1481,10 @@ Object.assign(A,{
     if(!emb.length)return toast('この海域に、陸上部隊を乗せた艦隊がいない');
     confirmM(`<b>${ISL[z]}への上陸作戦</b>を発動する。<br>上陸部隊：${emb.map(g=>g.name).join('、')}<br>敵の守備隊(推定)：${il.egar.length}個、陣地は「${FORT[il.fort]}」<br><span class="sm mut">司令部に乗り込んで敵の番を持ちこたえるか、敵を全滅させれば奪還できる。16ターンで決着がつかなければ艦へ引き揚げる。</span>`,()=>startGround('assault',z),'上陸を開始する');},
   gdrill(){startGround('drill',0);},
-  csg(k,d,max){ui.cs.gnd[k]=clamp((ui.cs.gnd[k]||0)+d,0,max);showSetup();}
+  csg(k,d,max){ui.cs.gnd[k]=clamp((ui.cs.gnd[k]||0)+d,0,max);showSetup();},
+  nsel(i){ui.nat=i;ui.riv=null;showNation();const c=$('#ncard');if(c)$('#mbox').scrollTop=Math.max(0,c.offsetTop-12);},
+  nriv(i){ui.riv=i;showNation();},
+  csnat(){closeModal();ui.nat=ui.cs.nat;ui.riv=ui.cs.riv;showNation();}
 });
 
 /* ================= 戦闘 ================= */
@@ -1320,8 +1492,8 @@ let B=null,raf=0,lastTs=0;
 const W=500,H=500,ISLP=[[-7,-2],[-3,-6],[3,-5],[7,-1],[5,4],[0,6],[-5,4]];
 const CALL=['シーガル','ファルコン','レイヴン','オスプレイ','アルバトロス','カイト'];
 const clk=t=>String(Math.floor(t/60)).padStart(2,'0')+':'+String(Math.floor(t%60)).padStart(2,'0');
-function blog(msg,c){B.log.unshift({t:B.t,msg,c:c||''});if(B.log.length>80)B.log.pop();B.logD=true;}
-function banner(msg,c){const el=$('#bban');el.textContent=msg;el.className='ban show '+(c||'');clearTimeout(banner.h);banner.h=setTimeout(()=>{el.className='ban';},2800);}
+function blog(msg,c){B.log.unshift({t:B.t,msg:tx(msg),c:c||''});if(B.log.length>80)B.log.pop();B.logD=true;}
+function banner(msg,c){const el=$('#bban');el.textContent=tx(msg);el.className='ban show '+(c||'');clearTimeout(banner.h);banner.h=setTimeout(()=>{el.className='ban';},2800);}
 function fx(x,y,c,z){B.fx.push({x,y,c,z:z||0,t:performance.now()});}
 function mk(o){const u=Object.assign({id:++B.uid,x:0,y:0,dx:null,dy:null,spd:1,hp:1,max:1,dA:0,dS:0,dM:0,so:0,sam:0,samR:0,samPk:0,samRate:.3,samCd:0,ciws:0,ecm:0,gun:0,asm:0,asmR:0,asmDmg:50,pkB:0,aam:0,aamR:0,aamPk:0,aamCd:0,torp:0,torpR:0,torpCd:0,aswB:0,n:0,seen:false,ls:null,eng:0,fireCd:0,dead:false,reveal:0,ord:null},o);B.u.push(u);B.ui[u.id]=u;return u;}
 function frame(ts){if(!B)return;const real=clamp((ts-lastTs)/1000,0,.1);lastTs=ts;
@@ -1567,8 +1739,8 @@ function uiRefresh(force){if(!B)return;
   if(r.dataset.s!==st[0]){r.dataset.s=st[0];r.className='roe '+st[0];r.textContent=st[1];}
   const ob=`目標：${SCN[B.sc].o}`+(B.landT>0?`　上陸の進行 ${Math.round(Math.min(1,B.landT/B.landNeed)*100)}%`:'')+(B.sc==='intrusion'&&B.zoneT>0&&!B.hot?`　領海内 ${Math.floor(B.zoneT)}分`:'')+(B.pend.some(p=>p.rein)?`　増援まで ${Math.ceil(B.reinT0-B.t)}分`:'');
   if(ob!==B._ob){B._ob=ob;$('#bobj').textContent=ob;}
-  const sh=statHTML();if(sh!==B._sh){B._sh=sh;$('#bstat').innerHTML=sh;}
-  const ah=actHTML();if(ah!==B._ah){B._ah=ah;$('#bact').innerHTML=ah;}
+  const sh=tx(statHTML());if(sh!==B._sh){B._sh=sh;$('#bstat').innerHTML=sh;}
+  const ah=tx(actHTML());if(ah!==B._ah){B._ah=ah;$('#bact').innerHTML=ah;}
   if(B.logD||force){B.logD=false;$('#blog').innerHTML=B.log.slice(0,30).map(l=>`<div class="${l.c}"><span>${clk(l.t)}</span>${l.msg}</div>`).join('');}}
 function bact(a){if(!B||B.over)return;const p=a.split(':'),c=p[0],v=p[1];
   switch(c){
@@ -1913,7 +2085,7 @@ function gbtn(a){if(!G||G.over||G.busy)return;const p=a.split(':'),s=G.u.find(x=
   grefresh();}
 
 /* ---------- 表示 ---------- */
-function gban(msg,c){const el=$('#gban');el.textContent=msg;el.className='ban show '+(c||'');clearTimeout(gban.h);gban.h=setTimeout(()=>{el.className='ban';},2600);}
+function gban(msg,c){const el=$('#gban');el.textContent=tx(msg);el.className='ban show '+(c||'');clearTimeout(gban.h);gban.h=setTimeout(()=>{el.className='ban';},2600);}
 function gfit(){if(!G)return;const cv=$('#gcv'),r=$('#gmap').getBoundingClientRect();G.dpr=Math.min(2,window.devicePixelRatio||1);G.cw=Math.max(50,r.width);G.ch=Math.max(50,r.height);cv.width=Math.round(G.cw*G.dpr);cv.height=Math.round(G.ch*G.dpr);G.g=cv.getContext('2d');
   G.ts=Math.max(8,Math.floor(Math.min(G.cw/GW,(G.ch-30)/GH)));G.ox=Math.round((G.cw-G.ts*GW)/2);G.oy=Math.max(0,Math.round((G.ch-30-G.ts*GH)/2));}
 function gstatHTML(){const s=G.u.find(x=>x.id===G.sel),e=G.u.find(x=>x.id===G.info),as=G.mode==='assault';
@@ -1929,10 +2101,10 @@ function gactHTML(){if(G.over)return'';if(G.busy)return'<button disabled>敵の�
   for(const k of['gun','air','msl'])if(G.sup[k]>0)h+=`<button data-g="sup:${k}" class="am"${G.used.any?' disabled':''}>${SUPN[k]} 残${G.sup[k]}</button>`;
   return h;}
 function guiText(){if(!G)return;const as=G.mode==='assault';
-  $('#gturn').textContent=`ターン ${Math.min(G.turn,G.max)}/${G.max}`;const r=$('#gside');r.textContent=`${G.drill?'図上演習':as?'上陸作戦':'島嶼防衛'}　${G.iname}`;r.className='roe '+(as?'auth':'hot');
+  $('#gturn').textContent=`ターン ${Math.min(G.turn,G.max)}/${G.max}`;const r=$('#gside');r.textContent=tx(`${G.drill?'図上演習':as?'上陸作戦':'島嶼防衛'}　${G.iname}`);r.className='roe '+(as?'auth':'hot');
   $('#gobj').textContent=`目標：${as?'司令部を制圧する':'司令部を守り抜く'}`+(as&&G.wait.length?`　洋上待機 ${G.wait.length}個(このターンあと${Math.max(0,G.wave-G.landN)}個)`:'')+(!as&&G.ewait.length?'　敵の後続あり':'');
-  $('#gstat').innerHTML=gstatHTML();$('#gact').innerHTML=gactHTML();$('#gend').disabled=G.busy||!!G.over;
-  $('#glog').innerHTML=G.log.slice(0,30).map(l=>`<div class="${l.c}"><span>T${l.t}</span>${l.msg}</div>`).join('');}
+  $('#gstat').innerHTML=tx(gstatHTML());$('#gact').innerHTML=tx(gactHTML());$('#gend').disabled=G.busy||!!G.over;
+  $('#glog').innerHTML=tx(G.log.slice(0,30).map(l=>`<div class="${l.c}"><span>T${l.t}</span>${l.msg}</div>`).join(''));}
 function grefresh(){if(!G)return;guiText();gdraw();}
 function gdraw(){const g=G&&G.g;if(!g)return;const ts=G.ts,ox=G.ox,oy=G.oy,now=performance.now();g.setTransform(G.dpr,0,0,G.dpr,0,0);g.fillStyle='#071a2b';g.fillRect(0,0,G.cw,G.ch);
   const land=G.act&&G.act.k==='land'?glandOK():null,tg=G.act&&G.act.k!=='land'?gtargets(G.act.k):null,X=i=>ox+(i%GW)*ts,Y=i=>oy+Math.floor(i/GW)*ts;
@@ -2140,7 +2312,7 @@ function initDOM(){
 }
 initDOM();
 S=load();
-if(S){render();if(S.over)showOver();else if(S.gpend)groundPrompt();else if(S.pending)showIncident();}
+if(S){applyNation(S.cfg.nat,S.cfg.riv);render();if(S.over)showOver();else if(S.gpend)groundPrompt();else if(S.pending)showIncident();}
 else{newGame({});render();showTitle();}
 </script>
 </body>

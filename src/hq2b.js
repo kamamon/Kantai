@@ -159,6 +159,6 @@ const A={
   cs(k,d,min,max){ui.cs[k]=clamp(ui.cs[k]+d,min,max);showSetup();},
   csf(k,d,max){ui.cs.fleet[k]=clamp((ui.cs.fleet[k]||0)+d,0,max);showSetup();},
   css(k,v){ui.cs[k]=v;showSetup();},
-  csp(i){const keep={cmdr:ui.cs.cmdr,nation:ui.cs.nation,fleetName:ui.cs.fleetName},p=PRESET[i][1];ui.cs=Object.assign(JSON.parse(JSON.stringify(DEFCFG)),JSON.parse(JSON.stringify(p)),keep);ui.cs.fleet=Object.assign({},DEFCFG.fleet,p.fleet||{});ui.cs.gnd=Object.assign({},DEFCFG.gnd,p.gnd||{});showSetup();}
+  csp(i){const keep={cmdr:ui.cs.cmdr,nation:ui.cs.nation,fleetName:ui.cs.fleetName,nat:ui.cs.nat,riv:ui.cs.riv},p=PRESET[i][1];ui.cs=Object.assign(JSON.parse(JSON.stringify(DEFCFG)),JSON.parse(JSON.stringify(p)),keep);ui.cs.fleet=Object.assign({},DEFCFG.fleet,p.fleet||{});ui.cs.gnd=Object.assign({},DEFCFG.gnd,p.gnd||{});showSetup();}
 };
 window.A=A;

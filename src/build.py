@@ -65,11 +65,16 @@ rep("blog(`${t.name} ${t.side==='P'?'沈没':'を撃沈'}`,t.side==='P'?'r':'g')
 rep("const ps=B.u.filter(u=>u.side==='P'&&!u.dead&&u.cat==='ship');if(!es.some","const ps=B.u.filter(u=>u.side==='P'&&!u.dead&&u.cat==='ship'&&!u.site);if(!es.some")
 rep("const block=B.u.some(u=>u.side==='P'&&!u.dead&&u.cat==='ship'&&dist(u,B.obj)<B.obj.r+12);","const block=B.u.some(u=>u.side==='P'&&!u.dead&&u.cat==='ship'&&!u.site&&dist(u,B.obj)<B.obj.r+12);")
 rep("case'all':B.sel=B.u.filter(u=>u.side==='P'&&!u.dead&&u.cat==='ship').map(u=>u.id);break;","case'all':B.sel=B.u.filter(u=>u.side==='P'&&!u.dead&&u.cat==='ship'&&!u.site).map(u=>u.id);break;")
+# 国ごとの用語に言い換えてから表示する
+rep("function blog(msg,c){B.log.unshift({t:B.t,msg,c:c||''});","function blog(msg,c){B.log.unshift({t:B.t,msg:tx(msg),c:c||''});")
+rep("const el=$('#bban');el.textContent=msg;","const el=$('#bban');el.textContent=tx(msg);")
+rep("const sh=statHTML();","const sh=tx(statHTML());")
+rep("const ah=actHTML();","const ah=tx(actHTML());")
 rep("o.occupied?'島嶼を占領された'","o.occupied?'敵の揚陸艦が島に達した'")
 rep("render();if(S.over)showOver();}","render();if(S.over)showOver();else if(S.gpend)groundPrompt();}")
 bt,n1=re.subn(r"(\w+)\.key==='cvl'",r"\1.cvf",bt);bt,n2=re.subn(r"(\w+)\.key!=='cvl'",r"!\1.cvf",bt)
 print('cvl patches',n1,n2)
-js=common+rd('data2.js')+'\n'+rd('state2.js')+'\n'+rd('hq2a.js')+'\n'+rd('hq2b.js')+'\n'+rd('theater.js')+'\n'+rd('theater_ui.js')+'\n'+bt+'\n'+rd('battle2.js')+'\n'+rd('ground.js')+'\n'+rd('view3d.js')
+js=common+rd('data2.js')+'\n'+rd('nations.js')+'\n'+rd('state2.js')+'\n'+rd('hq2a.js')+'\n'+rd('hq2b.js')+'\n'+rd('theater.js')+'\n'+rd('theater_ui.js')+'\n'+bt+'\n'+rd('battle2.js')+'\n'+rd('ground.js')+'\n'+rd('view3d.js')
 for bad in ['tech(','S.officers','REIN_T','B.cec','su.cmd',"PT.cvl.",'A.sector','mapSVG']:
     if bad in js:print('STALE:',bad,[js[m.start()-60:m.start()+40].replace('\n',' ') for m in re.finditer(re.escape(bad),js)][:3])
 out=head+'<script>\n'+js+'</script>\n</body>\n</html>\n'

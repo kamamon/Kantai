@@ -1,5 +1,6 @@
 /* ================= 広域作戦：海域・艦隊・島・陸上部隊 ================= */
-const ZS=['本土','オホーツク','日本海','北西太平洋','東シナ海','フィリピン海','バシー','南シナ海','敵北方','敵南方'];
+// 海域の短い呼び名。海の名は国ごとに applyNation が入れ替える
+const ZS=['本土','','','','','','','','敵北方','敵南方'];
 const EBASE={1:8,4:9,7:9};
 for(const k of GTK)SHOPX['g_'+k]={kind:'gnd',n:GT[k].n,cost:GT[k].cost,build:GT[k].build,q:1,d:GT[k].d};
 // 敵の泊地を通らない最短経路
@@ -34,15 +35,17 @@ function addUnit(type,o){o=o||{};const free=(NAMES[type]||[]).filter(n=>!S.used.
 function addGnd(type,loc,o){o=o||{};S.gseq[type]=(S.gseq[type]||0)+1;
   const g={id:++S.gid,type,name:`第${S.gseq[type]}${GT[type].n}`,hp:10,tr:o.tr==null?RI(55,70):o.tr,loc:loc||'home'};S.gnd.push(g);_M=null;return g;}
 const mkIsl=()=>({seed:RI(1,999999999),fac:{hq:100,air:100,port:100,radar:100,depot:100,town:100},egar:[],fort:0,cover:0,blk:0,prep:{}});
-function autoFleets(){const mkF=(n,zone)=>{const f={id:++S.fid,n,zone,dest:null};S.fleets.push(f);return f;};
+function autoFleets(){const mkF=(n,zone,role)=>{const f={id:++S.fid,n,zone,dest:null,role};S.fleets.push(f);return f;};
   const cb=S.units.filter(u=>{const t=PT[u.type];return t.cat==='ship'&&!t.tcap&&!t.sup&&t.val>=30;}),cv=cb.filter(u=>PT[u.type].fcap),es=cb.filter(u=>!PT[u.type].fcap).sort((a,b)=>PT[b.type].val-PT[a.type].val);
   const n=cb.length?clamp(Math.max(cv.length,es.length>=9?3:es.length>=4?2:1),1,Math.max(1,Math.min(3,Math.floor(cb.length/2)))):0,fs=[];
-  const posts=[7,4,1];for(let i=0;i<n;i++)fs.push(mkF(`第${i+1}護衛隊群`,posts[i]));
+  const posts=[7,4,1];for(let i=0;i<n;i++)fs.push(mkF(flName(0,i+1),posts[i],'cf'));
   cv.forEach((u,i)=>{u.fl=fs[i%n].id;});es.forEach((u,i)=>{u.fl=fs[(i+cv.length)%n].id;});
-  const ss=S.units.filter(u=>PT[u.type].cat==='sub');if(ss.length){const f=mkF('潜水隊群',n<3?posts[n]:0);for(const u of ss)u.fl=f.id;}
-  const rest=S.units.filter(u=>!u.fl);if(rest.length){const f=mkF('輸送・支援隊',0);for(const u of rest)u.fl=f.id;}
+  const ss=S.units.filter(u=>PT[u.type].cat==='sub');if(ss.length){const f=mkF(flName(1),n<3?posts[n]:0,'ss');for(const u of ss)u.fl=f.id;}
+  const rest=S.units.filter(u=>!u.fl);if(rest.length){const f=mkF(flName(2),0,'tr');for(const u of rest)u.fl=f.id;}
   syncSectors();}
 function newGame(c){c=c||{};const C=Object.assign({},DEFCFG,c);C.fleet=Object.assign({},DEFCFG.fleet,c.fleet||{});C.gnd=Object.assign({},DEFCFG.gnd,c.gnd||{});_M=null;_PM=null;
+  // 国を決め、その国の名称群に切り替えてから部隊を作る
+  C.nat=NATS[C.nat]?C.nat:0;if(!NATS[C.riv]||C.riv===C.nat)C.riv=NATS[C.nat].rv;applyNation(C.nat,C.riv);if(c.nation==null)C.nation=NAT.f;if(c.fleetName==null)C.fleetName=DSTY[NAT.ds].hq;
   S={v:3,cfg:C,month:0,fy:0,funds:C.funds,budget:C.budget,support:C.support,tension:C.tension,bud:BITEM.map(()=>2),units:[],used:[],seq:0,pool:{ftr:0,aew:0},
     stock:{sam:48,asm:24,aam:32,torp:16},orders:[],debts:[],ledger:[],ext:0,pers:{morale:62,pipe:[],auto:true,pol:'auto',rep:[],sp:0,resv:0,resvEnd:0},off:[],enl:{},
     res:{},labs:[],projs:{},flags:{},unlock:{},kits:{},

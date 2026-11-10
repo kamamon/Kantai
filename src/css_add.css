@@ -65,3 +65,12 @@
 #gact button.am{border-color:var(--am);color:#ffe0a6}
 #gact button.g{border-color:var(--gr);color:#c6f5dd}
 #gact button:disabled{opacity:.35}
+
+/* 国を選ぶ画面 */
+.flag{display:inline-block;width:18px;height:12px;border:1px solid rgba(255,255,255,.35);vertical-align:-1px;margin-right:5px;flex:0 0 auto}
+.flag.big{width:36px;height:24px;margin-right:8px;align-self:center}
+.nlist{display:grid;grid-template-columns:repeat(2,1fr);gap:5px;margin:8px 0 12px}
+.nlist button{display:flex;align-items:center;background:var(--pn2);border:1px solid var(--ln);border-radius:3px;padding:8px 8px;font-size:13px;color:var(--tx);text-align:left;white-space:nowrap;overflow:hidden}
+.nlist button.on{background:#1d4e6b;border-color:#3b88ad;color:#fff}
+.ncard{background:var(--pn);border-top:2px solid var(--cy);padding:10px 12px;margin-bottom:10px}
+.ncard .srow select{flex:1;min-width:0;background:var(--pn2);border:1px solid var(--ln);border-radius:3px;padding:6px;color:var(--tx)}

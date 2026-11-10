@@ -193,7 +193,7 @@ function gbtn(a){if(!G||G.over||G.busy)return;const p=a.split(':'),s=G.u.find(x=
   grefresh();}
 
 /* ---------- 表示 ---------- */
-function gban(msg,c){const el=$('#gban');el.textContent=msg;el.className='ban show '+(c||'');clearTimeout(gban.h);gban.h=setTimeout(()=>{el.className='ban';},2600);}
+function gban(msg,c){const el=$('#gban');el.textContent=tx(msg);el.className='ban show '+(c||'');clearTimeout(gban.h);gban.h=setTimeout(()=>{el.className='ban';},2600);}
 function gfit(){if(!G)return;const cv=$('#gcv'),r=$('#gmap').getBoundingClientRect();G.dpr=Math.min(2,window.devicePixelRatio||1);G.cw=Math.max(50,r.width);G.ch=Math.max(50,r.height);cv.width=Math.round(G.cw*G.dpr);cv.height=Math.round(G.ch*G.dpr);G.g=cv.getContext('2d');
   G.ts=Math.max(8,Math.floor(Math.min(G.cw/GW,(G.ch-30)/GH)));G.ox=Math.round((G.cw-G.ts*GW)/2);G.oy=Math.max(0,Math.round((G.ch-30-G.ts*GH)/2));}
 function gstatHTML(){const s=G.u.find(x=>x.id===G.sel),e=G.u.find(x=>x.id===G.info),as=G.mode==='assault';
@@ -209,10 +209,10 @@ function gactHTML(){if(G.over)return'';if(G.busy)return'<button disabled>敵の�
   for(const k of['gun','air','msl'])if(G.sup[k]>0)h+=`<button data-g="sup:${k}" class="am"${G.used.any?' disabled':''}>${SUPN[k]} 残${G.sup[k]}</button>`;
   return h;}
 function guiText(){if(!G)return;const as=G.mode==='assault';
-  $('#gturn').textContent=`ターン ${Math.min(G.turn,G.max)}/${G.max}`;const r=$('#gside');r.textContent=`${G.drill?'図上演習':as?'上陸作戦':'島嶼防衛'}　${G.iname}`;r.className='roe '+(as?'auth':'hot');
+  $('#gturn').textContent=`ターン ${Math.min(G.turn,G.max)}/${G.max}`;const r=$('#gside');r.textContent=tx(`${G.drill?'図上演習':as?'上陸作戦':'島嶼防衛'}　${G.iname}`);r.className='roe '+(as?'auth':'hot');
   $('#gobj').textContent=`目標：${as?'司令部を制圧する':'司令部を守り抜く'}`+(as&&G.wait.length?`　洋上待機 ${G.wait.length}個(このターンあと${Math.max(0,G.wave-G.landN)}個)`:'')+(!as&&G.ewait.length?'　敵の後続あり':'');
-  $('#gstat').innerHTML=gstatHTML();$('#gact').innerHTML=gactHTML();$('#gend').disabled=G.busy||!!G.over;
-  $('#glog').innerHTML=G.log.slice(0,30).map(l=>`<div class="${l.c}"><span>T${l.t}</span>${l.msg}</div>`).join('');}
+  $('#gstat').innerHTML=tx(gstatHTML());$('#gact').innerHTML=tx(gactHTML());$('#gend').disabled=G.busy||!!G.over;
+  $('#glog').innerHTML=tx(G.log.slice(0,30).map(l=>`<div class="${l.c}"><span>T${l.t}</span>${l.msg}</div>`).join(''));}
 function grefresh(){if(!G)return;guiText();gdraw();}
 function gdraw(){const g=G&&G.g;if(!g)return;const ts=G.ts,ox=G.ox,oy=G.oy,now=performance.now();g.setTransform(G.dpr,0,0,G.dpr,0,0);g.fillStyle='#071a2b';g.fillRect(0,0,G.cw,G.ch);
   const land=G.act&&G.act.k==='land'?glandOK():null,tg=G.act&&G.act.k!=='land'?gtargets(G.act.k):null,X=i=>ox+(i%GW)*ts,Y=i=>oy+Math.floor(i/GW)*ts;

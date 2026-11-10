@@ -65,9 +65,9 @@ const NAMES={
 const STK={sam:'sam',asm:'asm',torp:'torp',aam:'aam',aasm:'asm'},AMN={sam:'SAM',asm:'SSM',torp:'魚雷',aam:'AAM',aasm:'ASM'};
 const SCN={
   intrusion:{n:'領海侵入事案',d:i=>`国籍不明の艦艇群が${ISL[i.sector]}の領海へ向けて航行している。監視と警告で退去させよ。こちらから先に撃てば、政治的な代償はきわめて大きい。`,o:'50km以内に寄せて警告し、退去させる(敵が撃つまで武器は使えない)'},
-  airraid:{n:'航空攻撃の兆候',d:i=>`${SECT[i.sector]}の我が部隊へ向かう爆撃機編隊を探知した。対艦ミサイル攻撃の公算が高い。敵が発射するまで手は出せない。艦隊防空を固めよ。`,o:'ミサイル攻撃を凌ぎ、艦隊を守る'},
-  landing:{n:'島嶼侵攻',d:i=>`揚陸艦を伴う侵攻部隊が${ISL[i.sector]}へ向かっている。防衛出動が発令された。上陸を阻止せよ。揚陸艦が島に達すると、守備隊との地上戦になる。`,o:'揚陸艦を島に到達させない'},
-  retake:{n:'制海戦闘',d:i=>`${ISL[i.sector]}の周辺に居座る敵艦隊を排除する。制海を得れば、準備攻撃と上陸作戦に進める。`,o:'島の周辺から敵艦隊を排除する'}
+  airraid:{n:'航空攻撃の兆候',d:i=>`${SECT[i.sector]}の我が部隊へ向かう、${RIV.n}軍機とみられる爆撃機編隊を探知した。対艦ミサイル攻撃の公算が高い。敵が発射するまで手は出せない。艦隊防空を固めよ。`,o:'ミサイル攻撃を凌ぎ、艦隊を守る'},
+  landing:{n:'島嶼侵攻',d:i=>`揚陸艦を伴う${RIV.n}の侵攻部隊が${ISL[i.sector]}へ向かっている。防衛出動が発令された。上陸を阻止せよ。揚陸艦が島に達すると、守備隊との地上戦になる。`,o:'揚陸艦を島に到達させない'},
+  retake:{n:'制海戦闘',d:i=>`${ISL[i.sector]}の周辺に居座る${RIV.n}の艦隊を排除する。制海を得れば、準備攻撃と上陸作戦に進める。`,o:'島の周辺から敵艦隊を排除する'}
 };
 
 /* ---------- 能力値の一覧 [表示名, 書式] ---------- */
@@ -212,7 +212,7 @@ const RQ={ship:{gun:.12,tor:.06,rdr:.1,com:.06,nav:.14,eng:.2,dcn:.06,ele:.08,su
 const COURSE=[['csc','指揮幕僚課程',12,6,{cmd:2,adm:2},[2,4]],['adv','高級課程',10,8,{cmd:2,cool:2,adm:1},[4,5]],['war','術科・戦術課程',6,3,{atk:2,def:2,asw:1},[0,3]],['eng','技術課程',6,3,{tec:3},[0,4]],['abr','海外留学',12,10,{cool:2,adm:2},[2,5]]];
 
 /* ---------- カスタムスタート ---------- */
-const DEFCFG={cmdr:'',nation:'瑞穂国',fleetName:'第1機動護衛群',y0:2030,years:5,eGrow:1,eAggr:1,incF:1,prePen:1,reinT:90,budget:7200,funds:700,tension:32,support:55,tr:65,techLv:0,labs:4,sandbox:false,
+const DEFCFG={cmdr:'',nation:'瑞穂国',fleetName:'第1機動護衛群',y0:487,nat:0,riv:null,years:5,eGrow:1,eAggr:1,incF:1,prePen:1,reinT:90,budget:7200,funds:700,tension:32,support:55,tr:65,techLv:0,labs:4,sandbox:false,
   fleet:{cvl:1,ddg:2,dd:2,ffm:1,ss:2,lst:1,opv:0,aoe:0,ftr:8,aew:1},gnd:{inf:6,amp:2,arm:0,art:1,aa:0,ssm:1}};
 const PRESET=[['標準',{}],['小艦隊の苦境',{fleet:{cvl:0,ddg:1,dd:2,ffm:2,ss:1,opv:0,aoe:0,ftr:0,aew:0},funds:400,budget:5600,tension:45}],
   ['大艦隊',{fleet:{cvl:2,ddg:4,dd:4,ffm:3,ss:4,lst:2,opv:2,aoe:1,ftr:20,aew:2},gnd:{inf:6,amp:2,arm:1,art:2,aa:1,ssm:2},budget:12000,funds:1500,eGrow:1.5,labs:5}],
