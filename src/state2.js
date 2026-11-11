@@ -1,9 +1,15 @@
 /* ================= 状態 ================= */
 let S=null,_M=null,_PM=null;
-const ui={tab:'home',fsel:null,zsel:null,sub:{rd:'labs',bud:'alloc',pers:'sum',units:'ships'},of:{rank:-1,spec:-1,free:0,page:0},pg:'hq',dom:0,bcat:0};
+const ui={tab:'home',fsel:null,zsel:null,sub:{rd:'labs',bud:'alloc',pers:'org',units:'ships'},of:{rank:-1,spec:-1,free:0,page:0},pg:'hq',dom:0,bcat:0};
 const SAVE='soukai_no_tate_v3';
 function save(){if(S&&S.fleets)syncSectors();_M=null;_PM=null;try{localStorage.setItem(SAVE,JSON.stringify(S));}catch(e){}}
-function load(){try{const s=localStorage.getItem(SAVE);if(s){const o=JSON.parse(s);if(o&&o.v===3)return o;}}catch(e){}return null;}
+function load(){try{const s=localStorage.getItem(SAVE);if(s){const o=JSON.parse(s);if(o&&o.v===3)return migrate(o);}}catch(e){}return null;}
+// 以前の版の記録に、あとから増えた項目を足す
+function migrate(o){if(!o.cfg.era)o.cfg.era=4;
+  if(!o.eqm){o.eqm={};for(const s of EQSK)o.eqm[s]=eqDef(s,4);for(const k in EQ_OLD)if(o.flags&&o.flags[k]){const e=EQ_OLD[k];o.eqm[e[0]]=e[1];o.flags[eqKey(e[0],e[1])]=1;}}
+  for(const k in EQ_OLD)if(o.projs&&o.projs[k])delete o.projs[k];
+  if(!o.air){o.air=[];o.aid=0;o.aseq={};o.airlog=[];}if(!o.ebase)o.ebase={};if(!o.stats.scr){o.stats.scr=0;o.stats.scrMiss=0;}
+  return o;}
 const U=id=>S.units.find(u=>u.id===id);
 const lineById={};LINE.forEach(l=>{lineById[l[0]]=l;});
 const lvOf=id=>(S.res[id]||{}).lv||0;
@@ -25,6 +31,7 @@ function allPosts(){const a=[];
   for(const p of PHQ)a.push({id:'hq:'+p[0],n:p[1],rk:p[2],ab:p[3],g:'hq',d:p[4],sp:p[0]==='av'?1:p[0]==='n2'?5:p[0]==='n4'||p[0]==='n8'?4:null});
   for(const l of S.labs)a.push({id:'lab:'+l.id,n:LABT[l.t].n+' 所長',rk:[4,6],ab:'tec',g:'org',d:'研究の速さ',sp:6});
   for(const p of POTH)a.push({id:p[0],n:p[1],rk:p[2],ab:p[3],g:'org',d:p[4],sp:null});
+  for(const x of S.air||[])a.push({id:'air:'+x.id,n:x.name+'長',rk:[3,5],ab:'atk',g:'air',d:'緊急発進の対処率と、飛行隊の練度の伸び',sp:1});
   for(const u of S.units){const sub=PT[u.type].cat==='sub';for(const p of shipPosts(u))a.push({id:u.id+':'+p[0],n:(sub&&SUBL[p[0]])||p[1],rk:p[2],ab:p[3],g:'u'+u.id,u,k:p[0],sp:sub?2:p[4]});}
   return a;}
 function pickW(a){return a[Math.floor(Math.random()*a.length)];}
@@ -52,6 +59,7 @@ function fill(){return enlTotal()/Math.max(1,reqPers());}
 function mods(){if(_M)return _M;const M={};for(const k in STAT)M[k]=0;
   for(const l of LINE){const v=lvOf(l[0]);if(v)M[l[3]]+=l[4]*v;}
   for(const p of PROJ)if(p.fx&&S.flags[p.k])for(const k in p.fx)M[k]+=p.fx[k];
+  for(const s of EQSK){const fx=eqFx(s,eqCur(s).i);for(const k in fx)M[k]+=fx[k];}
   const nn=NATS[S.cfg.nat]||NATS[0];for(const k in nn.fx)M[k]+=nn.fx[k];for(const k in CUR.efx)M[k]+=CUR.efx[k];if(S.ed)for(const k in S.ed.fx)if(k in M)M[k]+=S.ed.fx[k];
   BITEM.forEach((b,i)=>{M[b[4]]+=b[5]*(S.bud[i]-2);});
   const pm=postMap(),has=(id,t)=>!!pm[id]&&pm[id].tr.includes(t),ab=(id,k)=>pm[id]?effAb(pm[id],k)-10:-4,cs=clamp(1+ab('hq:cs','adm')*.03,.8,1.4),st=(id,k)=>ab(id,k)*cs;
@@ -79,7 +87,7 @@ function monthCost(){let s=upkeep()+debtPay();for(let c=0;c<BCAT.length;c++)s+=c
 const income=()=>Math.round(S.budget/12);
 function fleetPower(us){return (us||S.units).filter(u=>u.mode==='normal'||u.mode==='drill').reduce((a,u)=>a+PT[u.type].val*unitQ(u)*(u.hp/100)+(u.ftr||0)*8+(u.aew||0)*12,0)*(1+totalLv()/500);}
 function enemyPower(){return Math.round((420+Math.min(S.month,120)*10+Math.max(0,S.month-120)*4)*(.5+.5*S.cfg.eGrow));}
-const eTech=()=>S.month/60*S.cfg.eGrow;
+const eTech=()=>S.month/60*S.cfg.eGrow+((S.cfg.era||4)-4)*1.5;
 const reinTime=()=>Math.round(clamp(S.cfg.reinT-mods().reinT,30,180));
 function thr(i){const s=S.sectors[i],v=s.est==null?s.threat:s.est;return v<30?{t:'低',c:'g',v}:v<55?{t:'中',c:'am',v}:v<75?{t:'高',c:'r',v}:{t:'極めて高',c:'r',v};}
 function price(k){const M=mods(),t=PT[k],s=SHOPX[k];return Math.round(t?t.cost*(1-clamp(M.buildC,0,.4)):s.cost*(s.kind==='ammo'?1-clamp(M.ammoC,-.2,.5):1));}
@@ -122,7 +130,8 @@ function annualPers(){const P=S.pers,L=[],M=mods();let ret=0,pro=0;
 function autoPick(lab){const busy=S.labs.filter(l=>l!==lab&&l.cur).map(l=>l.cur),ds=lab.foc>=0?[lab.foc]:LABT[lab.t].d;let best=null,bc=1e9;
   for(const l of LINE){if(!ds.includes(l[2])||busy.includes(l[0]))continue;const lv=lvOf(l[0]);if(lv>=10)continue;const c=lineCost(l,lv+1)-((S.res[l[0]]||{}).prog||0)+Math.random();if(c<bc){bc=c;best=l[0];}}
   return best;}
-function projOK(p){if(S.flags[p.k]||S.projs[p.k])return false;for(const k in p.req)if(lvOf(k)<p.req[k])return false;return true;}
+function projOK(p){if(S.flags[p.k]||S.projs[p.k])return false;for(const k in p.req)if(lvOf(k)<p.req[k])return false;
+  if(p.kind==='eq'){const c=eqCur(p.slot);if(c.i===p.idx||p.g<c.g||eqBusy(p.slot)||domLv(p.dreq[0])<p.dreq[1])return false;}return true;}
 function monthlyRD(rep,M){const done=[];
   for(const lab of S.labs){if(lab.cur&&lvOf(lab.cur)>=10)lab.cur=null;if(!lab.cur&&lab.auto)lab.cur=autoPick(lab);if(!lab.cur)continue;
     const l=lineById[lab.cur],r=S.res[l[0]]||(S.res[l[0]]={lv:0,prog:0});r.prog+=labRP(lab);let g=0;
@@ -134,7 +143,7 @@ function monthlyRD(rep,M){const done=[];
     if(--pj.left>0)continue;
     if(!pj.rolled&&Math.random()<clamp(.22-M.projRisk,.03,.5)){pj.rolled=true;pj.left=RI(1,3);const ov=Math.round(p.c[pj.ph]*R(.1,.25));spend(ov);rep.push([`${p.n}：${PHASE[pj.ph]}の段階で不具合。${pj.left}か月の遅れ、追加費用${ov}億円`,'am']);continue;}
     pj.ph++;pj.rolled=false;
-    if(pj.ph>=3){delete S.projs[k];S.flags[k]=1;if(p.kind==='unit')S.unlock[k]=1;if(p.kind==='kit')S.kits[k]=1;_M=null;rep.push([`開発完了：${p.n}${p.kind==='unit'?'(調達できる)':p.kind==='kit'?'(各艦に改修できる)':'(全軍に配備)'}`,'g']);}
+    if(pj.ph>=3){delete S.projs[k];S.flags[k]=1;if(p.kind==='unit')S.unlock[k]=1;if(p.kind==='kit')S.kits[k]=1;if(p.kind==='eq')S.eqm[p.slot]=p.idx;_M=null;rep.push([`開発完了：${p.n}${p.kind==='unit'?'(調達できる)':p.kind==='kit'?'(各艦に改修できる)':p.kind==='eq'?`(${EQS[p.slot][1]}を更新。全軍に配備)`:'(全軍に配備)'}`,'g']);}
     else{pj.left=p.t[pj.ph];if(canPay(p.c[pj.ph]))spend(p.c[pj.ph]);else pj.wait=true;}}}
 function fiscal(){const C=S.cfg,old=S.budget;S.fy++;
   let b=C.budget*Math.pow(1.015,S.fy)*(1+(S.tension-35)*.004+(S.support-50)*.004+Math.min(.15,S.stats.wins*.004));
@@ -144,6 +153,7 @@ function askChance(a){return clamp(.78-a*3+(S.support-50)*.008+(S.tension-40)*.0
 function suppChance(){return clamp(.35+(S.tension-50)*.01+mods().budg+(S.support-50)*.005+(S.month-S.lastLoss<6?.15:0),.05,.9);}
 function genForce(type,L,eT){const r=x=>Math.max(0,Math.round(x));let f;
   if(type==='intrusion')f={eff:Math.max(1,r(.8+L*.6)),eddg:r(L*.45-.3),ess:Math.random()<.25*L?1:0};
+  else if(type==='scramble')f=Math.random()<.45?{erec:1,eftr:r(L*.4-.2)}:Math.random()<.55?{ebmr:Math.max(1,r(L*.45)),eftr:r(L*.5)}:{euav:L>2?2:1};
   else if(type==='airraid')f={ebmr:Math.max(1,r(.6+L*.8)),eftr:r(L*.6-.3),eff:1,eddg:r(L*.4-.3)};
   else if(type==='landing')f={elst:L>2.6?2:1,eddg:Math.max(1,r(L*.5)),eff:Math.max(1,r(L*.7)),ess:r(L*.4),ebmr:r(L*.6),eftr:r(L*.6),ecv:L>3?1:0};
   else f={eddg:Math.max(1,r(L*.5)),eff:Math.max(1,r(L*.8)),ess:1,eftr:r(L*.5)};
@@ -151,7 +161,7 @@ function genForce(type,L,eT){const r=x=>Math.max(0,Math.round(x));let f;
   if(eT>=2.5){if(f.eff)f.eff++;if(f.ebmr)f.ebmr++;}
   for(const k in f)if(!f[k])delete f[k];return f;}
 function intelStr(f){const acc=clamp(mods().intel,0,1),ex=acc>=.6,n=k=>f[k]||0,rng=x=>ex?`${x}`:x<=0?'0〜1':`${Math.max(1,x-1)}〜${x+1}`;
-  return `水上艦 ${rng(n('eff')+n('eddg')+n('ecg')+n('elst')+n('ecv'))}隻、航空機 ${rng(n('ebmr')+n('eftr')+n('estl'))}編隊、潜水艦 ${acc>=.3?n('ess')+'隻':'不明'}`;}
+  return `水上艦 ${rng(n('eff')+n('eddg')+n('ecg')+n('elst')+n('ecv'))}隻、航空機 ${rng(n('ebmr')+n('eftr')+n('estl')+n('erec')+n('euav'))}編隊、潜水艦 ${acc>=.3?n('ess')+'隻':'不明'}`;}
 function mkIncident(i,type){const C=S.cfg,T=clamp(S.tension*C.eAggr,0,100),L=1+Math.min(2.5,S.month/30*C.eGrow)+S.tension/100,eT=eTech();
   if(!type){const r=Math.random();type=T<40?(r<.8?'intrusion':'airraid'):T<65?(r<.45?'intrusion':r<.85?'airraid':'landing'):(r<.2?'intrusion':r<.6?'airraid':'landing');
     if(S.stats.wins+S.stats.loss===0)type='intrusion';}

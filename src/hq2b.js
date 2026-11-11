@@ -15,7 +15,7 @@ PV.roster=()=>{const F=ui.of,L=S.off.filter(o=>(F.rank<0||o.rank===F.rank)&&(F.s
   <p class="sm mut">数字は左から 指揮・攻撃・防空・対潜・技術・管理・沈着(20が最高)。タップで詳細。</p>`;
   for(const o of L.slice(F.page*per,F.page*per+per))h+=orow(o,posts,`onclick="A.off(${o.id})"`);
   return h+`<div class="pager"><button class="btn sm" ${F.page<=0?'disabled':''} onclick="A.of('page',${F.page-1})">前へ</button><span>${F.page+1}／${pages}</span><button class="btn sm" ${F.page>=pages-1?'disabled':''} onclick="A.of('page',${F.page+1})">次へ</button></div></section>`;};
-PV.posts=()=>{const pm=postMap(),all=allPosts(),groups=[['hq','司令部'],['org','研究所・学校・基地']].concat(S.units.filter(u=>PT[u.type].crew>0).map(u=>['u'+u.id,u.name]));if(!groups.some(x=>x[0]===ui.pg))ui.pg='hq';
+PV.posts=()=>{const pm=postMap(),all=allPosts(),groups=[['hq','司令部'],['org','研究所・学校・基地'],['air','航空部隊']].concat(S.units.filter(u=>PT[u.type].crew>0).map(u=>['u'+u.id,u.name]));if(!groups.some(x=>x[0]===ui.pg))ui.pg='hq';
   let h=`<section class="sec"><h2>補職</h2><div class="flt"><select onchange="A.pg(this.value)" aria-label="部署を選ぶ">${groups.map(x=>{const v=all.filter(p=>p.g===x[0]&&!pm[p.id]).length;return `<option value="${x[0]}" ${ui.pg===x[0]?'selected':''}>${x[1]}${v?`(欠員${v})`:''}</option>`;}).join('')}</select></div>`;
   for(const p of all.filter(p=>p.g===ui.pg)){const o=pm[p.id],d=p.d||PD[p.k]||'';
     h+=`<div class="orow" onclick="A.post('${p.id}')"><div><b>${p.n}</b> <small class="mut">${RANK[p.rk[0]]}〜${RANK[p.rk[1]]}</small><br><small>${oname(o)}</small><br><small class="mut">${d}</small></div><div class="os">${o?`<span>${ABN[p.ab]}<b>${effAb(o,p.ab)}</b></span>`:`<span>${ABN[p.ab]}</span>`}</div></div>`;}
@@ -33,7 +33,7 @@ PV.edu=()=>{const inS=S.off.filter(o=>o.sch);
 
 /* ---------- 開発 ---------- */
 const RV={};
-VIEW.rd=()=>subtabs('rd',[['labs','研究所'],['tree','技術'],['proj','装備開発'],['fx','効果']])+RV[ui.sub.rd]();
+VIEW.rd=()=>subtabs('rd',[['labs','研究所'],['tree','技術'],['eqs','装備'],['proj','計画'],['fx','効果']])+RV[ui.sub.rd]();
 RV.labs=()=>{const pm=postMap();let tot=0,h='';
   for(const l of S.labs){const T=LABT[l.t],rp=labRP(l),o=pm['lab:'+l.id],cur=l.cur&&lineById[l.cur],wide=T.d.length>6;tot+=rp;let cl;
     if(cur){const r=S.res[cur[0]]||{lv:0,prog:0},c=lineCost(cur,r.lv+1);cl=`<div class="cur"><b>${cur[1]}　${r.lv} → ${r.lv+1}</b><span class="sm">${Math.round(r.prog)}／${c} RP　${STAT[cur[3]][0]} ${fmtEff(cur[3],cur[4])}</span>${bar(r.prog/c*100,'')}<small class="mut">あと約 ${rp>0?Math.max(1,Math.ceil((c-r.prog)/rp)):'∞'} か月</small></div>`;}
@@ -52,8 +52,8 @@ RV.tree=()=>{const d=ui.dom;
     h+=`<div class="item"><div class="uh"><b>${l[1]}</b><span class="loc">${lv}／10</span></div><div class="pips">${'<i class="on"></i>'.repeat(lv)}${'<i></i>'.repeat(10-lv)}</div><p class="sm mut">${STAT[l[3]][0]}　1段階ごとに ${fmtEff(l[3],l[4])}${lv?`、現在 ${fmtEff(l[3],l[4]*lv)}`:''}${lv<10?`　次は ${lineCost(l,lv+1)} RP`:''}${lab?`　<span class="b">${LABT[lab.t].n}が研究中</span>`:''}</p></div>`;}
   return h+'</section>';};
 RV.proj=()=>{const ord=p=>S.projs[p.k]?0:projOK(p)?1:S.flags[p.k]?3:2;
-  let h=`<section class="sec"><h2>装備開発計画</h2><p class="sm mut">必要な技術が揃うと着手できる。構想・試作・試験の3段階を経て完成する。費用は各段階に入るときに支払う。</p>`;
-  for(const p of PROJ.slice().sort((a,b)=>ord(a)-ord(b))){const pj=S.projs[p.k],done=S.flags[p.k],ok=projOK(p),kd=p.kind==='unit'?'新艦種':p.kind==='kit'?'改修キット':'全軍に配備';
+  let h=`<section class="sec"><h2>艦種・改修の開発計画</h2><p class="sm mut">新しい艦種と改修キットの計画。必要な技術が揃うと着手できる。構想・試作・試験の3段階を経て完成し、費用は各段階に入るときに支払う。兵器やセンサーの世代交代は「装備」で進める。</p>`;
+  for(const p of PROJ.filter(p=>p.kind!=='eq').sort((a,b)=>ord(a)-ord(b))){const pj=S.projs[p.k],done=S.flags[p.k],ok=projOK(p),kd=p.kind==='unit'?'新艦種':p.kind==='kit'?'改修キット':'全軍に配備';
     const req=Object.keys(p.req).map(k=>`<span class="${lvOf(k)>=p.req[k]?'g':'am'}">${lineById[k][1]} ${lvOf(k)}/${p.req[k]}</span>`).join('、')||'なし';
     const eff=p.fx?Object.keys(p.fx).map(k=>`${STAT[k][0]} ${fmtEff(k,p.fx[k])}`).join('、'):p.kind==='unit'?PT[p.k].d:KIT[p.k].d;
     h+=`<div class="item"><div class="uh"><b>${p.n}</b><small>${kd}</small><span class="loc">${p.c.reduce((a,b)=>a+b,0)}億円／${p.t.reduce((a,b)=>a+b,0)}か月</span></div><p class="sm">${eff}</p><p class="sm mut">必要な技術：${req}</p>
@@ -159,6 +159,6 @@ const A={
   cs(k,d,min,max){ui.cs[k]=clamp(ui.cs[k]+d,min,max);showSetup();},
   csf(k,d,max){ui.cs.fleet[k]=clamp((ui.cs.fleet[k]||0)+d,0,max);showSetup();},
   css(k,v){ui.cs[k]=v;showSetup();},
-  csp(i){const keep={cmdr:ui.cs.cmdr,nation:ui.cs.nation,fleetName:ui.cs.fleetName,nat:ui.cs.nat,riv:ui.cs.riv},p=PRESET[i][1];ui.cs=Object.assign(JSON.parse(JSON.stringify(DEFCFG)),JSON.parse(JSON.stringify(p)),keep);ui.cs.fleet=Object.assign({},DEFCFG.fleet,p.fleet||{});ui.cs.gnd=Object.assign({},DEFCFG.gnd,p.gnd||{});showSetup();}
+  csp(i){const keep={cmdr:ui.cs.cmdr,nation:ui.cs.nation,fleetName:ui.cs.fleetName,nat:ui.cs.nat,riv:ui.cs.riv},p=PRESET[i][1];ui.cs=Object.assign(JSON.parse(JSON.stringify(DEFCFG)),JSON.parse(JSON.stringify(p)),keep);ui.cs.fleet=Object.assign({},DEFCFG.fleet,p.fleet||{});ui.cs.gnd=Object.assign({},DEFCFG.gnd,p.gnd||{});ui.cs.air=Object.assign({},DEFCFG.air,p.air||{});showSetup();}
 };
 window.A=A;

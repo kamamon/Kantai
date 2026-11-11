@@ -1,14 +1,14 @@
 /* ---------- 戦闘：部隊の生成(研究・人事・改修を反映) ---------- */
 function shipOff(su){const pm=postMap(),g=k=>pm[su.id+':'+k]||null;return{co:g('co'),xo:g('xo'),we:g('we'),op:g('op'),en:g('en'),as:g('as'),ai:g('ai')};}
 function pShip(su,x,y){const t=PT[su.type],M=B.M,q=unitQ(su),o=shipOff(su),has=k=>su.mods.includes(k),sub=t.cat==='sub',crew=t.crew>0,co=o.co;
-  const ob=(of,k)=>!crew?0:of?(effAb(of,k)-10)*.008:-.04,tr=(of,k)=>!!of&&of.tr.includes(k),usv=su.type==='usv'?1+M.usv:1,hpK=1+(sub?M.subHp:M.hp);
+  const ob=(of,k)=>!crew?0:of?(effAb(of,k)-10)*.008:-.04,tr=(of,k)=>!!of&&of.tr.includes(k),usv=t.unm?1+M.usv:1,hpK=1+(sub?M.subHp:M.hp);
   return mk({side:'P',cat:t.cat,key:su.type,cvf:!!t.fcap,name:su.name,lab:su.name,sym:t.s,x,y,ref:su.id,q,
     spd:t.spd*(su.rd<30?.8:1)*(1+(sub?M.subSpd:M.spd)+ob(o.en,'tec')*.5+(has('k_bat')?.15:0)),hp:Math.max(1,t.hp*hpK*su.hp/100),max:t.hp*hpK,
     dA:t.dA*(1+M.radA+ob(o.op,'tec')),dS:(t.dS*(1+M.esm)+(t.cat==='ship'?M.radS:0)+(has('k_uav')?45:0))*usv,dM:t.dM*(1+M.radM+ob(o.op,'tec'))*usv,
     so:t.so*(1+(sub?M.sonarSub:M.sonar)+(has('k_vds')?.4:0)+ob(sub?o.op:o.as,'tec')+(tr(co,'subk')?.1:0)),
     sam:su.load.sam||0,samR:(t.samR||0)*(1+(t.samR>=100?M.samRL:M.samRS)),samPk:clamp(((t.samPk||0)+M.samPk+ob(o.we,'def')+ob(co,'cmd')*.5+(tr(co,'def')?.025:0))*q*usv,0,.95),
     samRate:(t.samRate||.3)/q/Math.max(.5,1+M.samRate+ob(o.op,'tec')*2),
-    ciws:t.ciws?clamp((t.ciws+M.ciws+(has('k_laser')?.18:0))*(.5+.5*q),0,.92):0,ecm:t.ecm?clamp(t.ecm+M.ecm+(has('k_ecm')?.12:0)+ob(co,'cool')*.5-(tr(co,'aggr')?.015:0),0,.8):0,gun:has('k_rail')?.28+M.gun:0,
+    ciws:t.ciws?clamp((t.ciws+M.ciws+(has('k_laser')?.18:0))*(.5+.5*q),0,.92):0,ecm:t.ecm?clamp(t.ecm+M.ecm+(has('k_ecm')?.12:0)+ob(co,'cool')*.5-(tr(co,'aggr')?.015:0),0,.8):0,gun:(t.gun||has('k_rail'))?(t.gun||0)+(has('k_rail')?.28:0)+M.gun:0,
     asm:su.load.asm||0,asmR:(t.asmR||0)*(1+M.asmR+(sub?M.subAsm:0)),asmDmg:(t.asmDmg||0)*(1+M.asmDmg),pkB:M.asmPen+ob(o.we,'atk')+(tr(co,'aggr')?.03:0),asmV:15*(1+M.asmSpd),
     torp:su.load.torp||0,torpR:(t.torpR||0)*(1+(sub?M.torpR:M.aswR)),aswB:(sub?M.torpPk:M.aswPk)+ob(sub?o.we:o.as,'asw')+(tr(co,'subk')?.06:0),torpDmg:sub?1+M.torpDmg:1,
     stealth:clamp(M.stealth+(has('k_stl')?.2:0),0,.6),quiet:clamp(M.quiet+(t.quiet||0)+(has('k_bat')?.2:0),0,.7),dc:clamp(M.dc+(has('k_dc')?.2:0)+ob(o.en,'tec'),0,.6),decoy:clamp(.2+M.decoy,0,.7),
@@ -20,18 +20,18 @@ function mkE(key,x,y,role,extra){const t=ET[key],air=t.cat==='air',i=B.ec[key]=(
     hp:air?t.ac:t.hp*g,max:air?t.ac:t.hp*g,n:t.ac||0,dA:t.dA*g,dS:t.dS,dM:t.dM*g,so:(t.so||0)*g,sam:Math.round((t.sam||0)*(1+.05*e)),samR:t.samR||0,samPk:t.samPk?Math.min(.88,t.samPk+.02*e):0,samRate:(t.samRate||.3)*(1+B.jam),
     ciws:t.ciws?Math.min(.8,t.ciws+.015*e):0,ecm:t.ecm?Math.min(.6,t.ecm+.015*e):0,asm:t.asm||0,asmR:(t.asmR||0)*(1+.03*e),asmDmg:(t.asmDmg||50)*(1+.04*e),
     aam:t.aam||0,aamR:(t.aamR||0)*(1+.04*e),aamPk:t.aamPk?Math.min(.85,t.aamPk+.02*e):0,torp:t.torp||0,torpR:t.torpR||0,lo:t.lo||0,role,val:t.val,air:t.air||0,born:B.t,ox:0,oy:0,fx:0,fy:0},extra||{}));}
-function mkFlight(c,kind){const M=B.M,d=norm(B.sp.x-c.x,B.sp.y-c.y),base={side:'P',cat:'air',home:c.id,x:c.x+d.x*2,y:c.y+d.y*2,q:c.q,fl:kind,surv:clamp(M.ftrSurv,0,.5)};let f;
+function mkFlight(c,kind){const M=B.M,d=norm(B.sp.x-c.x,B.sp.y-c.y),base={side:'P',cat:'air',home:c.id,ab:c.ab||0,x:c.x+d.x*2,y:c.y+d.y*2,q:c.q,fl:kind,surv:clamp(M.ftrSurv,0,.5)};let f;
   if(kind==='aew'){const k=1+M.aewRad;f=mk(Object.assign(base,{key:'aew',name:'早期警戒機',lab:'早期警戒機',sym:'AEW',spd:8,hp:1,max:1,n:1,dA:400*k,dS:300*k,dM:150*k,fuel:300*(1+M.ftrFuel)}));f.dx=clamp(c.x+d.x*25,5,W-5);f.dy=clamp(c.y+d.y*25,5,H-5);}
   else{const ld=1+M.ftrLoad,aam=Math.min(Math.round((kind==='cap'?8:4)*ld),c.aamS);c.aamS-=aam;const asm=kind==='stk'?Math.min(Math.round(4*ld),c.asmS):0;c.asmS-=asm;B.fn++;const nm=CALL[(B.fn-1)%CALL.length]+(Math.floor((B.fn-1)/CALL.length)+1),r=1+M.ftrRad;
     f=mk(Object.assign(base,{key:'ftr',name:nm,lab:nm,sym:kind==='cap'?'CAP':'攻撃隊',spd:15,hp:2,max:2,n:2,dA:160*r,dS:200*(1+M.ftrRad*.5),dM:80*(1+M.ftrRad*.5),aam,aamR:80*(1+M.ftrAamR),aamPk:clamp((.6+M.ftrAam+(c.airB||0))*c.q,.2,.92),
       asm,asmR:110*(1+M.ftrAsmR),asmDmg:50*(1+M.asmDmg),pkB:M.asmPen,asmV:15*(1+M.asmSpd),fuel:150*(1+M.ftrFuel)}));
     if(kind==='cap'){f.dx=clamp(c.x+d.x*40,5,W-5);f.dy=clamp(c.y+d.y*40,5,H-5);}}
   return f;}
-const SLOTK={cv:'cvl',cvl:'cvl',ddg:'ddg',ddgx:'ddg',dd:'dd',dd2:'dd',ffm:'ffm',ffm2:'ffm',opv:'ffm',usv:'usv',ss:'ss',ssx:'ss',aoe:'aoe',lst:'aoe',lhd:'aoe'};
+const SLOTK={cv:'cvl',cvl:'cvl',cvn:'cvl',cvu:'cvl',lha:'cvl',ddg:'ddg',ddgx:'ddg',cg:'ddg',bmd:'ddg',ddgo:'ddg',ddr:'ddg',ars:'ddg',dd:'dd',dd2:'dd',ddk:'dd',ddh:'dd',ffm:'ffm',ffm2:'ffm',opv:'ffm',de:'ffm',fc:'ffm',pg:'ffm',usv:'usv',lusv:'usv',ss:'ss',ssx:'ss',sso:'ss',ssn:'ss',ssg:'ss',xluuv:'ss',aoe:'aoe',lst:'aoe',lhd:'aoe',lpd:'aoe',lsm:'aoe'};
 const SLOT={cvl:[[0,0],[-20,14]],ddg:[[26,-12],[26,12],[42,0]],dd:[[10,-31],[10,31],[-16,-26],[-16,26]],ffm:[[-24,0],[-28,-16],[-28,16],[-36,-8],[-36,8]],usv:[[18,0],[14,-18],[14,18]],ss:[[80,-34],[80,34],[100,0]],aoe:[[-40,0],[-44,12]]};
 function setupP(us,pc){const d=norm(B.sp.x-pc.x,B.sp.y-pc.y),p={x:-d.y,y:d.x},at=(a,b)=>({x:clamp(pc.x+d.x*a+p.x*b,8,W-8),y:clamp(pc.y+d.y*a+p.y*b,8,H-8)}),cnt={};
   for(const su of us){const k=SLOTK[su.type]||'ffm',i=cnt[k]=(cnt[k]||0)+1,sl=SLOT[k],s=sl[(i-1)%sl.length],ov=Math.floor((i-1)/sl.length),q=at(s[0]-ov*12,s[1]+ov*7);pShip(su,q.x,q.y);}}
-function setupE(f){const sp=B.sp,o=B.obj,d=norm(o.x-sp.x,o.y-sp.y),p={x:-d.y,y:d.x},at=(a,b)=>({x:clamp(sp.x+d.x*a+p.x*b,6,W-6),y:clamp(sp.y+d.y*a+p.y*b,6,H-6)}),n=k=>f[k]||0,big=n('ecg')+n('eddg');
+function setupE(f){if(B.sc==='scramble')return airSetupE(f);const sp=B.sp,o=B.obj,d=norm(o.x-sp.x,o.y-sp.y),p={x:-d.y,y:d.x},at=(a,b)=>({x:clamp(sp.x+d.x*a+p.x*b,6,W-6),y:clamp(sp.y+d.y*a+p.y*b,6,H-6)}),n=k=>f[k]||0,big=n('ecg')+n('eddg');
   const subX=()=>({reveal:Math.random()<clamp(B.M.sosus,0,.9)?25:0});
   if(B.sc==='retake'){const tot=Math.max(1,big+n('eff'));let k=0;const put=key=>{const a=k++/tot*6.283+R(-.3,.3),r=R(12,24);mkE(key,o.x+Math.cos(a)*r,o.y+Math.sin(a)*r,'guard');};
     for(let i=0;i<n('ecg');i++)put('ecg');for(let i=0;i<n('eddg');i++)put('eddg');for(let i=0;i<n('eff');i++)put('eff');
@@ -85,21 +85,22 @@ function setupShore(z){const o=B.obj,M=B.M;let n=0;
     else continue;n++;}}
 function startBattle(inc){
   const drill=!!inc.drill,z=inc.sector,us=drill?S.units.filter(u=>u.mode==='normal'&&u.sector>=0&&!PT[u.type].tcap):fightIn(z),rs=drill?{near:[],far:[],all:[]}:reserve(z);
-  if(!us.length&&!rs.all.length){toast('出撃できる部隊がない');return;}
-  _M=null;const M=mods(),eT=inc.eT||0,C=S.cfg,T=reinTime();
+  if(!us.length&&!rs.all.length&&inc.type!=='scramble'){toast('出撃できる部隊がない');return;}
+  _M=null;const M=Object.assign({},mods());if(!drill)airMods(M,z);const eT=inc.eT||0,C=S.cfg,T=reinTime();
   B={inc,drill,M,eT,sc:inc.type,iname:drill?'演習島':ISL[z],t:0,u:[],m:[],ui:{},mi:{},uid:0,mid:0,fx:[],log:[],pend:[],sel:[],tsel:null,hot:false,auth:false,pre:false,eWd:false,over:null,paused:true,speed:1,
     obj:{x:255,y:285,r:22},pc:{x:125,y:405},base:{x:14,y:H-14},sp:pick([{x:260,y:22},{x:455,y:55},{x:472,y:240}]),cam:{x:W/2,y:H/2,z:1},k:1,cw:300,ch:300,dpr:1,g:null,
     view:ui.view||'2d',c3:Object.assign({},C3DEF),fol:false,
     dT:0,aT:0,intelT:15,intel:null,zoneT:0,landT:0,landNeed:Math.max(10,20+M.garr),warnCd:0,warnN:0,fireAt:null,vampCd:0,satT:Math.max(0,M.satT),sup:eT>=3?2:(inc.L>=2.6||eT>=1)?1:0,
     antiSS:clamp(M.antiSS,0,.25),asmLow:clamp(M.asmLow,0,.6),antiLO:M.antiLO,jam:clamp(M.jam,0,.5),eIn:25*(1+clamp(M.eIntel,-.5,2)),reinT0:rs.near.length?T:T*2,
-    willFire:inc.type!=='intrusion'||Math.random()<clamp((S.tension*C.eAggr-10)/80+.15,.25,.95),
-    eAir:0,pAir:0,eLost:0,eInit:0,pursuitK:0,divert:{ftr:0,aew:0},st:{sam:0,asm:0,aam:0,torp:0},ec:{},fn:0,tmax:420,intruded:false,logD:true,mk:null};
+    willFire:inc.type==='scramble'?Math.random()<clamp((S.tension*C.eAggr-45)/250,0,.2):inc.type!=='intrusion'||Math.random()<clamp((S.tension*C.eAggr-10)/80+.15,.25,.95),
+    airOnly:inc.type==='scramble',eAir:0,pAir:0,eLost:0,eInit:0,pursuitK:0,divert:{ftr:0,aew:0},st:{sam:0,asm:0,aam:0,torp:0},ec:{},fn:0,tmax:420,intruded:false,logD:true,mk:null};
   if(inc.type==='landing'||inc.type==='retake'){B.hot=true;B.auth=true;}
   for(const k in inc.force)B.eInit+=ET[k].val*inc.force[k];
   setupP(us,B.pc);setupE(inc.force);
   if(!drill&&ISLZ.includes(z)){
     if(S.sectors[z].held)setupShore(z);
     else S.isl[z].egar.forEach((e,i)=>{if(e.t==='ssm'&&e.hp>0)mkE('eshore',B.obj.x+R(-4,4),B.obj.y+R(-4,4),'guard',{site:1,eg:i,asm:Math.max(2,Math.round(8*e.hp/10))});});}
+  airSetup(z,drill);
   const arr=(list,t,more,pos)=>B.pend.push({rein:1,t,f:()=>{setupP(list,pos);blog(`増援が到着：${list.map(u=>u.name).join('、')}`,'g');banner('増援　到着','g');if(more)B.reinT0=T*2;if(B.speed>4)setSpeed(4);uiRefresh(true);}});
   if(rs.near.length)arr(rs.near,T,rs.far.length>0,{x:B.pc.x-35,y:B.pc.y+35});
   if(rs.far.length)arr(rs.far,T*2,false,{x:B.pc.x-15,y:B.pc.y+55});
@@ -116,6 +117,7 @@ function startBattle(inc){
   lastTs=performance.now();cancelAnimationFrame(raf);raf=requestAnimationFrame(frame);}
 function applyUnits(){
   for(const f of B.u){if(f.side!=='P'||f.cat!=='air'||f.dead)continue;const h=B.ui[f.home];
+    if(f.ab){const hb=h&&h.ab?h:(B.ab||[])[0];if(hb){if(f.key==='aew')hb.retA=(hb.retA||0)+1;else hb.ret=(hb.ret||0)+f.n;}continue;}
     if(h&&!h.dead){if(f.key==='aew')h.aew++;else{h.ftr+=f.n;h.aamS+=f.aam;h.asmS+=f.asm;}}else B.divert[f.key==='aew'?'aew':'ftr']+=f.n;}
   S.pool.ftr+=B.divert.ftr;S.pool.aew+=B.divert.aew;const win=B.over.res==='win',z=B.inc.sector,il=S.isl[z];
   for(const b of B.u){if(b.side!=='P'||b.ref==null)continue;const su=U(b.ref);if(!su)continue;
@@ -131,4 +133,4 @@ function applyUnits(){
     else if(b.eg!=null&&b.dead&&il.egar[b.eg])il.egar[b.eg].hp=0;}
   if(il&&il.egar.length>1)il.egar=il.egar.filter(e=>e.hp>0);
   for(const k of['avm','avo'])S.enl[k].n=Math.max(0,S.enl[k].n-B.pAir);
-  S.pers.morale=clamp(S.pers.morale+(win?3:B.over.res==='draw'?-1:-4),5,100);_M=null;}
+  S.pers.morale=clamp(S.pers.morale+(win?3:B.over.res==='draw'?-1:-4),5,100);airApply();_M=null;}

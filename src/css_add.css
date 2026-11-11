@@ -76,11 +76,7 @@
 .ncard .srow select{flex:1;min-width:0;background:var(--pn2);border:1px solid var(--ln);border-radius:3px;padding:6px;color:var(--tx)}
 
 /* 世界地図と装備の諸元 */
-.wscroll{overflow:auto;height:300px;border:1px solid var(--ln);margin:8px 0 10px;background:#06141f;-webkit-overflow-scrolling:touch}
-.wscroll canvas{display:block}
-canvas.wmap.loc{display:block;width:100%;border:1px solid var(--ln);margin:8px 0 4px}
-canvas.wth{display:block;width:100%;border:1px solid var(--ln);margin-bottom:8px;touch-action:manipulation;background:#06141f}
-.nnav{position:sticky;top:-18px;background:var(--pn2,#0f2233);padding:8px 0;margin:-8px 0 8px;z-index:2;border-bottom:1px solid var(--ln)}
+canvascanvas.nnav{position:sticky;top:-18px;background:var(--pn2,#0f2233);padding:8px 0;margin:-8px 0 8px;z-index:2;border-bottom:1px solid var(--ln)}
 .eqc{background:var(--pn);border-left:2px solid var(--cy);padding:8px 10px;margin:8px 0}
 .eqc .kv{margin:4px 0 0}
 
@@ -88,3 +84,28 @@ canvas.wth{display:block;width:100%;border:1px solid var(--ln);margin-bottom:8px
 .edin{width:112px;background:var(--pn2);border:1px solid var(--ln);border-radius:3px;padding:7px 8px;color:var(--tx);font-size:14px;text-align:right;flex:0 0 auto}
 .edin.wide{width:auto;flex:1;min-width:0;text-align:left}
 .eqc .srow select,.sec>.srow select{flex:1;min-width:0;background:var(--pn2);border:1px solid var(--ln);border-radius:3px;padding:7px;color:var(--tx)}
+.mvw{position:relative;margin:8px 0 10px}
+.mvw canvas{display:block;width:100%;border:1px solid var(--ln);background:#06141f;touch-action:none;user-select:none;-webkit-user-select:none}
+.mvb{position:absolute;right:6px;top:6px;display:flex;flex-direction:column;gap:5px}
+.mvb button{width:34px;height:34px;padding:0;border:1px solid var(--ln);border-radius:3px;background:rgba(7,20,33,.86);color:#dfe9f0;font-size:17px;line-height:1}
+svg.sil{vertical-align:middle;margin-right:5px}
+.gen{display:inline-block;border:1px solid;border-radius:3px;padding:0 5px;font-size:11px;line-height:17px;margin-left:6px;white-space:nowrap;font-weight:normal}
+.eqn{border-top:1px dashed var(--ln);margin-top:8px;padding-top:8px}
+.lin{margin-top:8px}.lin summary{font-size:13px;color:var(--cy);cursor:pointer;padding:6px 0}.lin .sm{padding:2px 0}.lin .gen{margin:0 6px 0 0}
+.eqt{margin:8px 0;padding:8px 10px;border:1px solid var(--ln)}.eqt>b{display:block;margin-bottom:4px}.eqt .gen{margin-left:4px}
+.org,.org ul{list-style:none;margin:0;padding:0}
+.org ul{margin-left:13px;border-left:1px solid #2b5066;padding-left:11px}
+.org li{position:relative;margin:7px 0}
+.org ul>li:before{content:'';position:absolute;left:-11px;top:17px;width:10px;border-top:1px solid #2b5066}
+.org ul>li:last-child:after{content:'';position:absolute;left:-12px;top:18px;bottom:-8px;width:2px;background:var(--bg,#081520)}
+.ob{display:inline-flex;flex-direction:column;min-width:98px;max-width:150px;border:1px solid #3b6a85;background:#0c2233;padding:5px 8px;border-radius:3px;cursor:pointer;line-height:1.35;vertical-align:top}
+.ob small{color:var(--cy);font-size:11px}.ob b{font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ob span{font-size:11px;color:var(--mut)}
+.ob.vac{border:1px dashed #ff6b5e;background:#2a1414}.ob.vac b{color:#ff8f84}.ob.low{border-color:#f2b54a}
+.ob.me{border-color:#9fd0ff;background:#123a55;cursor:default}.ob.wide{min-width:150px}
+.obg{display:flex;flex-wrap:wrap;gap:5px}
+.oh{display:inline-flex;align-items:center;gap:8px;background:#16384d;border:1px solid #3b6a85;border-radius:3px;padding:5px 10px;font-weight:bold;font-size:14px}
+.oh small{font-weight:normal;color:var(--mut);font-size:11.5px}
+.vb{font-style:normal;font-weight:normal;font-size:11px;color:#ff8f84;border:1px solid #ff6b5e;border-radius:3px;padding:0 5px}
+.orw{display:flex;gap:5px;align-items:stretch;flex-wrap:wrap}
+.oh2{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;flex:1;min-width:130px;text-align:left;background:var(--pn);border:1px solid var(--ln);border-radius:3px;padding:5px 9px;color:inherit;line-height:1.35}
+.oh2 b{font-size:13.5px}.oh2 small{color:var(--mut);font-size:11px}.oh2 span{font-size:11px;color:var(--cy)}.oh2 i{font-style:normal}.oh2.flat{display:inline-flex}

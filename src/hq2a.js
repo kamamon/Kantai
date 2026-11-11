@@ -42,19 +42,20 @@ function showTitle(){const has=!!load();mq.length=0;
 // 国を選ぶ画面。20か国の名称群を見比べて、対峙する国も決める
 function showNation(){if(ui.nat==null)ui.nat=0;const info=ui.nview==='info',i=ui.nat,N=NATS[i],rv=ui.riv==null||ui.riv===i||!NATS[ui.riv]?N.rv:ui.riv,D=DSTY[N.ds],sv=TXL;let html;
   if(!info){
-    html=`<div class="alert">惑星${PLANET}</div><h2>国を選ぶ</h2><p class="sm mut">世界地図か下の一覧で国をタップすると、その国の情報が開く。地図は指で動かせる。</p>
-  <div class="wscroll"><canvas class="wmap" data-mode="sel" data-hi="${i}"></canvas></div>
+    html=`<div class="alert">惑星${PLANET}</div><h2>国を選ぶ</h2><p class="sm mut">世界地図か下の一覧で国をタップすると、その国の情報が開く。地図は指で動かせて、＋－か2本指で拡大できる。</p>
+  ${mapBox('sel',`data-hi="${i}"`)}
   <div class="nlist">${NATS.map((x,k)=>`<button class="${k===i?'on':''}" onclick="A.nsel(${k})"><i class="flag" style="${flagCSS(x)}"></i>${x.n}</button>`).join('')}</div>
   <div class="mbtn"><button class="btn" data-m="back">タイトルへ戻る</button></div>`;
   }else{
     TXL=D.tx.concat(GSTY[N.gs].tx,RSTY[N.rk].tx);const nm=natNames(i),ex=k=>tx(PT[k].n)+'「'+nm[k].slice(0,2).join('」「')+'」',ppl=[0,1,2].map(()=>mkName(N)).join('、');
     html=`<div class="brow nnav"><button class="btn sm" onclick="A.nback()">← 国の選択に戻る</button><span class="grow"></span><button class="btn sm" onclick="A.nsel(${(i+NATS.length-1)%NATS.length})" aria-label="前の国">‹ 前</button><button class="btn sm" onclick="A.nsel(${(i+1)%NATS.length})" aria-label="次の国">次 ›</button></div>
   <div class="uh"><i class="flag big" style="${flagCSS(N)}"></i><b>${N.f}</b></div><p class="sm">${N.d}。</p>
-  <canvas class="wmap loc" data-mode="loc" data-hi="${i}" data-ri="${rv}"></canvas><p class="sm mut">白が${N.n}、赤が対峙する国。</p>
+  ${mapBox('loc',`data-hi="${i}" data-ri="${rv}"`,'loc')}<p class="sm mut">白が${N.n}、赤が対峙する国。</p>
   <dl class="kv2"><dt>首都</dt><dd>${N.cap}</dd><dt>海軍</dt><dd>${N.n}${N.navy}</dd><dt>国柄</dt><dd><b class="am">${N.tr[0]}</b><br><span class="sm">${N.tr[1]}</span></dd>
   <dt>艦の名</dt><dd class="sm">${ex('cvl')}<br>${ex('ddg')}<br>${ex('dd')}<br>${ex('ss')}</dd><dt>人の名</dt><dd class="sm">${ppl}</dd><dt>階級</dt><dd class="sm">${RSTY[N.rk].rank.slice(3).join('・')}</dd>
   <dt>陸上部隊</dt><dd class="sm">${GTK.slice(0,4).map(k=>GT[k].n).join('、')} ほか</dd><dt>守る島</dt><dd class="sm">${[1,4,7].map((z,k)=>seaName(N,z)+'の'+N.isl[k]).join('、')}</dd><dt>海域</dt><dd class="sm">${[2,3,5,6].map(z=>seaName(N,z)).join('、')}</dd></dl>
   <h3 class="sub">装備</h3>${eqCards(N,natF(N))}
+  <details class="lin"><summary>装備の世代(${EQSK.length}系列)</summary><p class="sm mut">「現用」から始めた場合の、この国の開始時の機種。得意な分野は1世代新しく、苦手な分野は1世代古い。</p>${(()=>{const e=eqStart(i,4);return eqTable(s=>e[s]);})()}</details>
   <div class="srow"><label>対峙する国</label><select onchange="A.nriv(+this.value)" aria-label="対峙する国">${NATS.map((x,k)=>k===i?'':`<option value="${k}" ${k===rv?'selected':''}>${x.f}${k===N.rv?'(宿敵)':''}</option>`).join('')}</select></div>
   <div class="mbtn"><button class="btn pri" data-m="go">${N.n}で着任する(標準の設定)</button><button class="btn" data-m="k">カスタムスタート</button><button class="btn" data-m="nb">国の選択に戻る</button></div>`;}
   const out=tx(html);TXL=sv;const pick1=()=>({nat:i,riv:rv,nation:N.f,fleetName:D.hq});
@@ -81,14 +82,17 @@ function showSetup(){const c=ui.cs,f=c.fleet;
   ${st('budget','年間の防衛予算',400,2400,24000,' 億円')}${st('funds','手持ちの資金',200,0,30000,' 億円')}${st('tension','緊張度',5,5,85,'%')}${st('support','支持率',5,25,85,'%')}
   ${sg2('prePen','先制攻撃への非難',[[.5,'緩い'],[1,'標準'],[1.6,'厳しい']])}${sg2('sandbox','資金',[[false,'通常'],[true,'無制限']])}
   <h3 class="sub">艦隊</h3>
-  ${fs('cv','多用途航空母艦',1,3)}${fs('cvl','航空護衛艦',1,4)}${fs('ddg','ミサイル護衛艦',1,8)}${fs('dd','汎用護衛艦',1,10)}${fs('ffm','多機能護衛艦',1,10)}${fs('ss','潜水艦',1,8)}${fs('lst','輸送艦',1,6)}${fs('opv','哨戒艦',1,8)}${fs('aoe','補給艦',1,3)}${fs('ftr','艦上戦闘機',2,60)}${fs('aew','早期警戒機',1,6)}
+  ${FLEETK.map(k=>fs(k,PT[k].n,1,PT[k].fcap?4:10)).join('')}${fs('ftr','艦上戦闘機',2,60)}${fs('aew','早期警戒機',1,6)}
   <p class="sm mut">維持費 月${up}億円、乗員 ${crew.toLocaleString()}名、戦力値 ${val}(標準は 590)。空母に積みきれない機体は予備機になる。</p>
+  <h3 class="sub">航空部隊</h3>
+  ${ATK.map(k=>`<div class="srow"><label>${AT[k].n}</label><div class="stp"><button onclick="A.csa('${k}',-1,8)" aria-label="${AT[k].n}を減らす">－</button><span>${(c.air||DEFCFG.air)[k]||0}</span><button onclick="A.csa('${k}',1,8)" aria-label="${AT[k].n}を増やす">＋</button></div></div>`).join('')}
+  <p class="sm mut">戦闘飛行隊は本土と島の飛行場に分かれて置かれ、ほかは本土基地に置かれる。</p>
   <h3 class="sub">陸上部隊</h3>
   ${GTK.map(k=>gs(k,12)).join('')}
-  <p class="sm mut">普通科・特科・高射・地対艦は3つの島に順に配置され、水陸機動と戦車は本土に置かれる。島へ運ぶには輸送艦が要る。</p>
+  <p class="sm mut">普通科・特科・ロケット・高射・地対艦は3つの島に順に配置され、水陸機動・空挺・戦車・攻撃ヘリは本土に置かれる。島へ運ぶには輸送艦が要る。</p>
   ${st('tr','初期の練度',5,35,90,'')}
   <h3 class="sub">技術と増援</h3>
-  ${sg2('techLv','技術水準',[[0,'現行'],[1,'やや進む'],[2,'進む'],[3,'先進']])}${st('labs','研究所の数',1,1,8,'')}${sg2('reinT','増援の到着',[[60,'60分'],[90,'90分'],[120,'120分'],[150,'150分']])}
+  ${sg2('era','装備の世代',[[2,'旧式'],[3,'ひと昔前'],[4,'現用'],[5,'新鋭']])}<p class="sm mut">自国と相手の装備が、どの時代のものから始まるか。旧式から始めると、ミサイルもレーダーも弱い時代の戦いになる。</p>${sg2('techLv','技術水準',[[0,'現行'],[1,'やや進む'],[2,'進む'],[3,'先進']])}${st('labs','研究所の数',1,1,8,'')}${sg2('reinT','増援の到着',[[60,'60分'],[90,'90分'],[120,'120分'],[150,'150分']])}
   <div class="mbtn"><button class="btn pri" data-m="go">この条件で着任する</button><button class="btn" data-m="back">戻る</button></div>`;
   if(mq.length&&mq[0].setup){const sc=$('#mbox').scrollTop;mq[0].html=html;$('#mbox').innerHTML=tx(html);$('#mbox').scrollTop=sc;}
   else{modal(html,{go:()=>{closeModal();begin(ui.cs);},back:()=>{closeModal();showNation();}});mq[mq.length-1].setup=1;}}

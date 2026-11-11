@@ -36,7 +36,7 @@ def drop(name):
     m=re.compile(r'\n(function |const |let |/\* )').search(bt,i+5)
     j=m.start() if m else len(bt)
     bt=bt[:i]+bt[j:]
-for n in ['pShip','mkE','mkFlight','setupP','setupE','startBattle','fireASM','fireTorp','impact','detect','applyUnits','tap']:drop(n)
+for n in ['pShip','mkE','mkFlight','setupP','setupE','startBattle','fireASM','fireTorp','impact','detect','applyUnits','tap','drawSym']:drop(n)
 def rep(a,b,cnt=1):
     global bt
     assert bt.count(a)==cnt,(a[:70],bt.count(a));bt=bt.replace(a,b)
@@ -66,15 +66,21 @@ rep("const ps=B.u.filter(u=>u.side==='P'&&!u.dead&&u.cat==='ship');if(!es.some",
 rep("const block=B.u.some(u=>u.side==='P'&&!u.dead&&u.cat==='ship'&&dist(u,B.obj)<B.obj.r+12);","const block=B.u.some(u=>u.side==='P'&&!u.dead&&u.cat==='ship'&&!u.site&&dist(u,B.obj)<B.obj.r+12);")
 rep("case'all':B.sel=B.u.filter(u=>u.side==='P'&&!u.dead&&u.cat==='ship').map(u=>u.id);break;","case'all':B.sel=B.u.filter(u=>u.side==='P'&&!u.dead&&u.cat==='ship'&&!u.site).map(u=>u.id);break;")
 # 国ごとの用語に言い換えてから表示する
-rep("function blog(msg,c){B.log.unshift({t:B.t,msg,c:c||''});","function blog(msg,c){B.log.unshift({t:B.t,msg:tx(msg),c:c||''});")
+rep("function blog(msg,c){B.log.unshift({t:B.t,msg,c:c||''});","function blog(msg,c){B.log.unshift({t:B.t,msg:tx(/基地/.test(msg)?msg.replace(/発艦/g,'発進').replace(/着艦/g,'着陸'):msg),c:c||''});")
 rep("const el=$('#bban');el.textContent=msg;","const el=$('#bban');el.textContent=tx(msg);")
-rep("const sh=statHTML();","const sh=tx(statHTML());")
-rep("const ah=actHTML();","const ah=tx(actHTML());")
+rep("const sh=statHTML();","const sh=abTx(tx(statHTML()));")
+rep("const ah=actHTML();","const ah=abTx(tx(actHTML()));")
 rep("o.occupied?'島嶼を占領された'","o.occupied?'敵の揚陸艦が島に達した'")
 rep("render();if(S.over)showOver();}","render();if(S.over)showOver();else if(S.gpend)groundPrompt();}")
+rep("      case'lst':if(dist(e,B.obj)>4)","      case'intr':airIntr(e,P,E);break;\n      case'lst':if(dist(e,B.obj)>4)")
+rep("function warn(){if(B.hot||B.over)return;","function warn(){if(B.sc==='scramble')return airWarn();if(B.hot||B.over)return;")
+rep("if(!P.length&&!B.pend.some(p=>p.rein))return finish('lose',{});","if(!P.length&&!B.pend.some(p=>p.rein)&&!B.airOnly)return finish('lose',{});")
+rep("else if(B.hot&&(B.sc==='airraid'||B.sc==='intrusion')&&!sp&&","else if(B.hot&&(B.sc==='airraid'||B.sc==='intrusion'||B.sc==='scramble')&&!sp&&")
+rep("res==='draw'?'領海侵入を許す'","res==='draw'?(B.sc==='scramble'?'領空侵犯を許す':'領海侵入を許す')")
+rep("g.fillText(B.iname+'　領海',","g.fillText(B.iname+(B.sc==='scramble'?'　領空':'　領海'),")
 bt,n1=re.subn(r"(\w+)\.key==='cvl'",r"\1.cvf",bt);bt,n2=re.subn(r"(\w+)\.key!=='cvl'",r"!\1.cvf",bt)
 print('cvl patches',n1,n2)
-js=common+rd('data2.js')+'\n'+rd('nations.js')+'\n'+rd('world.js')+'\n'+rd('state2.js')+'\n'+rd('hq2a.js')+'\n'+rd('hq2b.js')+'\n'+rd('theater.js')+'\n'+rd('theater_ui.js')+'\n'+rd('editor.js')+'\n'+bt+'\n'+rd('battle2.js')+'\n'+rd('ground.js')+'\n'+rd('view3d.js')
+js=common+rd('data2.js')+'\n'+rd('nations.js')+'\n'+rd('equip.js')+'\n'+rd('world.js')+'\n'+rd('mapview.js')+'\n'+rd('sym.js')+'\n'+rd('state2.js')+'\n'+rd('hq2a.js')+'\n'+rd('hq2b.js')+'\n'+rd('equip_ui.js')+'\n'+rd('org.js')+'\n'+rd('theater.js')+'\n'+rd('theater_ui.js')+'\n'+rd('editor.js')+'\n'+rd('air.js')+'\n'+bt+'\n'+rd('battle2.js')+'\n'+rd('ground.js')+'\n'+rd('view3d.js')
 for bad in ['tech(','S.officers','REIN_T','B.cec','su.cmd',"PT.cvl.",'A.sector','mapSVG']:
     if bad in js:print('STALE:',bad,[js[m.start()-60:m.start()+40].replace('\n',' ') for m in re.finditer(re.escape(bad),js)][:3])
 out=head+'<script>\n'+js+'</script>\n</body>\n</html>\n'

@@ -23,7 +23,7 @@ function gRow(g,act){const t=GT[g.type];return `<div class="unit ${g.loc==='home
 function zonePanel(z){const Z=ZONES[z],s=S.sectors[z],il=S.isl[z],here=inZone(z),fl=S.fleets.filter(f=>f.zone===z);
   let h=`<section class="sec zp"><h2>${Z.n}${il?'　'+Z.isl:''}</h2>`;
   if(Z.enemy){const es=S.efl.filter(e=>e.known&&EBASE[e.z]===z);
-    return h+`<p class="sm">${RIV.f}の泊地。専守防衛のもとでは、こちらから踏み込めない。侵攻部隊はここに集結してから島へ向かう。</p>${es.map(e=>`<p class="al r">揚陸部隊が${e.eta>=2?'集結している':'出撃した'}。目標は${ISL[e.z]}、到達まであと${e.eta}か月</p>`).join('')||'<p class="sm mut">目立った動きは確認されていない。</p>'}</section>`;}
+    return h+`<p class="sm">${RIV.f}の泊地。艦隊を踏み込ませることはできない。侵攻部隊はここに集結してから島へ向かう。</p>${es.map(e=>`<p class="al r">揚陸部隊が${e.eta>=2?'集結している':'出撃した'}。目標は${ISL[e.z]}、到達まであと${e.eta}か月</p>`).join('')||'<p class="sm mut">目立った動きは確認されていない。</p>'}</section>`;}
   const rs=reserve(z);h+='<dl class="kv2">';
   if(Z.home)h+='<dt>役割</dt><dd>母港と本土。ここにいる艦は整備度が回復する。演習とドック整備、陸上部隊の編成もここで行う</dd>';
   else if(Z.lane)h+=`<dt>航路の脅威</dt><dd class="${thr(z).c}">${thr(z).t}${thr(z).v>=60&&!here.length?'。通商妨害で毎月の収入と支持が削られている':''}</dd>`;
@@ -34,9 +34,9 @@ function zonePanel(z){const Z=ZONES[z],s=S.sectors[z],il=S.isl[z],here=inZone(z)
   if(il&&s.held){const gar=garrison(z);
     h+=`<h3 class="sub">施設</h3><div class="facs">${Object.keys(FAC).map(k=>`<div class="${il.fac[k]<50?'dm':''}"><b>${FAC[k][0]}</b>${il.fac[k]<50?' <span class="r">損壊</span>':''}<small>${FACD[k]}</small></div>`).join('')}</div>
     <h3 class="sub">守備隊 ${gar.length}個</h3>${gar.length?gar.map(g=>gRow(g)).join(''):'<p class="al am">守備隊がいない。上陸されれば無抵抗で占領される。「部隊」の陸上部隊を輸送艦に乗せて運ぶこと。</p>'}`;}
-  else if(il){const ctrl=seaCtrl(z),emb=fl.reduce((a,f)=>a.concat(fleetLoad(f)),[]),str=e=>e.hp>=8?'充足':e.hp>=5?'消耗':'壊滅寸前';
+  else if(il){const ctrl=seaCtrl(z),emb=landForce(z),str=e=>e.hp>=8?'充足':e.hp>=5?'消耗':'壊滅寸前';
     h+=`<h3 class="sub">敵の守備隊(推定)</h3><p class="sm">${il.egar.map(e=>`${GT[e.t].n}<span class="mut">(${str(e)})</span>`).join('、')}</p>
-    <dl class="kv2"><dt>陣地</dt><dd>${FORT[il.fort]}</dd><dt>周辺の敵艦隊</dt><dd class="${il.cover?'r':'g'}">${il.cover?'居座っている':'排除済み'}</dd><dt>制海</dt><dd>${ctrl?'<span class="g">確保</span>。敵守備隊の補給を断っている':il.cover?'未確保':'未確保。この海域に戦闘艦を置くこと'}</dd><dt>上陸部隊</dt><dd>${emb.length?emb.map(g=>g.name).join('、'):'この海域の艦隊には乗っていない'}</dd></dl>
+    <dl class="kv2"><dt>陣地</dt><dd>${FORT[il.fort]}</dd><dt>周辺の敵艦隊</dt><dd class="${il.cover?'r':'g'}">${il.cover?'居座っている':'排除済み'}</dd><dt>制海</dt><dd>${ctrl?'<span class="g">確保</span>。敵守備隊の補給を断っている':il.cover?'未確保':'未確保。この海域に戦闘艦を置くこと'}</dd><dt>上陸部隊</dt><dd>${emb.length?emb.map(g=>g.name+(g.loc==='home'?'(空挺降下)':'')).join('、'):'この海域の艦隊には乗っていない'}</dd></dl>
     <p class="sm mut">奪還の手順：①周辺の敵艦隊を排除して制海を得る　②艦砲射撃・空爆・ミサイルで守備隊と陣地を叩く(月に各1回)　③輸送艦に乗せた陸上部隊で上陸し、司令部を制圧する。制海を保つあいだは、封鎖で敵が毎月弱っていく。</p>
     <div class="brow"><button class="btn sm warn" ${il.cover?'':'disabled'} onclick="A.retake(${z})">①敵艦隊を排除</button><button class="btn sm" ${ctrl?'':'disabled'} onclick="A.prep(${z})">②準備攻撃</button><button class="btn sm pri" ${ctrl&&emb.length?'':'disabled'} onclick="A.land(${z})">③上陸作戦</button></div>`;}
   return h+'</section>';}
@@ -51,7 +51,7 @@ VIEW.home=()=>{const inc=income(),cost=Math.round(monthCost()),al=alerts(),C=S.c
   h+=`<section class="sec"><div class="brow"><button class="btn sm" onclick="A.drill()">図上演習(海戦)</button><button class="btn sm" onclick="A.gdrill()">図上演習(上陸戦)</button><button class="btn sm" onclick="A.edit()">編集</button><button class="btn sm" onclick="A.help()">遊び方</button><button class="btn sm" onclick="A.reset()">新しく始める</button></div></section>`;
   return h;};
 VIEW.deploy=()=>{const fsel=ui.fsel!=null?FL(ui.fsel):null,T=reinTime();
-  let h=`<section class="sec"><h2>作戦図</h2>${fsel?`<p class="al am">${esc(fsel.n)}の行き先を選ぶ。作戦図の海域をタップ</p>`:''}<canvas id="wth" class="wth"></canvas><div class="brow"><button class="btn sm" onclick="A.world()">世界地図を見る</button></div><p class="mut sm">艦隊は1か月に2海域ぶん進む。事案にはその海域の艦隊が当たり、隣の海域の艦は${T}分後、2つ先の海域の艦は${T*2}分後に増援として着く。海域をタップすると詳細、艦隊の番号をタップすると行き先を選べる。</p></section>`;
+  let h=`<section class="sec"><h2>作戦図</h2>${fsel?`<p class="al am">${esc(fsel.n)}の行き先を選ぶ。作戦図の海域をタップ</p>`:''}${mapBox('th')}<div class="brow"><button class="btn sm" onclick="A.world()">世界地図を見る</button></div><p class="mut sm">艦隊は1か月に2海域ぶん進む。事案にはその海域の艦隊が当たり、隣の海域の艦は${T}分後、2つ先の海域の艦は${T*2}分後に増援として着く。海域をタップすると詳細、艦隊の番号をタップすると行き先を選べる。</p></section>`;
   if(ui.zsel!=null)h+=zonePanel(ui.zsel);
   h+=`<section class="sec"><h2>艦隊</h2>`;
   S.fleets.forEach((f,k)=>{const us=flUnits(f),cp=fleetCap(f),ld=fleetLoad(f),mv=f.dest!=null;
@@ -94,7 +94,7 @@ UV.gnd=()=>{let h=`<section class="sec"><h2>陸上部隊 ${S.gnd.length}個</h2>
   return h+'</section>';};
 // 装備の諸元。研究や国柄の補正を含めた、いまの値を出す
 UV.eq=()=>{const M=mods(),f=k=>M[k]||0,kt=v=>Math.round(v*60/1.852);
-  let h=`<section class="sec"><h2>${NAT.n}の装備</h2><p class="mut sm">研究・予算・国柄による補正を含めた現在の値。装備の型は国ごとに決まっていて、長所と短所がある。</p>${eqCards(CUR,f)}</section><section class="sec"><h2>艦艇</h2>`;
+  let h=`<section class="sec"><h2>${NAT.n}の装備</h2><p class="mut sm">研究・予算・国柄による補正を含めた現在の値。装備の型は国ごとに決まっていて、長所と短所がある。</p>${eqCards(CUR,f)}</section><section class="sec"><h2>装備の世代</h2><p class="mut sm">系列ごとに、いま配備している機種。新しい機種への更新は「開発」の装備で進める。</p>${eqTable(s=>eqCur(s).i)}</section><section class="sec"><h2>艦艇</h2>`;
   for(const k of SHIPK){const t=PT[k];if(t.lock&&!S.unlock[k])continue;const sub=t.cat==='sub',r=[['船体',Math.round(t.hp*(1+(sub?f('subHp'):f('hp'))))],['速力',kt(t.spd*(1+(sub?f('subSpd'):f('spd'))))+'ノット']];
     if(t.dA)r.push(['対空レーダー',Math.round(t.dA*(1+f('radA')))+'km']);r.push(['対水上探知',Math.round(t.dS*(1+f('esm')))+'km']);if(t.so)r.push(['ソナー',Math.round(t.so*(1+(sub?f('sonarSub'):f('sonar'))))+'km']);
     if(t.sam)r.push(['艦対空ミサイル',`${Math.round(t.sam*(1+f('samCap')))}発、射程${Math.round(t.samR*(1+(t.samR>=100?f('samRL'):f('samRS'))))}km`]);if(t.asm)r.push(['対艦ミサイル',`${Math.round(t.asm*(1+f('asmCap')))}発、射程${Math.round(t.asmR*(1+f('asmR')))}km`]);
@@ -114,16 +114,16 @@ VIEW.shop=()=>{
   h+='<h3 class="sub">航空機</h3>';for(const k of['ftr','aew'])h+=item(k,SHOPX[k].n,SHOPX[k].d);
   h+='<h3 class="sub">弾薬</h3>';for(const k of['sam','asm','aam','torp'])h+=item(k,SHOPX[k].n,SHOPX[k].d+`(在庫 ${S.stock[k]})`);
   return h+'</section>';};
-function showIncident(){const inc=S.pending;if(!inc)return;const z=inc.sector,us=fightIn(z),rs=reserve(z),rt=inc.type==='retake',can=us.length||rs.all.length,T=reinTime(),gar=garrison(z);
+function showIncident(){const inc=S.pending;if(!inc)return;const z=inc.sector,us=fightIn(z),rs=reserve(z),rt=inc.type==='retake',sc=inc.type==='scramble',af=airForce(z),can=sc?airCover(z,'ftr').length>0:us.length||rs.all.length,T=reinTime(),gar=garrison(z);
   const rn=(rs.near.length?`隣の海域から：${rs.near.map(u=>u.name).join('、')}<br><span class="mut sm">戦闘開始の${T}分後に着く</span>`:'')+(rs.near.length&&rs.far.length?'<br>':'')+(rs.far.length?`2つ先の海域から：${rs.far.map(u=>u.name).join('、')}<br><span class="mut sm">${T*2}分後に着く</span>`:'');
-  modal(`<div class="alert r">${rt?'作戦計画':'事案発生'}</div><h2>${SECT[z]}　${SCN[inc.type].n}</h2><p>${SCN[inc.type].d(inc)}</p><dl class="kv2"><dt>敵情(推定)</dt><dd>${inc.intel}</dd><dt>現場の兵力</dt><dd>${us.length?us.map(u=>u.name).join('、'):'<b class="r">所在の艦隊なし</b>'}</dd><dt>増援</dt><dd>${rn||'なし'}</dd>${inc.type==='landing'?`<dt>島の守備隊</dt><dd>${gar.length?gar.map(g=>g.name).join('、'):'<b class="r">なし</b>'}</dd>`:''}</dl><div class="mbtn">${can?`<button class="btn pri" data-m="fight">出撃し、自ら指揮を執る</button><button class="btn" data-m="auto">現場指揮官に任せる(自動解決)</button>`:''}<button class="btn" data-m="ignore">${rt?'作戦を中止する':can?'静観する':'対処できない(静観)'}</button></div>`,
+  modal(`<div class="alert r">${rt?'作戦計画':'事案発生'}</div><h2>${SECT[z]}　${SCN[inc.type].n}</h2><p>${SCN[inc.type].d(inc)}</p><dl class="kv2"><dt>敵情(推定)</dt><dd>${inc.intel}</dd><dt>現場の兵力</dt><dd>${us.length?us.map(u=>u.name).join('、'):sc?'所在の艦隊なし':'<b class="r">所在の艦隊なし</b>'}</dd><dt>増援</dt><dd>${rn||'なし'}</dd><dt>基地の航空部隊</dt><dd>${af.length?af.map(a=>a.name).join('、'):sc?'<b class="r">届く戦闘飛行隊がいない</b>':'なし'}</dd>${inc.type==='landing'?`<dt>島の守備隊</dt><dd>${gar.length?gar.map(g=>g.name).join('、'):'<b class="r">なし</b>'}</dd>`:''}</dl><div class="mbtn">${can?`<button class="btn pri" data-m="fight">出撃し、自ら指揮を執る</button><button class="btn" data-m="auto">現場指揮官に任せる(自動解決)</button>`:''}<button class="btn" data-m="ignore">${rt?'作戦を中止する':can?'静観する':'対処できない(静観)'}</button></div>`,
   {fight:()=>{closeModal();if(can)startBattle(inc);else ignoreInc(inc);},auto:()=>{closeModal();if(can)autoResolve(inc);else ignoreInc(inc);},ignore:()=>{closeModal();if(rt){S.pending=null;save();render();}else ignoreInc(inc);}});}
 function showHelp(){const C=S.cfg;modal(`<div class="alert">着任</div><h2>${esc(C.fleetName)}司令部</h2><p>${C.cmdr?esc(C.cmdr)+'司令。':''}惑星${PLANET}。あなたは${esc(C.nation)}の${NAT.navy}で艦隊を預かる。対峙するのは${RIV.f}。任期の${C.years}年間、${[1,4,7].map(z=>SECT[z]+'の'+ISL[z]).join('、')}を守り抜く。支持率が0%になれば更迭される。</p>
 <p class="sm mut">国柄「${NAT.tr[0]}」：${NAT.tr[1]}</p>
-<ul class="sm"><li><b>作戦</b>：艦隊を海域へ送る。事案にはその海域の艦隊が当たり、隣と2つ先の海域からは増援が遅れて着く。シーレーンを空けたままにすると収入が減る</li><li><b>部隊</b>：艦の所属と演習・整備・改修、艦隊の編成、陸上部隊の輸送</li><li><b>陸上部隊</b>：島の守備隊になる。敵に上陸されると地上戦になり、守備隊がいなければ無抵抗で占領される</li><li><b>奪還</b>：占領された島は、制海を得て、砲爆撃で叩き、上陸して司令部を制圧すれば取り戻せる</li><li><b>人事・開発・予算</b>：幹部の補職、研究と装備開発、64費目の配分と年度の折衝</li><li><b>翌月へ進む</b>で時間が進む</li></ul>
-<p><b>海戦の操作</b></p><ul class="sm"><li>自部隊をタップで選択、海面をタップで移動、敵をタップで目標に指定。右下の「3D」で立体表示</li><li>敵が撃つか領海に居座るまで、武器は使えない。艦を相手の50km以内に寄せて「警告」し、退去させれば最良の結果になる</li></ul>
+<ul class="sm"><li><b>作戦</b>：艦隊を海域へ送る。事案にはその海域の艦隊が当たり、隣と2つ先の海域からは増援が遅れて着く。シーレーンを空けたままにすると収入が減る</li><li><b>部隊</b>：艦の所属と演習・整備・改修、艦隊の編成、航空部隊の基地、陸上部隊の輸送と空輸</li><li><b>航空部隊</b>：本土と島の飛行場に置く。国籍不明機には戦闘飛行隊が緊急発進し、受け持つ海域の海戦には基地から戦闘機を出せる</li><li><b>陸上部隊</b>：島の守備隊になる。敵に上陸されると地上戦になり、守備隊がいなければ無抵抗で占領される</li><li><b>奪還</b>：占領された島は、制海を得て、砲爆撃で叩き、上陸して司令部を制圧すれば取り戻せる</li><li><b>人事</b>：組織図の枠をタップして幹部を任命する</li><li><b>開発</b>：16分野の研究と、旧式から構想中までの装備の世代交代、新しい艦種の開発</li><li><b>予算</b>：64費目の配分と年度の折衝</li><li><b>翌月へ進む</b>で時間が進む</li></ul>
+<p><b>海戦の操作</b></p><ul class="sm"><li>自部隊をタップで選択、海面をタップで移動、敵をタップで目標に指定。右下の「3D」で立体表示。＋－と2本指で大きく拡大できる</li><li>領空侵犯には、航空基地をタップして戦闘機を上げ、相手の15km以内に寄せて「警告」する</li><li>敵が撃つか領海に居座るまで、武器は使えない。艦を相手の50km以内に寄せて「警告」し、退去させれば最良の結果になる</li></ul>
 <p><b>地上戦の操作</b></p><ul class="sm"><li>ターン制。自部隊をタップして、水色のマスへ移動、赤い枠の敵をタップで攻撃</li><li>動かず撃たなかった部隊は陣地を固める。森・丘・市街は守りやすい</li><li>艦砲射撃・爆撃・ミサイルは、その海域にいる艦隊が支援する。施設を制圧すると効果が自軍に移る</li></ul>
-<p class="sm mut">「概況」の図上演習で、海戦と上陸戦を練習できる。</p>
+<p class="sm mut">「概況」の図上演習で、海戦・上陸戦・緊急発進を練習できる。作戦図と世界地図は、＋－か2本指で拡大し、指で動かせる。</p>
 <div class="mbtn"><button class="btn pri" data-m="ok">任務に就く</button></div>`);}
 
 /* ---------- 操作 ---------- */
@@ -159,18 +159,18 @@ Object.assign(A,{
     const it=(k,n,cnt,ok,d)=>`<div class="item"><div class="uh"><b>${n}</b><span class="loc">${cnt}</span></div><p class="sm mut">${d}</p><button class="btn sm" data-m="${k}" ${ok&&!dn(k)?'':'disabled'}>${dn(k)?'今月は実施済み':ok?'実施する':'実施できない'}</button></div>`;
     modal(`<div class="alert">準備攻撃</div><h2>${ISL[z]}</h2><p class="sm">上陸の前に、敵の守備隊(残り${il.egar.length}個)と陣地(${FORT[il.fort]})を叩く。それぞれ月に1回。実施のたびに緊張度が1上がる。</p>
     ${it('gun','艦砲射撃',`水上戦闘艦 ${gun}隻`,gun>0,'守備隊の全体を少しずつ削り、陣地を一段崩す。敵に特科か地対艦ミサイルが残っていると、撃ち返されることがある。')}
-    ${it('air','空爆',`艦上戦闘機 ${ftr}機`,ftr>=2,'地対艦・高射・特科の陣地から順に叩く。敵の高射特科が残っていると、戦闘機を失うことがある。')}
+    ${it('air','空爆',`艦上戦闘機 ${ftr}機、基地の飛行隊 ${airStrikers(z).length}個`,ftr>=2||airStrikers(z).length>0,'地対艦・高射・特科の陣地から順に叩く。敵の高射特科が残っていると、戦闘機を失うことがある。')}
     ${it('msl','ミサイル攻撃',`対艦ミサイル ${asm}発`,asm>=4,'対艦ミサイル4発を使い、もっとも厄介な陣地を1つ確実に叩く。反撃は受けない。')}
     <div class="mbtn"><button class="btn pri" data-m="x">閉じる</button></div>`,{x:closeModal,gun:()=>{closeModal();prepStrike(z,'gun');},air:()=>{closeModal();prepStrike(z,'air');},msl:()=>{closeModal();prepStrike(z,'msl');}});},
-  land(z){if(S.pending||S.over||S.gpend||S.sectors[z].held)return;if(!seaCtrl(z))return toast('制海を確保していない');const il=S.isl[z],emb=S.fleets.filter(f=>f.zone===z).reduce((a,f)=>a.concat(fleetLoad(f)),[]);
+  land(z){if(S.pending||S.over||S.gpend||S.sectors[z].held)return;if(!seaCtrl(z))return toast('制海を確保していない');const il=S.isl[z],emb=landForce(z);
     if(!emb.length)return toast('この海域に、陸上部隊を乗せた艦隊がいない');
     confirmM(`<b>${ISL[z]}への上陸作戦</b>を発動する。<br>上陸部隊：${emb.map(g=>g.name).join('、')}<br>敵の守備隊(推定)：${il.egar.length}個、陣地は「${FORT[il.fort]}」<br><span class="sm mut">司令部に乗り込んで敵の番を持ちこたえるか、敵を全滅させれば奪還できる。16ターンで決着がつかなければ艦へ引き揚げる。</span>`,()=>startGround('assault',z),'上陸を開始する');},
   gdrill(){startGround('drill',0);},
   csg(k,d,max){ui.cs.gnd[k]=clamp((ui.cs.gnd[k]||0)+d,0,max);showSetup();},
   // 国の一覧 ⇄ 国の情報。戻ると、一覧と地図を見ていた位置に帰る
-  nsel(i){if(ui.nview!=='info'){ui.nsc=$('#mbox').scrollTop;const w=document.querySelector('#mbox .wscroll');if(w)ui.wsc=[w.scrollLeft,w.scrollTop];}ui.nat=i;ui.riv=null;ui.nview='info';showNation();$('#mbox').scrollTop=0;},
+  nsel(i){if(ui.nview!=='info')ui.nsc=$('#mbox').scrollTop;ui.nat=i;ui.riv=null;ui.nview='info';showNation();$('#mbox').scrollTop=0;},
   nback(){ui.nview='list';showNation();$('#mbox').scrollTop=ui.nsc||0;},
   nriv(i){ui.riv=i;const sc=$('#mbox').scrollTop;showNation();$('#mbox').scrollTop=sc;},
   csnat(){closeModal();ui.nat=ui.cs.nat;ui.riv=ui.cs.riv;ui.nview='list';ui.wsc=null;ui.nsc=0;showNation();},
-  world(){modal(`<div class="alert">惑星${PLANET}</div><h2>世界地図</h2><p class="sm mut">白が${NAT.n}、赤が${RIV.n}。地図は指で動かせる。</p><div class="wscroll"><canvas class="wmap" data-mode="view" data-hi="${S.cfg.nat||0}" data-ri="${NATS.indexOf(RIV)}"></canvas></div><div class="mbtn"><button class="btn pri" data-m="ok">閉じる</button></div>`);}
+  world(){modal(`<div class="alert">惑星${PLANET}</div><h2>世界地図</h2><p class="sm mut">白が${NAT.n}、赤が${RIV.n}。地図は指で動かせて、＋－か2本指で拡大できる。</p>${mapBox('view',`data-hi="${S.cfg.nat||0}" data-ri="${NATS.indexOf(RIV)}"`)}<div class="mbtn"><button class="btn pri" data-m="ok">閉じる</button></div>`);}
 });

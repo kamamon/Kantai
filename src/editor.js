@@ -42,7 +42,9 @@ ED.eq=()=>{const M=mods(),f=k=>M[k]||0,sp=eqSpec(CUR,f),E=S.ed||{fx:{}};
     <div class="srow"><label>型</label><select onchange="A.eda('${e.k}',+this.value)" aria-label="${EQL[e.k]}の型">${EQARC[e.k].map((a,k)=>`<option value="${k}" ${CUR.eqa[e.k]===k?'selected':''}>${a[0]}</option>`).join('')}</select></div>
     ${EDEQ[e.k].map(k=>edIn(`補正：${STAT[k][0]}(${edSc(k)===100?(STAT[k][1]==='p'?'pt':'%'):'値'})`,edR(((E.fx||{})[k]||0)*edSc(k)),`A.edfx('${k}',+this.value)`)).join('')}
     <dl class="kv">${e.r.map(x=>`<dt>${x[0]}</dt><dd>${x[1]}</dd>`).join('')}</dl></div>`;});
-  return h+`<div class="brow"><button class="btn sm" onclick="A.edreset('eq')">装備を国の初期値に戻す</button></div></section>`;};
+  h+=`<div class="brow"><button class="btn sm" onclick="A.edreset('eq')">装備を国の初期値に戻す</button></div></section><section class="sec"><h2>装備の世代</h2><p class="mut sm">系列ごとに、配備している機種を直接選べる。</p><div class="brow">${[1,2,3,4,5,6,7].map(g=>`<button class="btn sm" onclick="A.edmall(${g})">すべてG${g}</button>`).join('')}</div>`;
+  for(const s of EQSK)h+=`<div class="srow"><label>${EQS[s][1]}</label><select onchange="A.edm('${s}',+this.value)" aria-label="${EQS[s][1]}の機種">${EQS[s][5].map((m,i)=>`<option value="${i}" ${eqCur(s).i===i?'selected':''}>G${m[0]} ${m[1]}</option>`).join('')}</select></div>`;
+  return h+'</section>';};
 ED.ship=()=>{const k=PT[ui.edk]?ui.edk:'ddg',t=PT[k],b=PT0[k],ch=S.ed&&S.ed.pt[k];
   let h=`<section class="sec"><h2>艦種の基準値</h2><p class="mut sm">その艦種のすべての艦に効く。就役済みの艦にも反映される。</p><div class="srow"><label>艦種</label><select onchange="A.edk(this.value)" aria-label="編集する艦種">${SHIPK.map(x=>`<option value="${x}" ${x===k?'selected':''}>${PT[x].n}${S.ed&&S.ed.pt[x]?'(変更あり)':''}</option>`).join('')}</select></div>`;
   for(const d of EDPT){if(b[d[0]]==null)continue;h+=edIn(d[1]+(ch&&ch[d[0]]!=null?` <span class="am">元 ${edR(b[d[0]]*d[2])}</span>`:''),edR(t[d[0]]*d[2]),`A.edp('${k}','${d[0]}',+this.value)`);}
@@ -57,7 +59,7 @@ ED.res=()=>{const d=ui.dom||0;
   <div class="brow"><button class="btn sm" onclick="A.edra(${d},1)">${DOM[d]}を +1</button><button class="btn sm" onclick="A.edra(${d},10)">最大に</button><button class="btn sm" onclick="A.edra(${d},0)">0 に</button></div>`;
   for(const l of LINE.filter(l=>l[2]===d)){const lv=lvOf(l[0]);h+=`<div class="srow"><label>${l[1]}<br><small class="mut">${STAT[l[3]][0]}　${lv?fmtEff(l[3],l[4]*lv):'効果なし'}</small></label><div class="stp"><button onclick="A.edr('${l[0]}',-1)" aria-label="${l[1]}を下げる">－</button><span>${lv}</span><button onclick="A.edr('${l[0]}',1)" aria-label="${l[1]}を上げる">＋</button></div></div>`;}
   h+=`</section><section class="sec"><h2>装備開発</h2><p class="mut sm">計画を完了済みにしたり、取り消したりできる。</p>`;
-  for(const p of PROJ){const dn=!!S.flags[p.k];h+=`<div class="srow"><label>${p.n}<br><small class="${dn?'g':'mut'}">${dn?'完了':S.projs[p.k]?'開発中':'未着手'}</small></label><button class="btn sm" onclick="A.edpj('${p.k}')">${dn?'取り消す':'完了にする'}</button></div>`;}
+  for(const p of PROJ.filter(p=>p.kind!=='eq')){const dn=!!S.flags[p.k];h+=`<div class="srow"><label>${p.n}<br><small class="${dn?'g':'mut'}">${dn?'完了':S.projs[p.k]?'開発中':'未着手'}</small></label><button class="btn sm" onclick="A.edpj('${p.k}')">${dn?'取り消す':'完了にする'}</button></div>`;}
   return h+'</section>';};
 ED.fx=()=>{const E=S.ed||{fx:{}},M=mods();
   let h=`<section class="sec"><h2>能力補正</h2><p class="mut sm">研究・予算・人事・国柄とは別に、能力値へ直接足し引きする。0が素の状態。右の小さな数字は、すべてを合わせた現在の値。</p>`;
@@ -85,6 +87,8 @@ Object.assign(A,{
     else if(w==='efl'){S.efl=[];S.fore=null;S.foreK=false;msg='敵の侵攻部隊と来月の兆候を消した';}
     edDone(msg);},
   edn(i,v){v=String(v).replace(/[<>&"'`「」]/g,'').trim().slice(0,14);const E=edS();if(!E.eqn)E.eqn=NAT.eq.slice();E.eqn[i]=v||NAT.eq[i];edDone();},
+  edm(s,i){if(!EQS[s]||!EQS[s][5][i])return;edS();S.eqm[s]=i;const b=eqBusy(s);if(b)delete S.projs[b];edDone(`${EQS[s][1]}を${EQS[s][5][i][1]}にした`);},
+  edmall(g){edS();for(const s of EQSK){S.eqm[s]=eqDef(s,g);const b=eqBusy(s);if(b)delete S.projs[b];}edDone(`すべての装備を第${g}世代にそろえた`);},
   eda(k,i){if(!EQARC[k]||!EQARC[k][i])return;const E=edS();E.eqa=E.eqa||{};E.eqa[k]=i;edDone(`${EQL[k]}を${EQARC[k][i][0]}にした`);},
   edfx(k,v){if(!STAT[k]||!isFinite(v))return render();const E=edS(),sc=edSc(k),x=clamp(v/sc,sc===100?-.9:-999,sc===100?5:999);if(x)E.fx[k]=x;else delete E.fx[k];edDone();},
   edp(t,f,v){const d=EDPT.find(x=>x[0]===f);if(!d||!PT0[t]||PT0[t][f]==null||!isFinite(v))return render();const E=edS(),x=clamp(v,d[3],d[4])/d[2];(E.pt[t]=E.pt[t]||{})[f]=d[2]===1?Math.round(x):x;

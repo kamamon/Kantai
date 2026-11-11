@@ -247,6 +247,7 @@ const flName=(k,n)=>DSTY[NAT.ds].fl[k].replace('{n}',n);
 // 国の名称群を、ゲーム全体が参照する表に流し込む。新しく始めるときと、記録を読み込んだときに呼ぶ
 function applyNation(ni,ri){ni=NATS[ni]?ni:0;const N=NAT=NATS[ni];RIV=NATS[ri]&&ri!==ni?NATS[ri]:NATS[N.rv];
   const nm=natNames(ni);for(const k in NAMES)NAMES[k]=nm[k]||[];
+  for(const k in NALIAS){const b=NAMES[NALIAS[k][0]]||[],o=b.length?NALIAS[k][1]%b.length:0;NAMES[k]=b.slice(o).concat(b.slice(0,o));}
   RSTY[N.rk].rank.forEach((x,i)=>{RANK[i]=x;});
   for(let z=1;z<=7;z++){const full=seaName(N,z);ZONES[z].n=full;ZS[z]=full.length<=6?full:N.sea[z-1];}
   [1,4,7].forEach((z,i)=>{ZONES[z].isl=N.isl[i];});

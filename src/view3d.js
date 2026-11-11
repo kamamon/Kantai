@@ -19,7 +19,7 @@ const MDL={
   aew:[flat([[.5,0,0],[-.3,-.07,0],[-.5,0,0],[-.3,.07,0]],2),flat([[.1,-.05,0],[.1,-.5,0],[-.05,-.5,0],[-.1,-.05,0]],1),flat([[.1,.05,0],[.1,.5,0],[-.05,.5,0],[-.1,.05,0]],1),
     flat([0,1,2,3,4,5,6,7].map(i=>[-.1+Math.cos(i*.785)*.2,Math.sin(i*.785)*.2,.09]),2),flat([[-.3,0,0],[-.5,0,0],[-.5,0,.15]],3,[0,1,0])]
 };
-const MKEY={cvl:['cv',1.45],cv:['cv',1.8],ecv:['cv',1.7],ddg:['ddg',1.1],ddgx:['ddg',1.25],eddg:['ddg',1.1],ecg:['ddg',1.3],dd:['dd',1],dd2:['dd',1.08],ffm:['dd',.88],ffm2:['dd',.92],eff:['dd',.88],opv:['dd',.7],usv:['dd',.5],
+const MKEY={cvn:['cv',2.1],cvu:['cv',1.2],lha:['cv',1.4],cg:['ddg',1.3],bmd:['ddg',1.4],ddgo:['ddg',1],ddr:['ddg',1.3],ars:['ddg',1.15],ddk:['dd',.95],ddh:['dd',1.15],de:['dd',.8],fc:['dd',.75],pg:['dd',.5],lusv:['dd',.6],sso:['sub',.75],ssn:['sub',1.05],ssg:['sub',.95],xluuv:['sub',.5],lpd:['lst',1.2],lsm:['lst',.7],cvl:['cv',1.45],cv:['cv',1.8],ecv:['cv',1.7],ddg:['ddg',1.1],ddgx:['ddg',1.25],eddg:['ddg',1.1],ecg:['ddg',1.3],dd:['dd',1],dd2:['dd',1.08],ffm:['dd',.88],ffm2:['dd',.92],eff:['dd',.88],opv:['dd',.7],usv:['dd',.5],
   aoe:['lst',1.15],elst:['lst',1.15],lst:['lst',1.1],lhd:['cv',1.2],site:['site',.7],eshore:['site',.7],ss:['sub',.8],ssx:['sub',.9],ess:['sub',.8],ftr:['ftr',.55],eftr:['ftr',.55],estl:['ftr',.6],ebmr:['bmr',.8],aew:['aew',.7]};
 const PAL={P:[[62,88,116],[92,124,154],[146,178,208],[40,58,80]],E:[[120,70,66],[150,94,88],[202,140,130],[80,46,46]]};
 const C3DEF={tx:250,ty:268,d:600,yaw:-.35,pit:.8};
@@ -125,7 +125,7 @@ function initDOM(){
     if(z==='v')return setView(B.view==='3d'?'2d':'3d');
     if(z==='f'){B.fol=!B.fol;if(B.fol&&!selUnits().length)toast('追尾する部隊を選ぶこと');return setView(B.view);}
     if(z==='0'){B.cam={x:W/2,y:H/2,z:1};B.c3=Object.assign({},C3DEF);B.fol=false;return setView(B.view);}
-    if(B.view==='3d')B.c3.d=clamp(B.c3.d*(+z>0?1/1.4:1.4),8,900);else B.cam.z=clamp(B.cam.z*(+z>0?1.4:1/1.4),1,8);});
+    if(B.view==='3d')B.c3.d=clamp(B.c3.d*(+z>0?1/1.4:1.4),3,900);else B.cam.z=clamp(B.cam.z*(+z>0?1.4:1/1.4),1,60);});
   const cv=$('#cv'),pts=new Map();let moved=false,start=null,pd=0,pm=null;
   const mid=()=>{const a=[...pts.values()];return{x:(a[0].x+a[1].x)/2,y:(a[0].y+a[1].y)/2,d:Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y)};};
   const begin1=(x,y,e)=>{start={x,y,cx:B.cam.x,cy:B.cam.y,yaw:B.c3.yaw,pit:B.c3.pit,lx:x,ly:y,pan:!!e&&(e.shiftKey||e.button===2)};};
@@ -136,12 +136,12 @@ function initDOM(){
     if(pts.size===1&&start){const dx=e.offsetX-start.x,dy=e.offsetY-start.y;if(!moved&&Math.hypot(dx,dy)>8)moved=true;if(!moved)return;
       if(B.view==='3d'){if(start.pan){pan3(e.offsetX-start.lx,e.offsetY-start.ly);start.lx=e.offsetX;start.ly=e.offsetY;}else{B.c3.yaw=start.yaw-dx*.006;B.c3.pit=clamp(start.pit+dy*.005,.1,1.52);}}
       else{B.cam.x=clamp(start.cx-dx/B.k,0,W);B.cam.y=clamp(start.cy-dy/B.k,0,H);}}
-    else if(pts.size===2){const q=mid();if(B.view==='3d'){if(pd>0)B.c3.d=clamp(B.c3.d*pd/q.d,8,900);if(pm)pan3(q.x-pm.x,q.y-pm.y);}else if(pd>0)B.cam.z=clamp(B.cam.z*q.d/pd,1,8);pd=q.d;pm=q;}});
+    else if(pts.size===2){const q=mid();if(B.view==='3d'){if(pd>0)B.c3.d=clamp(B.c3.d*pd/q.d,3,900);if(pm)pan3(q.x-pm.x,q.y-pm.y);}else if(pd>0)B.cam.z=clamp(B.cam.z*q.d/pd,1,60);pd=q.d;pm=q;}});
   const up=e=>{if(!B||!pts.has(e.pointerId))return;const was=pts.size;pts.delete(e.pointerId);
     if(was===1&&!moved&&e.type==='pointerup')tap(e.offsetX,e.offsetY);
     if(pts.size===1){const p=[...pts.values()][0];begin1(p.x,p.y);moved=true;}else if(pts.size===0){start=null;pm=null;}};
   cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
-  cv.addEventListener('wheel',e=>{if(!B)return;e.preventDefault();const k=e.deltaY<0?1.15:.87;if(B.view==='3d')B.c3.d=clamp(B.c3.d/k,8,900);else B.cam.z=clamp(B.cam.z*k,1,8);},{passive:false});
+  cv.addEventListener('wheel',e=>{if(!B)return;e.preventDefault();const k=e.deltaY<0?1.15:.87;if(B.view==='3d')B.c3.d=clamp(B.c3.d/k,3,900);else B.cam.z=clamp(B.cam.z*k,1,60);},{passive:false});
   window.addEventListener('resize',fit);
   window.addEventListener('keydown',e=>{if(!B||B.over||mq.length)return;if(e.code==='Space'){e.preventDefault();setSpeed(B.paused?B.speed:0);}else if(['1','2','3','4','5'].includes(e.key))setSpeed([1,2,4,8,16][+e.key-1]);else if(e.key==='v')setView(B.view==='3d'?'2d':'3d');});
   window.addEventListener('error',e=>{try{toast('エラー: '+(e.message||''));}catch(_){}});
