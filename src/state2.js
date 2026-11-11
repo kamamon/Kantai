@@ -60,6 +60,7 @@ function mods(){if(_M)return _M;const M={};for(const k in STAT)M[k]=0;
   for(const l of LINE){const v=lvOf(l[0]);if(v)M[l[3]]+=l[4]*v;}
   for(const p of PROJ)if(p.fx&&S.flags[p.k])for(const k in p.fx)M[k]+=p.fx[k];
   for(const s of EQSK){const fx=eqFx(s,eqCur(s).i);for(const k in fx)M[k]+=fx[k];}
+  {const px=polSum();for(const k in px)if(k in M)M[k]+=px[k];}
   const nn=NATS[S.cfg.nat]||NATS[0];for(const k in nn.fx)M[k]+=nn.fx[k];for(const k in CUR.efx)M[k]+=CUR.efx[k];if(S.ed)for(const k in S.ed.fx)if(k in M)M[k]+=S.ed.fx[k];
   BITEM.forEach((b,i)=>{M[b[4]]+=b[5]*(S.bud[i]-2);});
   const pm=postMap(),has=(id,t)=>!!pm[id]&&pm[id].tr.includes(t),ab=(id,k)=>pm[id]?effAb(pm[id],k)-10:-4,cs=clamp(1+ab('hq:cs','adm')*.03,.8,1.4),st=(id,k)=>ab(id,k)*cs;
@@ -86,12 +87,12 @@ const debtPay=()=>S.debts.reduce((a,d)=>a+d.per,0);
 function monthCost(){let s=upkeep()+debtPay();for(let c=0;c<BCAT.length;c++)s+=catCost(c);return s;}
 const income=()=>Math.round(S.budget/12);
 function fleetPower(us){return (us||S.units).filter(u=>u.mode==='normal'||u.mode==='drill').reduce((a,u)=>a+PT[u.type].val*unitQ(u)*(u.hp/100)+(u.ftr||0)*8+(u.aew||0)*12,0)*(1+totalLv()/500);}
-function enemyPower(){return Math.round((420+Math.min(S.month,120)*10+Math.max(0,S.month-120)*4)*(.5+.5*S.cfg.eGrow));}
+function enemyPower(){return Math.round((420+Math.min(S.month,120)*10+Math.max(0,S.month-120)*4)*(.5+.5*S.cfg.eGrow)*(S.w?S.w.rivK:1));}
 const eTech=()=>S.month/60*S.cfg.eGrow+((S.cfg.era||4)-4)*1.5;
 const reinTime=()=>Math.round(clamp(S.cfg.reinT-mods().reinT,30,180));
 function thr(i){const s=S.sectors[i],v=s.est==null?s.threat:s.est;return v<30?{t:'低',c:'g',v}:v<55?{t:'中',c:'am',v}:v<75?{t:'高',c:'r',v}:{t:'極めて高',c:'r',v};}
-function price(k){const M=mods(),t=PT[k],s=SHOPX[k];return Math.round(t?t.cost*(1-clamp(M.buildC,0,.4)):s.cost*(s.kind==='ammo'?1-clamp(M.ammoC,-.2,.5):1));}
-function buildMo(k){const t=PT[k],s=SHOPX[k];return Math.max(1,Math.round((t?t.build:s.build)*(t?1-clamp(mods().buildT,0,.45):1)));}
+function price(k){const M=mods(),t=PT[k],s=SHOPX[k];return Math.round(t?t.cost*(1-clamp(M.buildC,-.3,.4)):s.cost*(s.kind==='ammo'?1-clamp(M.ammoC,-.2,.5):1));}
+function buildMo(k){const t=PT[k],s=SHOPX[k];return Math.max(1,Math.round((t?t.build:s.build)*(t?1-clamp(mods().buildT,-.3,.45):1)));}
 
 /* ================= 月の進行 ================= */
 function reload(){const order=[...S.units].sort((a,b)=>a.sector-b.sector);let short=false;
@@ -146,7 +147,7 @@ function monthlyRD(rep,M){const done=[];
     if(pj.ph>=3){delete S.projs[k];S.flags[k]=1;if(p.kind==='unit')S.unlock[k]=1;if(p.kind==='kit')S.kits[k]=1;if(p.kind==='eq')S.eqm[p.slot]=p.idx;_M=null;rep.push([`開発完了：${p.n}${p.kind==='unit'?'(調達できる)':p.kind==='kit'?'(各艦に改修できる)':p.kind==='eq'?`(${EQS[p.slot][1]}を更新。全軍に配備)`:'(全軍に配備)'}`,'g']);}
     else{pj.left=p.t[pj.ph];if(canPay(p.c[pj.ph]))spend(p.c[pj.ph]);else pj.wait=true;}}}
 function fiscal(){const C=S.cfg,old=S.budget;S.fy++;
-  let b=C.budget*Math.pow(1.015,S.fy)*(1+(S.tension-35)*.004+(S.support-50)*.004+Math.min(.15,S.stats.wins*.004));
+  let b=C.budget*Math.pow(1.015,S.fy)*(1+(S.tension-35)*.004+(S.support-50)*.004+Math.min(.15,S.stats.wins*.004))*polBudK();
   const cut=C.sandbox?0:Math.round(Math.max(0,S.funds-old*.25)*.3);b=Math.max(1200,Math.round((b-cut)/10)*10);S.budget=b;S.fyAsk=0;S.fySupp=0;
   const pr=annualPers();hlog(`新年度予算 ${b.toLocaleString()}億円`,'b');return{old,cut,pr};}
 function askChance(a){return clamp(.78-a*3+(S.support-50)*.008+(S.tension-40)*.006+mods().budg,.05,.95);}
@@ -162,7 +163,7 @@ function genForce(type,L,eT){const r=x=>Math.max(0,Math.round(x));let f;
   for(const k in f)if(!f[k])delete f[k];return f;}
 function intelStr(f){const acc=clamp(mods().intel,0,1),ex=acc>=.6,n=k=>f[k]||0,rng=x=>ex?`${x}`:x<=0?'0〜1':`${Math.max(1,x-1)}〜${x+1}`;
   return `水上艦 ${rng(n('eff')+n('eddg')+n('ecg')+n('elst')+n('ecv'))}隻、航空機 ${rng(n('ebmr')+n('eftr')+n('estl')+n('erec')+n('euav'))}編隊、潜水艦 ${acc>=.3?n('ess')+'隻':'不明'}`;}
-function mkIncident(i,type){const C=S.cfg,T=clamp(S.tension*C.eAggr,0,100),L=1+Math.min(2.5,S.month/30*C.eGrow)+S.tension/100,eT=eTech();
+function mkIncident(i,type){const C=S.cfg,T=clamp(S.tension*C.eAggr,0,100),L=1+Math.min(2.5,S.month/30*C.eGrow)+S.tension/100+((S.w?S.w.rivK:1)-1)*1.5,eT=eTech();
   if(!type){const r=Math.random();type=T<40?(r<.8?'intrusion':'airraid'):T<65?(r<.45?'intrusion':r<.85?'airraid':'landing'):(r<.2?'intrusion':r<.6?'airraid':'landing');
     if(S.stats.wins+S.stats.loss===0)type='intrusion';}
   const force=genForce(type,L,eT);return{sector:i,type,L,eT,force,intel:intelStr(force)};}

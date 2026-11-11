@@ -62,6 +62,7 @@ function newGame(c){c=c||{};const C=Object.assign({},DEFCFG,c);C.fleet=Object.as
   // 陸上部隊：守りの部隊は南から順に島へ、機動部隊は本土に置く
   const il=[7,4,1];let ii=0;for(const k of GTK)for(let i=0;i<(C.gnd[k]||0);i++)addGnd(k,k==='amp'||k==='arm'||k==='abn'||k==='ah'?'home':'i'+il[ii++%3],{tr:clamp(C.tr+RI(-7,7),20,95)});
   // 航空部隊：戦闘飛行隊は本土と島に分け、ほかは本土に置く
+  polInit();
   {const fb=[0,4,7,1,0,0];let fi=0;for(const k of ATK)for(let i=0;i<(C.air[k]||0);i++)addAir(k,k==='ftr'?fb[fi++%fb.length]:0,{tr:clamp(C.tr+RI(-7,7),20,95)});}
   autoFleets();
   for(let i=0;i<clamp(C.labs,1,8);i++)S.labs.push({id:++S.lid,t:i,lv:1,fund:2,cur:null,auto:true,foc:-1});
@@ -132,7 +133,7 @@ function nextMonth(){
   monthlyPers(rep,M);monthlyRD(rep,M);M=mods();
   S.orders=S.orders.filter(o=>{if(S.month<o.due)return true;deliver(o,rep);return false;});
   if(reload())rep.push(['弾薬の在庫が足りず、定数割れの艦がある','am']);
-  airMonth(rep);
+  airMonth(rep);polMonth(rep);
   // 情勢
   _M=null;M=mods();const det=fleetPower()/enemyPower();let unc=0,occ=0,lane=0;const pm2=postMap();
   for(const i of ISLZ){const s=S.sectors[i],il=S.isl[i],here=inZone(i),pw=fleetPower(here);
@@ -166,6 +167,7 @@ function nextMonth(){
   if(S.over){mq.length=0;$('#modal').hidden=true;showOver();return;}
   if(offer)showPeace();
   if(fis)showFiscal(fis);
+  polShow();
   if(S.pending)showIncident();else if(S.gpend&&!fis&&!offer)groundPrompt();else if(rep.length&&!fis)toast(rep[0][0]+(rep.length>1?`　ほか${rep.length-1}件`:''));}
 function checkOver(){if(S.over)return;const occ=ISLZ.filter(i=>!S.sectors[i].held).length,y=S.cfg.years;
   if(S.support<=0)S.over={k:'fired',t:'更迭',d:'国民と政府の信任を失い、司令の任を解かれた。'};

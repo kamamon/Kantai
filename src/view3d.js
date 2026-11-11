@@ -148,5 +148,5 @@ function initDOM(){
 }
 initDOM();
 S=load();
-if(S){applyNation(S.cfg.nat,S.cfg.riv);applyEdits(S.ed);render();if(S.over)showOver();else if(S.gpend)groundPrompt();else if(S.pending)showIncident();}
+if(S){applyNation(S.cfg.nat,S.cfg.riv);applyEdits(S.ed);polLoad();render();if(S.over)showOver();else if(S.gpend)groundPrompt();else if(S.pending)showIncident();}
 else{newGame({});render();showTitle();}

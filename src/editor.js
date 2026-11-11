@@ -31,7 +31,7 @@ function edDone(msg){S.edited=true;applyEdits(S.ed);save();render();if(msg)toast
 
 const ED={};
 ED.gen=()=>{const st=S.stock;
-  let h=`<section class="sec"><h2>情勢と資金</h2>${edIn('資金(億円)',Math.round(S.funds),"A.edv('funds',+this.value)",100)}${edIn('年間の防衛予算(億円)',S.budget,"A.edv('budget',+this.value)",100)}${edIn('支持率(%)',Math.round(S.support),"A.edv('support',+this.value)")}${edIn('緊張度(%)',Math.round(S.tension),"A.edv('tension',+this.value)")}${edIn('士気',Math.round(S.pers.morale),"A.edv('morale',+this.value)")}</section>`;
+  let h=`<section class="sec"><h2>情勢と資金</h2>${edIn('資金(億円)',Math.round(S.funds),"A.edv('funds',+this.value)",100)}${edIn('年間の防衛予算(億円)',S.budget,"A.edv('budget',+this.value)",100)}${edIn('支持率(%)',Math.round(S.support),"A.edv('support',+this.value)")}${edIn('緊張度(%)',Math.round(S.tension),"A.edv('tension',+this.value)")}${edIn('士気',Math.round(S.pers.morale),"A.edv('morale',+this.value)")}${edIn('政治力',Math.round(S.pol.pp),"A.edv('pp',+this.value)",10)}${edIn('安定度',Math.round(S.pol.stab),"A.edv('stab',+this.value)")}${edIn('国庫(億円)',Math.round(S.eco.tre),"A.edv('tre',+this.value)",100)}</section>`;
   h+=`<section class="sec"><h2>在庫</h2>${edIn(`艦対空ミサイル「${CUR.eq[2]}」`,st.sam,"A.edv('sam',+this.value)",8)}${edIn(`対艦ミサイル「${CUR.eq[3]}」`,st.asm,"A.edv('asm',+this.value)",8)}${edIn(`空対空ミサイル「${CUR.eq[4]}」`,st.aam,"A.edv('aam',+this.value)",8)}${edIn(`長魚雷「${CUR.eq[5]}」・対潜弾`,st.torp,"A.edv('torp',+this.value)",8)}${edIn(`予備の戦闘機「${CUR.eq[0]}」`,S.pool.ftr,"A.edv('pftr',+this.value)")}${edIn(`予備の警戒機「${CUR.eq[1]}」`,S.pool.aew,"A.edv('paew',+this.value)")}</section>`;
   h+=`<section class="sec"><h2>まとめて書き換える</h2><div class="brow"><button class="btn sm" onclick="A.edall('rd')">全艦を整備完了にする</button><button class="btn sm" onclick="A.edall('tr')">全艦の練度 +10</button><button class="btn sm" onclick="A.edall('ammo')">全艦に弾薬を満載する</button><button class="btn sm" onclick="A.edall('gnd')">陸上部隊を全快させる</button><button class="btn sm" onclick="A.edall('fill')">曹士を定員まで満たす</button><button class="btn sm" onclick="A.edall('calm')">各海域の敵活動を下げる</button><button class="btn sm" onclick="A.edall('efl')">敵の侵攻部隊を消す</button></div></section>`;
   return h;};
@@ -74,7 +74,7 @@ Object.assign(A,{
   edit(sub){ui.tab='edit';if(sub)ui.sub.edit=sub;render();window.scrollTo(0,0);},
   edk(k){ui.edk=k;render();},
   edv(k,v){if(!isFinite(v))return render();
-    if(k==='funds')S.funds=clamp(Math.round(v),-99999,9999999);else if(k==='budget')S.budget=clamp(Math.round(v),1000,999999);else if(k==='support')S.support=clamp(v,1,100);else if(k==='tension')S.tension=clamp(v,0,100);
+    if(k==='funds')S.funds=clamp(Math.round(v),-99999,9999999);else if(k==='budget')S.budget=clamp(Math.round(v),1000,999999);else if(k==='support')S.support=clamp(v,1,100);else if(k==='tension')S.tension=clamp(v,0,100);else if(k==='pp')S.pol.pp=clamp(Math.round(v),0,400);else if(k==='stab')S.pol.stab=clamp(v,0,100);else if(k==='tre')S.eco.tre=clamp(Math.round(v),0,999999);
     else if(k==='morale')S.pers.morale=clamp(v,5,100);else if(k==='pftr')S.pool.ftr=clamp(Math.round(v),0,999);else if(k==='paew')S.pool.aew=clamp(Math.round(v),0,99);else if(k in S.stock)S.stock[k]=clamp(Math.round(v),0,99999);
     edDone();},
   edall(w){let msg='';
