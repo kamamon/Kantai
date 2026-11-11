@@ -57,7 +57,7 @@ function warStep(w,rep,pw){const Wd=WORLD,P=Wd.P,ow=Wd.pown,W=S.w,a=w.a,d=w.d,mo
   if(w.cap!=null)return warEnd(w,w.cap,w.cap===a?d:a,'cap',rep);
   if(natCnt(d)<=2&&d!==rv)return warEnd(w,a,d,'cap',rep);if(natCnt(a)<=2&&a!==rv)return warEnd(w,d,a,'cap',rep);
   if(mo>=9&&Math.random()<(mo-8)*.05+w.ex*.004)warEnd(w,null,null,'peace',rep);}
-function coup(i,rep){const W=S.w,n=W.n[i],rv=RVN(),old=n.gov;n.gov=old>=3?pick([0,2]):pick([3,4]);n.ldr=mkName(NATS[i]);n.stab=55;
+function coup(i,rep){const W=S.w,n=W.n[i],rv=RVN(),old=n.gov;n.gov=old>=3?pick([0,2]):pick([3,4]);n.ldr=mkName(NATS[i]);n.stab=55;if(n.nap>S.month){n.nap=0;wNews(`${natN(i)}の新政権が、${NAT.n}との不可侵条約を破棄した`,'r');rep.push([`${natN(i)}の新政権が不可侵条約を破棄した`,'r']);}
   const t=n.gov===4?`${NATS[i].f}で軍が政権を掌握。${n.ldr}${GOVL[4]}が全権を握った`:n.gov===3?`${NATS[i].f}で政変。一党支配の体制に移った`:`${NATS[i].f}で政権が倒れ、選挙による政府が生まれた`;wNews(t,i===rv?'r':'am');
   if(i===rv){const dT=n.gov>=3?8:-10;S.tension=clamp(S.tension+dT,0,100);rep.push([`${RIV.n}で政変。${dT>0?'強硬派が実権を握り、緊張が高まった':'新政府は対話を口にしている'}`,dT>0?'r':'g']);relAdd(i,dT>0?-8:12);}
   else{if(Math.random()<.4)n.bloc=n.gov>=3?(Math.random()<.6?2:0):(Math.random()<.6?1:0);if(Math.random()<.5&&!S.pol.evq&&Math.abs(n.rel)<60)S.pol.evq={k:'coup',x:i};}}
@@ -66,11 +66,12 @@ function worldMonth(rep){const W=S.w,me=ME(),rv=RVN(),al=natAlive(),pw=natPw(),p
     n.rel=clamp(n.rel+(base+(n.rb||0)-n.rel)*.04+(n.imp>0?2.5*(1+(X.relG||0)):0),-100,100);if(n.imp>0)n.imp--;n.rb=(n.rb||0)*.97;
     n.stab=clamp(n.stab+R(-2.5,2.5)+(50-n.stab)*.03-(n.sanc?.8:0),5,95);});
   if(W.n[rv].sanc)W.rivK=Math.max(.85,W.rivK-.004);
-  for(const w of W.wars.slice())warStep(w,rep,pw);
-  for(const h of W.hot){const A=W.n[h.a],B=W.n[h.b];if(!al[h.a]||!al[h.b]||inWar(h.a)||inWar(h.b))continue;
+  for(const w of W.wars.slice())if(!w.pl)warStep(w,rep,pw);
+  for(const h of W.hot){if(h.a===me||h.b===me)continue;const A=W.n[h.a],B=W.n[h.b];if(!al[h.a]||!al[h.b]||inWar(h.a)||inWar(h.b))continue;
     h.t=clamp(h.t+R(-3,3.6)+(A.bloc&&B.bloc&&A.bloc!==B.bloc?.5:0)+(A.gov===4||B.gov===4?.4:0)-(h.calm>S.month?3:0),0,100);
     if(h.t>70&&!h.n1&&Math.random()<.5){h.n1=1;wNews(`${natN(h.a)}と${natN(h.b)}の国境で衝突。双方が相手を非難している`,'am');}
     if(h.t>=85&&W.wars.length<3&&S.month>=6&&Math.random()<.25){const att=pw[h.a]*R(.8,1.25)>=pw[h.b]?h.a:h.b;warStart(att,att===h.a?h.b:h.a,rep);}}
+  lwMonth(rep);
   W.n.forEach((n,i)=>{if(i!==me&&al[i]&&!inWar(i)&&n.stab<42&&Math.random()<(45-n.stab)/700)coup(i,rep);});
   if(Math.random()<.6){const ids=W.n.map((n,i)=>i).filter(i=>al[i]&&i!==me),a=pick(ids),b=pick(ids.filter(i=>i!==a)),A=natN(a),Bn=natN(b),bl=W.n[a].bloc;
     wNews(pick([`${A}と${Bn}が海上で合同演習を実施`,`${A}が新型艦の進水を発表`,`${A}の${W.n[a].ldr}${GOVL[W.n[a].gov]}が${Bn}を訪問`,`${A}で反政府デモ。数万人が首都に集まった`,`${A}が国防費の増額を決定`,`${A}と${Bn}が通商協定に署名`,
@@ -143,8 +144,8 @@ const BLD=[['ind','工業地帯','州のGDPが8%伸びる',0],['port','港湾','
 const RES=[['oil','石油','部隊の維持費と航空部隊の稼働'],['steel','鋼材','艦の建造期間'],['rare','希少金属','研究'],['food','食料','安定度']];
 const myStates=()=>WORLD.nat[ME()].st.map(i=>WORLD.ST[i]);
 const stGDP=st=>{const e=S.eco.st[st.id],b=e.b;return st.pop*e.pg*(.7+.06*e.dev)*(1+.05*(b.ind||0)+.03*(b.port||0)+.015*(b.infra||0))/100;};
-const gdp=()=>myStates().reduce((a,st)=>a+stGDP(st),0)*S.eco.g;
-const bldSum=k=>myStates().reduce((a,st)=>a+(S.eco.st[st.id].b[k]||0),0);
+const gdp=()=>heldSt().reduce((a,st)=>a+stGDP(st)*stHeld(st),0)*S.eco.g;
+const bldSum=k=>heldSt().reduce((a,st)=>a+(S.eco.st[st.id].b[k]||0),0);
 const stSlots=e=>e.dev*2+2,stUsed=e=>Object.values(e.b).reduce((a,v)=>a+v,0);
 const bldCost=(st,k)=>{const e=S.eco.st[st.id],X=polSum();return Math.round((100+70*(e.b[k]||0))*(1-clamp(X.devC||0,0,.5))*(1-.04*(e.b.infra||0))/10)*10;};
 const devCost=st=>{const e=S.eco.st[st.id],X=polSum();return Math.round((150+70*e.dev)*(1-clamp(X.devC||0,0,.5))*(1-.04*(e.b.infra||0))/10)*10;};
@@ -152,8 +153,8 @@ const natRes0=i=>{const o={};for(const s of WORLD.nat[i].st){const k=WORLD.ST[s]
 function natRes(i){const o={};for(const st of WORLD.ST)if(st.res&&stOwner(st)===i)o[st.res]=(o[st.res]||0)+1;return o;}
 // 資源の収支：産出と輸入が必要量に足りないと、それぞれの分野に響く
 function resBal(){const me=ME(),E=S.eco,X=polSum(1),W=S.w,al=natAlive(),lanes=ZONES.map((Z,i)=>i).filter(i=>ZONES[i].lane),open=lanes.length?1-lanes.filter(i=>S.sectors[i].threat>=60).length/lanes.length:1,tk=[1.2,1,.5][S.pol.law.trd];
-  const need={oil:.5+S.units.length/14+(S.air||[]).length/8,steel:1+S.orders.filter(o=>o.kind==='unit').length*.7,rare:S.labs.length/4,food:1+myStates().reduce((a,s)=>a+s.pop*S.eco.st[s.id].pg,0)/3000},o={};
-  for(const r of RES){const k=r[0];let prod=0,imp=0;for(const st of myStates())if(st.res===k)prod+=1+(E.st[st.id].b.mine||0);
+  const need={oil:.5+S.units.length/14+(S.air||[]).length/8,steel:1+S.orders.filter(o=>o.kind==='unit').length*.7,rare:S.labs.length/4,food:1+heldSt().reduce((a,s)=>a+s.pop*S.eco.st[s.id].pg,0)/3000},o={};
+  for(const r of RES){const k=r[0];let prod=0,imp=0;for(const st of heldSt())if(st.res===k)prod+=1+(E.st[st.id].b.mine||0);
     W.n.forEach((n,i)=>{const c=i!==me&&al[i]&&n.trd&&!n.sanc?natRes(i)[k]||0:0;if(c)imp+=c>=2?1.5:1;});imp*=open*tk;
     const nd=+need[k].toFixed(1),d=clamp(nd-prod-imp,0,4);o[k]={need:nd,prod,imp:+imp.toFixed(1),def:+d.toFixed(1),sur:Math.max(0,prod-nd)};}
   o.open=open;return o;}
@@ -169,12 +170,12 @@ function polSum(noRes){if(!S||!S.pol)return{};const P=S.pol,o={},add=(fx,k2)=>{i
   for(const m of P.mods)if(m.until>S.month)add(m.fx);
   if(S.eco){add({buildT:Math.min(.2,.02*bldSum('yard')),rp:Math.min(.2,.02*bldSum('uni')),recruit:Math.min(.3,.03*bldSum('base')),stabT:Math.min(6,.6*bldSum('base')),trdK:Math.min(.4,.03*bldSum('port'))});
     if(!noRes){const rb=resBal(),h=o.resH?.5:1;add({upk:-.02*rb.oil.def*h,airRdy:-.04*rb.oil.def*h,buildT:-.03*rb.steel.def*h,rp:-.03*rb.rare.def*h,stabT:-1.5*rb.food.def*h});}}
-  const W=S.w,me=ME(),rv=RVN();if(W){const al=natAlive();add({tension:(W.n[rv].rel+60)/100*.5+(inWar(rv)?.5:0)-(W.n[me].bloc===1?.1:0),intel:Math.min(.12,.04*W.n.filter((n,i)=>n.def&&al[i]).length),trdK:Math.min(.5,.05*W.n.filter((n,i)=>n.trd&&al[i]).length)});}
+  const W=S.w,me=ME(),rv=RVN();if(W){const al=natAlive();add({tension:(W.n[rv].rel+60)/100*.5+(inWar(rv)&&!inWar(rv).pl?.5:0)-(W.n[me].bloc===1?.1:0),intel:Math.min(.12,.04*W.n.filter((n,i)=>n.def&&al[i]).length),trdK:Math.min(.5,.05*W.n.filter((n,i)=>n.trd&&al[i]).length)});}
   if(P.stab<35)add({ppG:-.5,morale:-.05,gdpG:-.5});else if(P.stab>70)add({ppG:.3,support:.1});
   return o;}
 const polBudK=()=>{if(!S.pol||!S.eco)return 1;const X=polSum(1);return Math.pow(gdp()/S.eco.gdp0,.7)*(1+(X.budK||0));};
 const ppGain=()=>{const X=polSum(1);return Math.max(.5,2+(X.ppG||0)+S.pol.stab/100);};
-const stabTarget=()=>{const X=polSum();return clamp(48+(S.support-50)*.35+(X.stabT||0)-(S.tension>70?(S.tension-70)*.3:0)-ISLZ.filter(z=>!S.sectors[z].held).length*6,5,95);};
+const stabTarget=()=>{const X=polSum();return clamp(48+(S.support-50)*.35+(X.stabT||0)-(S.tension>70?(S.tension-70)*.3:0)-ISLZ.filter(z=>!S.sectors[z].held).length*6-(S.lw?5:0)-lwOcc()/Math.max(1,lwGeo().orig)*(S.lw?30:15),5,95);};
 const polMod=(n,fx,mo)=>{S.pol.mods.push({n,fx,until:S.month+mo});_M=null;};
 const grpAdd=o=>{for(const k in o)S.pol.grp[k]=clamp(S.pol.grp[k]+o[k],0,100);};
 function polInit(){const C=S.cfg,r=rng32(331+ME()*7);worldInit();worldApply();
@@ -182,9 +183,9 @@ function polInit(){const C=S.cfg,r=rng32(331+ME()*7);worldInit();worldApply();
   const ts=ADV.map(a=>a[0]);for(let k=ts.length-1;k>0;k--){const j=Math.floor(r()*(k+1)),t=ts[k];ts[k]=ts[j];ts[j]=t;}for(const t of ts.slice(0,6))S.pol.pool.push({id:++S.pol.aid,t,n:mkName()});
   S.eco={st:{},g:1,gdp0:1,tre:200,ver:1};
   for(const st of myStates()){const b={ind:Math.floor(st.dev/2),infra:1};if(st.coast)b.port=1;if(st.cap){b.uni=1;if(st.coast)b.yard=1;b.base=1;}if(st.res)b.mine=1;S.eco.st[st.id]={dev:st.dev,b,q:null,pg:1};}
-  S.eco.gdp0=gdp();_M=null;}
+  S.eco.gdp0=gdp();_M=null;S.lw=null;lwSync();}
 // 以前の記録や、国を選び直したあとの読み込みで呼ぶ
-function polLoad(){if(!S)return;if(!S.w||!S.pol||!S.eco||!myStates().every(st=>S.eco.st[st.id]))polInit();else worldApply();}
+function polLoad(){if(!S)return;if(!S.w||!S.pol||!S.eco||!myStates().every(st=>S.eco.st[st.id]))polInit();else{worldApply();lwSync();}}
 function focusOK(f){const D=S.pol.foc.done;return !D[f[0]]&&(!f[5].length||f[5].some(k=>D[k]))&&!f[6].some(k=>D[k]);}
 function focusDone(k,rep){const W=S.w,me=ME(),rv=RVN(),al=natAlive(),f=focBy[k];S.pol.foc.done[k]=1;S.pol.foc.cur=null;_M=null;rep.push([`国家方針「${f[2]}」が完了した`,'g']);
   if(k==='d2a'){W.n[me].bloc=1;W.n.forEach((n,i)=>{if(i===me)return;if(n.bloc===1)relAdd(i,15);else if(n.bloc===2)relAdd(i,-10);});S.tension=clamp(S.tension+3,0,100);wNews(`${NAT.f}が${BLOC[1].n}に加盟`,'am');}
@@ -211,7 +212,7 @@ function polMonth(rep){if(!S.pol)return;const P=S.pol,E=S.eco,X=polSum();
   // 経済：成長、国庫、建設
   E.g*=1+(.8+(X.gdpG||0)+(P.stab-50)*.02)/1200;const rb=resBal(),G=gdp(),sur=RES.reduce((a,r)=>a+rb[r[0]].sur,0);
   E.inc=Math.round((30+G)*(1+(X.trdK||0))+sur*6*rb.open);E.tre+=E.inc;
-  for(const st of myStates()){const e=E.st[st.id];e.pg*=1+(.0008+.0003*(e.b.infra||0));if(e.q&&--e.q.left<=0){if(e.q.k==='dev')e.dev++;else e.b[e.q.k]=(e.b[e.q.k]||0)+1;rep.push([`${stName(st)}：${e.q.k==='dev'?'開発が進んだ(開発度 '+e.dev+')':BLD.find(b=>b[0]===e.q.k)[1]+'が完成'}`,'g']);e.q=null;E.ver++;}}
+  for(const st of myStates()){const e=E.st[st.id];e.pg*=1+(.0008+.0003*(e.b.infra||0));if(e.q&&stHeld(st)>0&&--e.q.left<=0){if(e.q.k==='dev')e.dev++;else e.b[e.q.k]=(e.b[e.q.k]||0)+1;rep.push([`${stName(st)}：${e.q.k==='dev'?'開発が進んだ(開発度 '+e.dev+')':BLD.find(b=>b[0]===e.q.k)[1]+'が完成'}`,'g']);e.q=null;E.ver++;}}
   for(const r of RES)if(rb[r[0]].def>=1.5&&S.month%3===0)rep.push([`${r[1]}が足りない(不足 ${rb[r[0]].def})。${r[2]}に響いている`,'am']);
   if(S.month%12===6){const have=P.pool.map(a=>a.t),c=ADV.map(a=>a[0]).filter(t=>!have.includes(t));P.pool=P.pool.filter(a=>P.adv.includes(a.id)||Math.random()<.6);for(let i=0;i<2&&c.length&&P.pool.length<8;i++){const t=c.splice(Math.floor(Math.random()*c.length),1)[0];P.pool.push({id:++P.aid,t,n:mkName()});}}
   worldMonth(rep);
@@ -234,8 +235,9 @@ function polEvApply(e,q){const out=[],me=ME(),rv=RVN(),who=x=>x==='x'?q.x:x==='y
   if(e.rd){for(const u of S.units)u.rd=clamp(u.rd+e.rd,5,100);out.push(`全艦の即応 ${sg(e.rd)}`);}
   if(e.rp){const ls=LINE.filter(l=>lvOf(l[0])<10);for(let i=0;i<e.rp&&ls.length;i++){const l=ls.splice(Math.floor(Math.random()*ls.length),1)[0];S.res[l[0]]={lv:lvOf(l[0])+1,prog:0};out.push(`研究「${l[1]}」が1段階進んだ`);}}
   if(e.aid&&q.x!=null)S.w.n[q.x].aid=S.month+12;
+  if(e.hot&&q.x!=null){const h=lwHot(q.x);if(h){h.t=clamp(h.t+e.hot,0,100);out.push(`国境の緊張 ${sg(e.hot)}`);}}
   _M=null;checkOver();return{txt:out.join('　'),bad:!!e.bad};}
-const anyWar=()=>S.w.wars[0]||null;
+const anyWar=()=>S.w.wars.find(w=>!w.pl)||null;
 const PEV={
   aidreq:{t:'支援の要請',d:q=>`${NATS[q.y].f}に攻め込まれた${NATS[q.x].f}の${S.w.n[q.x].ldr}${GOVL[S.w.n[q.x].gov]}が、我が国に支援を求めてきた。`,o:[
     ['艦隊と部隊を送る',{funds:-150,rd:-12,rel:[['x',22],['y',-18]],ten:3,sup:1,aid:1,grp:{mil:4}},'艦隊の一部を派遣した。相手国は深く感謝している。留守のあいだ、手元の艦の即応は落ちる。','資金 −150、即応 −12'],

@@ -81,7 +81,7 @@ rep("res==='draw'?'領海侵入を許す'","res==='draw'?(B.sc==='scramble'?'領
 rep("g.fillText(B.iname+'　領海',","g.fillText(B.iname+(B.sc==='scramble'?'　領空':'　領海'),")
 bt,n1=re.subn(r"(\w+)\.key==='cvl'",r"\1.cvf",bt);bt,n2=re.subn(r"(\w+)\.key!=='cvl'",r"!\1.cvf",bt)
 print('cvl patches',n1,n2)
-js=common+rd('data2.js')+'\n'+rd('nations.js')+'\n'+rd('equip.js')+'\n'+rd('world.js')+'\n'+rd('mapview.js')+'\n'+rd('sym.js')+'\n'+rd('state2.js')+'\n'+rd('hq2a.js')+'\n'+rd('hq2b.js')+'\n'+rd('equip_ui.js')+'\n'+rd('org.js')+'\n'+rd('theater.js')+'\n'+rd('theater_ui.js')+'\n'+rd('editor.js')+'\n'+rd('air.js')+'\n'+rd('polity.js')+'\n'+rd('polity_ui.js')+'\n'+bt+'\n'+rd('battle2.js')+'\n'+rd('ground.js')+'\n'+rd('view3d.js')
+js=common+rd('data2.js')+'\n'+rd('nations.js')+'\n'+rd('equip.js')+'\n'+rd('world.js')+'\n'+rd('mapview.js')+'\n'+rd('sym.js')+'\n'+rd('state2.js')+'\n'+rd('hq2a.js')+'\n'+rd('hq2b.js')+'\n'+rd('equip_ui.js')+'\n'+rd('org.js')+'\n'+rd('theater.js')+'\n'+rd('theater_ui.js')+'\n'+rd('editor.js')+'\n'+rd('air.js')+'\n'+rd('polity.js')+'\n'+rd('polity_ui.js')+'\n'+rd('landwar.js')+'\n'+bt+'\n'+rd('battle2.js')+'\n'+rd('ground.js')+'\n'+rd('view3d.js')
 for bad in ['tech(','S.officers','REIN_T','B.cec','su.cmd',"PT.cvl.",'A.sector','mapSVG']:
     if bad in js:print('STALE:',bad,[js[m.start()-60:m.start()+40].replace('\n',' ') for m in re.finditer(re.escape(bad),js)][:3])
 out=head+'<script>\n'+js+'</script>\n</body>\n</html>\n'

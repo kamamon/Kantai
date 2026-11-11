@@ -102,10 +102,12 @@ function prepStrike(z,kind){const il=S.isl[z],us=fightIn(z),L=[],pri=['ssm','aa'
   const nm={gun:'艦砲射撃',air:'空爆',msl:'ミサイル攻撃'}[kind];S.tension=clamp(S.tension+1,0,100);hlog(`${ISL[z]}：${nm}を実施`,'b');save();render();
   modal(`<div class="alert">準備攻撃</div><h2>${ISL[z]}　${nm}</h2>${L.map(l=>`<p class="sm">${l}。</p>`).join('')}<p class="sm mut">敵の守備隊は残り${il.egar.length}個。陣地は「${FORT[il.fort]}」。</p><div class="pol">緊張度 +1</div><div class="mbtn"><button class="btn pri" data-m="ok">確認</button></div>`,{ok:()=>{closeModal();A.prep(z);}});}
 const FORT=['未構築','簡易','堅固','要塞化'];
+// 決着を待っている地上戦。島への上陸が先で、本土の都市の攻防はそのあとに回る
+const gpNext=()=>{if(!S.gpend&&S.lw&&S.lw.bat){S.gpend=S.lw.bat;S.lw.bat=null;}return S.gpend;};
 
 /* ================= 月の進行 ================= */
 function nextMonth(){
-  if(S.over||mq.length||G)return;if(S.gpend){groundPrompt();return;}if(S.pending){showIncident();return;}
+  if(S.over||mq.length||G)return;if(gpNext()){groundPrompt();return;}if(S.pending){showIncident();return;}
   _M=null;cleanPosts();if(S.pers.auto)autoAssign();
   S.month++;const rep=[],C=S.cfg;let M=mods();
   // 艦隊は1か月に2海域ぶん進む
@@ -128,7 +130,7 @@ function nextMonth(){
   syncSectors();
   // 陸上部隊と島の施設
   for(const g of S.gnd){const home=g.loc==='home',z=g.loc[0]==='i'?+g.loc.slice(1):-1;g.tr=clamp(g.tr+(home?1.2:z>=0?.5:0)*(1+M.trGain),0,100);
-    if(g.hp<10&&(home||(z>=0&&facOK(z,'depot'))))g.hp=Math.min(10,g.hp+(home?2:1));}
+    if(g.hp<10&&(home||(z>=0&&facOK(z,'depot'))))g.hp=Math.min(10,g.hp+(home&&!S.lw?2:1));}
   for(const z of ISLZ)if(S.sectors[z].held){const fc=S.isl[z].fac;for(const k in fc)fc[k]=Math.min(100,fc[k]+8);}
   monthlyPers(rep,M);monthlyRD(rep,M);M=mods();
   S.orders=S.orders.filter(o=>{if(S.month<o.due)return true;deliver(o,rep);return false;});
@@ -168,9 +170,10 @@ function nextMonth(){
   if(offer)showPeace();
   if(fis)showFiscal(fis);
   polShow();
-  if(S.pending)showIncident();else if(S.gpend&&!fis&&!offer)groundPrompt();else if(rep.length&&!fis)toast(rep[0][0]+(rep.length>1?`　ほか${rep.length-1}件`:''));}
+  if(S.pending)showIncident();else if(!fis&&!offer&&gpNext())groundPrompt();else if(rep.length&&!fis)toast(rep[0][0]+(rep.length>1?`　ほか${rep.length-1}件`:''));}
 function checkOver(){if(S.over)return;const occ=ISLZ.filter(i=>!S.sectors[i].held).length,y=S.cfg.years;
   if(S.support<=0)S.over={k:'fired',t:'更迭',d:'国民と政府の信任を失い、司令の任を解かれた。'};
+  else if(lwCapLost())S.over={k:'lost',t:'首都陥落',d:lwOverText()};
   else if(occ>=3)S.over={k:'lost',t:'敗北',d:'すべての島嶼が占領された。'};
   else if(!S.units.length)S.over={k:'lost',t:'艦隊壊滅',d:'指揮すべき艦が残っていない。'};
   else if(S.month>=y*12)S.over={k:'end',t:'任期満了',d:`${y}年の任期を全うした。`};
@@ -201,7 +204,7 @@ function settle(o,inc){if(inc.type==='scramble')return airSettle(o,inc);let dS=0
   if(o.pre){dS-=15*pp;dT+=15*pp;L.push('先制攻撃に国内外から非難が集中した');}
   S.stats.eSunk+=o.eS;dS=Math.round(dS);dT=Math.round(dT);
   S.support=clamp(S.support+dS,0,100);S.tension=clamp(S.tension+dT,0,100);return{dS,dT,L};}
-function afterInc(html){S.pending=null;checkOver();save();render();modal(html+`<div class="mbtn"><button class="btn pri" data-m="ok">確認</button></div>`,{ok:()=>{closeModal();if(S.over)showOver();else if(S.gpend)groundPrompt();}});}
+function afterInc(html){S.pending=null;checkOver();save();render();modal(html+`<div class="mbtn"><button class="btn pri" data-m="ok">確認</button></div>`,{ok:()=>{closeModal();if(S.over)showOver();else if(gpNext())groundPrompt();}});}
 function ignoreInc(inc){if(inc.type==='scramble')return airIgnore(inc);const z=inc.sector,sec=S.sectors[z];let dS=-6,dT=2;const L=[];
   if(inc.type==='landing'){S.gpend={z,L:inc.L,fr:1};dS-=4;dT=5;L.push(`敵の上陸部隊は、海上で阻まれることなく${ISL[z]}に取りついた`);}
   else{sec.threat=clamp(sec.threat+12,0,100);L.push(inc.type==='airraid'&&raidIsland(z)||'敵の既成事実化が進んだ');}
@@ -221,7 +224,7 @@ function autoResolve(inc){if(inc.type==='scramble')return airAuto(inc);
 /* ---------- 上陸された島の地上戦に入る ---------- */
 const gstr=(list,q)=>list.reduce((a,x)=>{const t=GT[x.t||x.type];return a+x.hp*(t.atk+t.def)/2*(q?q(x):1);},0);
 function polApply(dS,dT){S.support=clamp(S.support+dS,0,100);S.tension=clamp(S.tension+dT,0,100);}
-function groundPrompt(){const gp=S.gpend;if(!gp||S.over)return;const z=gp.z,gar=garrison(z);if(!gp.force)gp.force=mkAssault(gp.L,gp.fr);
+function groundPrompt(){const gp=S.gpend;if(!gp||S.over)return;if(gp.home)return lwPrompt();const z=gp.z,gar=garrison(z);if(!gp.force)gp.force=mkAssault(gp.L,gp.fr);
   if(!gar.length&&gp.raid){S.gpend=null;const t=raidLoss(z);polApply(-3,2);checkOver();save();render();modal(`<div class="alert r">襲撃</div><h2>${ISL[z]}</h2><p>${t}。</p><div class="pol">支持率 −3　緊張度 +2</div><div class="mbtn"><button class="btn pri" data-m="ok">確認</button></div>`,{ok:()=>{closeModal();if(S.over)showOver();}});return;}
   if(!gar.length){S.gpend=null;occupy(z,gp.L,gp.force);polApply(-6,3);checkOver();save();render();
     modal(`<div class="alert r">占領</div><h2>${ISL[z]}</h2><p>守備隊のいない島に敵が上陸し、抵抗を受けずに占領した。</p><div class="pol">支持率 −6　緊張度 +3</div><div class="mbtn"><button class="btn pri" data-m="ok">確認</button></div>`,{ok:()=>{closeModal();if(S.over)showOver();}});return;}

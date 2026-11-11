@@ -38,7 +38,7 @@ function showFiscal(f){const p=a=>Math.round(askChance(a)*100);
 function begin(cfg){newGame(cfg);save();ui.tab='home';render();showHelp();}
 function showTitle(){const has=!!load();mq.length=0;
   modal(`<div class="alert">惑星${PLANET}　機動艦隊司令部</div><h2 class="big">蒼海の盾</h2><p class="sm">海が地表の大半を占める惑星${PLANET}。45の国が陸と海を分け合い、ふたつの陣営に割れて睨み合っている。一国の守りと舵取りを預かり、撃たせず、撃たずに守り抜けるか。</p>${has?'<p class="sm mut">新しく始めると、いまの記録は上書きされる。</p>':''}<div class="mbtn">${has?`<button class="btn pri" data-m="c">続きから</button>`:''}<button class="btn ${has?'':'pri'}" data-m="n">国を選んで始める</button></div>`,
-  {c:()=>{closeModal();S=load();applyNation(S.cfg.nat,S.cfg.riv);applyEdits(S.ed);polLoad();_M=null;_PM=null;render();if(S.over)showOver();else if(S.gpend)groundPrompt();else if(S.pending)showIncident();},n:()=>{closeModal();ui.cs=null;ui.nview='list';ui.wsc=null;ui.nsc=0;showNation();}});}
+  {c:()=>{closeModal();S=load();applyNation(S.cfg.nat,S.cfg.riv);applyEdits(S.ed);polLoad();_M=null;_PM=null;render();if(S.over)showOver();else if(gpNext())groundPrompt();else if(S.pending)showIncident();},n:()=>{closeModal();ui.cs=null;ui.nview='list';ui.wsc=null;ui.nsc=0;showNation();}});}
 // 国を選ぶ画面。20か国の名称群を見比べて、対峙する国も決める
 function showNation(){if(ui.nat==null)ui.nat=0;const info=ui.nview==='info',i=ui.nat,N=NATS[i],rv=ui.riv==null||ui.riv===i||!NATS[ui.riv]?N.rv:ui.riv,D=DSTY[N.ds],sv=TXL;let html;
   if(!info){
@@ -77,7 +77,7 @@ function showSetup(){const c=ui.cs,f=c.fleet;
   <div class="srow"><label>国名</label><input value="${esc(c.nation)}" oninput="ui.cs.nation=this.value" maxlength="12" aria-label="国名"></div>
   <div class="srow"><label>部隊名</label><input value="${esc(c.fleetName)}" oninput="ui.cs.fleetName=this.value" maxlength="16" aria-label="部隊名"></div>
   <h3 class="sub">期間と敵</h3>
-  ${sg2('years','任期',[[5,'5年'],[10,'10年'],[20,'20年'],[30,'30年']])}${sg2('eGrow','敵の軍拡',[[.6,'緩やか'],[1,'標準'],[1.5,'急速'],[2,'苛烈']])}${sg2('eAggr','敵の攻撃性',[[.7,'慎重'],[1,'標準'],[1.4,'攻撃的']])}${sg2('incF','事案の頻度',[[.6,'少ない'],[1,'標準'],[1.6,'多い']])}
+  ${sg2('years','任期',[[5,'5年'],[10,'10年'],[20,'20年'],[30,'30年']])}${sg2('eGrow','敵の軍拡',[[.6,'緩やか'],[1,'標準'],[1.5,'急速'],[2,'苛烈']])}${sg2('eAggr','敵の攻撃性',[[.7,'慎重'],[1,'標準'],[1.4,'攻撃的']])}${sg2('incF','事案の頻度',[[.6,'少ない'],[1,'標準'],[1.6,'多い']])}${sg2('landW','陸からの侵攻',[[1,'あり'],[0,'なし']])}
   <h3 class="sub">政治と予算</h3>
   ${st('budget','年間の防衛予算',400,2400,24000,' 億円')}${st('funds','手持ちの資金',200,0,30000,' 億円')}${st('tension','緊張度',5,5,85,'%')}${st('support','支持率',5,25,85,'%')}
   ${sg2('prePen','先制攻撃への非難',[[.5,'緩い'],[1,'標準'],[1.6,'厳しい']])}${sg2('sandbox','資金',[[false,'通常'],[true,'無制限']])}
