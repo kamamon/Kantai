@@ -3,11 +3,11 @@ for(const k of ATK)SHOPX['a_'+k]={kind:'airu',n:AT[k].n,cost:AT[k].cost,build:AT
 const AIRB=[0,1,4,7];
 const airAt=z=>(S.air||[]).filter(a=>a.base===z);
 const airBaseOK=z=>z===0||(ISLZ.includes(z)&&S.sectors[z].held&&facOK(z,'air'));
-const airCap=z=>z===0?10:ISLZ.includes(z)&&S.sectors[z].held?3:0;
+const airCap=z=>z===0?10+2*(baseLv(0,'air')-1):ISLZ.includes(z)&&S.sectors[z].held?3+(baseLv(z,'air')-1):0;
 const airRng=a=>ARNG[a.type]+((a.type==='ftr'||a.type==='atk'||a.type==='ewa')&&S.air.some(t=>t.type==='tkr'&&t.base===a.base&&t.n>0&&t.rdy>=20)?1:0);
 const airOK=a=>a.n>0&&a.rdy>=15&&airBaseOK(a.base);
 const airCover=(z,type)=>(S.air||[]).filter(a=>a.type===type&&airOK(a)&&HOP[a.base][z]<=airRng(a));
-const airForce=z=>(S.air||[]).filter(a=>(a.type==='ftr'||a.type==='atk')&&airOK(a)&&HOP[a.base][z]<=airRng(a));
+const airForce=z=>(S.air||[]).filter(a=>(a.type==='ftr'||a.type==='atk'||a.type==='mpa')&&airOK(a)&&HOP[a.base][z]<=airRng(a));
 const ebDist=(b,z)=>1+Math.min(99,...ADJ[z].filter(n=>!ZONES[n].enemy).map(n=>HOP[b][n]));
 const airStrikers=z=>(S.air||[]).filter(a=>(a.type==='bmr'||a.type==='atk')&&airOK(a)&&a.rdy>=40&&(ZONES[z].enemy?ebDist(a.base,z):HOP[a.base][z])<=airRng(a));
 const airBaseName=z=>z?ISL[z]+'飛行場':'本土基地';
@@ -46,15 +46,17 @@ function airMonth(rep){if(!S.air)return;const M=mods(),C=S.cfg;
 const abTx=h=>{const s=selUnits();return s.length===1&&s[0].ab?h.replace(/船体/g,'施設').replace(/甲板/g,'滑走路').replace(/発艦/g,'発進'):h;};
 function airMods(M,z){if(!S.air)return;const c=t=>airCover(z,t).length;if(c('aew')){M.radA+=.15;M.radM+=.1;}if(c('mpa')){M.sosus+=.2;M.sonar+=.1;}if(c('ewa'))M.jam+=.12;if(c('uav')){M.radS+=15;M.eIntel+=.2;}}
 function airSetup(z,drill){const o=B.obj,M=B.M,all=!S.air?[]:drill?S.air.filter(a=>a.n>0):S.air.filter(a=>airOK(a)&&HOP[a.base][z]<=airRng(a));
-  const mk=(list,here)=>{let ftr=0,aew=0,asm=0;const sq=[];
-    for(const a of list){if(a.type==='ftr'||a.type==='atk'){const v=airAv(a);if(v<2)continue;ftr+=v;if(a.type==='atk')asm+=v*2;sq.push([a.id,v,0]);}else if(a.type==='aew'&&!aew){aew=1;sq.push([a.id,0,1]);}}
-    if(!ftr&&!aew)return null;
-    return mkSite(Object.assign({cvf:true,ab:1,ftr,aew,ftr0:ftr,aew0:aew,aamS:ftr*6,asmS:asm,sq,sym:'AB'},here?{name:B.iname+' 航空基地',lab:'航空基地',x:o.x+9,y:o.y-9,hp:110,max:110,dA:120,dS:30,dM:20,fref:z&&!drill?'air':null}:{name:'域外の航空基地',lab:'域外基地',x:B.base.x,y:B.base.y,hp:400,max:400,stealth:1,far:1}));};
+  const mk=(list,here)=>{let ftr=0,aew=0,asm=0,mpa=0;const sq=[];
+    for(const a of list){if(a.type==='ftr'||a.type==='atk'){const v=airAv(a);if(v<2)continue;ftr+=v;if(a.type==='atk')asm+=v*2;sq.push([a.id,v,0]);}else if(a.type==='aew'&&!aew){aew=1;sq.push([a.id,0,1]);}else if(a.type==='mpa'){const v=Math.min(3,Math.floor(a.n*clamp(a.rdy/100,.2,1)/2));if(v>0){mpa+=v;sq.push([a.id,v,2]);}}}
+    if(!ftr&&!aew&&!mpa)return null;
+    return mkSite(Object.assign({cvf:true,ab:1,ftr,aew,mpa,ftr0:ftr,aew0:aew,mpa0:mpa,aamS:ftr*6,asmS:asm,sq,sym:'AB'},here?{name:B.iname+' 航空基地',lab:'航空基地',x:o.x+9,y:o.y-9,hp:110,max:110,dA:120,dS:30,dM:20,fref:z&&!drill?'air':null}:{name:'域外の航空基地',lab:'域外基地',x:B.base.x,y:B.base.y,hp:400,max:400,stealth:1,far:1}));};
   B.ab=[mk(drill?all:all.filter(a=>a.base===z),true),mk(drill?[]:all.filter(a=>a.base!==z),false)].filter(Boolean);
   if(z===0&&!drill)mkSite({name:'本土 レーダーサイト',lab:'レーダー',sym:'RDR',x:o.x-4,y:o.y-3,dA:340*(1+M.radA),dS:80,dM:45});
   if(drill&&B.sc==='scramble'&&!B.ab.some(b=>b.ftr>=2)){B.ab=[mkSite({cvf:true,ab:1,ftr:8,aew:1,ftr0:8,aew0:1,aamS:48,asmS:0,sq:[],sym:'AB',lab:'航空基地',name:'演習島 航空基地',x:o.x+9,y:o.y-9,hp:110,max:110,dA:320,dS:30,dM:20})];}
-  if(B.ab.length)blog(`基地の航空部隊が加わる：${B.ab.map(b=>`${b.lab}(戦闘機${b.ftr}機${b.aew?'、警戒機1機':''})`).join('、')}。基地をタップして発進させる`,'');
-  if(B.airOnly){const b=B.ab.find(x=>!x.far&&x.ftr>=2)||B.ab.find(x=>x.ftr>=2);if(b){B.sel=[b.id];launch('cap');const f=B.u[B.u.length-1];B.sel=f&&f.cat==='air'?[f.id]:[];}
+  if(B.ab.length)blog(`基地の航空部隊が加わる：${B.ab.map(b=>`${b.lab}(戦闘機${b.ftr}機${b.aew?'、警戒機1機':''}${b.mpa?`、哨戒機${b.mpa}機`:''})`).join('、')}。基地をタップして発進させる`,'');
+  if(B.airOnly&&B.sc!=='scramble'){const b=B.ab.find(x=>x.mpa>0);if(b){B.sel=[b.id];launch('mpa');const f=B.u[B.u.length-1];B.sel=f&&f.cat==='air'?[f.id]:[];}
+    blog('現場に艦がいない。基地の航空機だけで当たる。哨戒機を相手の25km以内に寄せれば「警告」を出せる','b');}
+  else if(B.airOnly){const b=B.ab.find(x=>!x.far&&x.ftr>=2)||B.ab.find(x=>x.ftr>=2);if(b){B.sel=[b.id];launch('cap');const f=B.u[B.u.length-1];B.sel=f&&f.cat==='air'?[f.id]:[];}
     blog('緊急発進した編隊を国籍不明機の15km以内に寄せ、「警告」を発する。領空(点線の内側)に入られる前に追い返せば最良','b');}}
 // 領空侵犯：国籍不明機は島の上空へ進み、しばらく旋回して引き揚げる
 function airSetupE(f){const sp=B.sp,o=B.obj;let k=0;
@@ -82,9 +84,11 @@ function airWarn(){if(B.hot||B.over||B.eWd)return;
 // 戦闘のあと：失った機数と疲労を飛行隊に戻す
 function airApply(){if(!B.ab||B.drill)return;const hot=B.hot;
   for(const b of B.ab){const surv=(b.dead?0:b.ftr+b.turn.reduce((a,x)=>a+x.n,0))+(b.ret||0),lost=Math.max(0,b.ftr0-surv),lostA=Math.max(0,b.aew0-((b.dead?0:b.aew)+(b.retA||0)));
-    const fs=b.sq.filter(q=>q[1]>0),tot=fs.reduce((a,q)=>a+q[1],0);let rem=lost;
+    const fs=b.sq.filter(q=>q[1]>0&&!q[2]),tot=fs.reduce((a,q)=>a+q[1],0);let rem=lost;
     fs.forEach((q,i)=>{const a=S.air.find(x=>x.id===q[0]);if(!a)return;const l=i===fs.length-1?rem:Math.min(rem,Math.round(lost*q[1]/Math.max(1,tot)));rem-=l;a.n=Math.max(0,a.n-l);a.rdy=Math.max(0,a.rdy-(hot?14:6));a.tr=Math.min(100,a.tr+(hot?4:2));});
-    for(const q of b.sq)if(q[2]){const a=S.air.find(x=>x.id===q[0]);if(!a)continue;if(lostA>0)a.n=Math.max(0,a.n-1);a.rdy=Math.max(0,a.rdy-6);}}
+    for(const q of b.sq)if(q[2]===1){const a=S.air.find(x=>x.id===q[0]);if(!a)continue;if(lostA>0)a.n=Math.max(0,a.n-1);a.rdy=Math.max(0,a.rdy-6);}
+    let lostM=Math.max(0,(b.mpa0||0)-((b.dead?0:(b.mpa||0))+(b.retM||0)));const flew=(b.mpa0||0)>(b.mpa||0)||lostM>0;
+    for(const q of b.sq)if(q[2]===2){const a=S.air.find(x=>x.id===q[0]);if(!a)continue;const l=Math.min(lostM,q[1]);lostM-=l;a.n=Math.max(0,a.n-l);if(flew){a.rdy=Math.max(0,a.rdy-(hot?10:5));a.tr=Math.min(100,a.tr+2);}}}
   S.air=S.air.filter(a=>{if(a.n>0)return true;hlog(`${a.name}は全機を失い、解隊された`,'r');return false;});if(hot)S.lastHot=S.month;}
 function airSettle(o,inc){let dS=-o.pS*4,dT=0;const L=[],z=inc.sector,pp=S.cfg.prePen*(1-clamp(mods().prePen,-.3,.6)),shot=B&&B.inc===inc?B.eAir:0;
   if(o.pre){dS-=12*pp;dT+=12*pp;L.push('警告を尽くさないままの撃墜に、国内外から非難が集中した');}
@@ -121,7 +125,7 @@ UV.air=()=>{const m=S.scrM,st=S.stats;let h=`<section class="sec"><h2>航空部�
   for(const z of AIRB){const sq=airAt(z),cap=airCap(z);if(z&&!S.sectors[z].held){h+=`<section class="sec"><h2>${airBaseName(z)}</h2><p class="al r">島は占領下にある</p></section>`;continue;}
     h+=`<section class="sec"><h2>${airBaseName(z)}　${sq.length}/${cap}</h2>${z&&!facOK(z,'air')?'<p class="al am">飛行場が損壊している。直るまで飛べない</p>':''}${sq.length?sq.map(airRow).join(''):'<p class="mut sm">飛行隊はいない</p>'}</section>`;}
   return h;};
-VIEW.units=()=>subtabs('units',[['ships','艦艇'],['fleets','艦隊'],['air','航空'],['gnd','陸上'],['eq','装備']])+(UV[ui.sub.units]||UV.ships)();
+VIEW.units=()=>subtabs('units',[['ships','艦艇'],['fleets','艦隊'],['air','航空'],['gnd','陸上'],['org','編成表'],['base','基地'],['eq','装備']])+(UV[ui.sub.units]||UV.ships)();
 function airZoneHTML(z){const Z=ZONES[z];if(!S.air)return'';
   if(Z.enemy){const sq=airStrikers(z),eb=S.ebase[z]||{dmg:0},dn=eb.m===S.month;
     return `<h3 class="sub">泊地への航空攻撃</h3><p class="sm">泊地の損害 ${eb.dmg}%。損害が大きいほど、ここから出る侵攻は遅れ、取りやめになりやすい(毎月5%ずつ復旧する)。${atWar()?'':'<br><span class="am">いまは侵攻の兆しがない。攻撃すれば先制攻撃として強い非難を受ける。</span>'}</p>

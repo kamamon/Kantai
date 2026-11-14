@@ -123,3 +123,10 @@ svg.sil{vertical-align:middle;margin-right:5px}
 .rt{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:6px}.rt th,.rt td{border-bottom:1px solid var(--ln);padding:5px 4px;text-align:left;white-space:nowrap}.rt th{color:var(--mut);font-weight:normal}
 .mbtn.col .btn{text-align:left}.mbtn.col small{display:block;font-size:11px;opacity:.75;font-weight:normal}
 .st3.one{grid-template-columns:1fr}
+
+.ticons{display:flex;flex-wrap:wrap;gap:3px;margin:6px 0}.ticons i{font-style:normal;font-size:11px;min-width:20px;text-align:center;padding:1px 3px;border:1px solid #3b6a85;background:#11344a;color:#dff1fb}.ticons i.s{border-color:#7a6a3a;background:#2c2715;color:#ffe9a8}
+.tgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:8px 0}.tslot{min-height:54px;border:1px dashed var(--ln);border-radius:3px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--mut);background:none;font-size:15px}
+.tslot.on{border-style:solid;border-color:#3b6a85;background:#11344a;color:#fff}.tslot.on.nat{border-color:#5fb0ff}.tslot b{font-size:17px}.tslot small{font-size:10.5px;color:#b9d3e2}
+.tpal{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0}.tpal .btn{text-align:left}.tpal small,.urow .btn small,.brow .btn small{display:block;font-size:10.5px;opacity:.78;font-weight:normal}
+.tin{flex:1;min-width:0;background:#0b2233;border:1px solid var(--ln);color:#fff;padding:7px 8px;font-size:15px;border-radius:3px}
+.stp{display:inline-flex;align-items:center;gap:10px;vertical-align:middle}.stp button{width:34px;height:30px;background:var(--pn);border:1px solid var(--ln);border-radius:3px;color:#fff;font-size:16px}.stp button:disabled{opacity:.35}.stp b{min-width:26px;text-align:center}

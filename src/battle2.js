@@ -21,7 +21,10 @@ function mkE(key,x,y,role,extra){const t=ET[key],air=t.cat==='air',i=B.ec[key]=(
     ciws:t.ciws?Math.min(.8,t.ciws+.015*e):0,ecm:t.ecm?Math.min(.6,t.ecm+.015*e):0,asm:t.asm||0,asmR:(t.asmR||0)*(1+.03*e),asmDmg:(t.asmDmg||50)*(1+.04*e),
     aam:t.aam||0,aamR:(t.aamR||0)*(1+.04*e),aamPk:t.aamPk?Math.min(.85,t.aamPk+.02*e):0,torp:t.torp||0,torpR:t.torpR||0,lo:t.lo||0,role,val:t.val,air:t.air||0,born:B.t,ox:0,oy:0,fx:0,fy:0},extra||{}));}
 function mkFlight(c,kind){const M=B.M,d=norm(B.sp.x-c.x,B.sp.y-c.y),base={side:'P',cat:'air',home:c.id,ab:c.ab||0,x:c.x+d.x*2,y:c.y+d.y*2,q:c.q,fl:kind,surv:clamp(M.ftrSurv,0,.5)};let f;
-  if(kind==='aew'){const k=1+M.aewRad;f=mk(Object.assign(base,{key:'aew',name:'早期警戒機',lab:'早期警戒機',sym:'AEW',spd:8,hp:1,max:1,n:1,dA:400*k,dS:300*k,dM:150*k,fuel:300*(1+M.ftrFuel)}));f.dx=clamp(c.x+d.x*25,5,W-5);f.dy=clamp(c.y+d.y*25,5,H-5);}
+  if(kind==='mpa'){const g=eqCur('mpa').g,asm=g>=5?8:g>=3?4:0;B.pn=(B.pn||0)+1;
+    f=mk(Object.assign(base,{key:'mpa',name:`哨戒機${B.pn}番機`,lab:'哨戒機',sym:'MPA',spd:g>=4?12:g>=3?10:7,hp:1,max:1,n:1,dA:70,dS:(150+g*28)*(1+M.ftrRad*.5),dM:50,so:(4+g*4)*(1+M.sonar),asm,asmR:(g>=5?140:110)*(1+M.ftrAsmR),asmDmg:50*(1+M.asmDmg),pkB:M.asmPen,asmV:15*(1+M.asmSpd),torp:g>=3?4:2,torpR:6,aswB:M.aswPk+.08+g*.01,fuel:(300+g*45)*(1+M.ftrFuel)}));
+    const o=B.obj,dd=norm(B.sp.x-o.x,B.sp.y-o.y);f.dx=clamp(o.x+dd.x*35,5,W-5);f.dy=clamp(o.y+dd.y*35,5,H-5);}   // 哨戒機は、守る島と敵の来る方角のあいだへ向かう
+  else if(kind==='aew'){const k=1+M.aewRad;f=mk(Object.assign(base,{key:'aew',name:'早期警戒機',lab:'早期警戒機',sym:'AEW',spd:8,hp:1,max:1,n:1,dA:400*k,dS:300*k,dM:150*k,fuel:300*(1+M.ftrFuel)}));f.dx=clamp(c.x+d.x*25,5,W-5);f.dy=clamp(c.y+d.y*25,5,H-5);}
   else{const ld=1+M.ftrLoad,aam=Math.min(Math.round((kind==='cap'?8:4)*ld),c.aamS);c.aamS-=aam;const asm=kind==='stk'?Math.min(Math.round(4*ld),c.asmS):0;c.asmS-=asm;B.fn++;const nm=CALL[(B.fn-1)%CALL.length]+(Math.floor((B.fn-1)/CALL.length)+1),r=1+M.ftrRad;
     f=mk(Object.assign(base,{key:'ftr',name:nm,lab:nm,sym:kind==='cap'?'CAP':'攻撃隊',spd:15,hp:2,max:2,n:2,dA:160*r,dS:200*(1+M.ftrRad*.5),dM:80*(1+M.ftrRad*.5),aam,aamR:80*(1+M.ftrAamR),aamPk:clamp((.6+M.ftrAam+(c.airB||0))*c.q,.2,.92),
       asm,asmR:110*(1+M.ftrAsmR),asmDmg:50*(1+M.asmDmg),pkB:M.asmPen,asmV:15*(1+M.asmSpd),fuel:150*(1+M.ftrFuel)}));
@@ -85,7 +88,7 @@ function setupShore(z){const o=B.obj,M=B.M;let n=0;
     else continue;n++;}}
 function startBattle(inc){
   const drill=!!inc.drill,z=inc.sector,us=drill?S.units.filter(u=>u.mode==='normal'&&u.sector>=0&&!PT[u.type].tcap):fightIn(z),rs=drill?{near:[],far:[],all:[]}:reserve(z);
-  if(!us.length&&!rs.all.length&&inc.type!=='scramble'){toast('出撃できる部隊がない');return;}
+  if(!us.length&&!rs.all.length&&inc.type!=='scramble'&&!(drill?0:airOnlyOK(z))){toast('出撃できる部隊がない');return;}
   _M=null;const M=Object.assign({},mods());if(!drill)airMods(M,z);const eT=inc.eT||0,C=S.cfg,T=reinTime();
   B={inc,drill,M,eT,sc:inc.type,iname:drill?'演習島':ISL[z],t:0,u:[],m:[],ui:{},mi:{},uid:0,mid:0,fx:[],log:[],pend:[],sel:[],tsel:null,hot:false,auth:false,pre:false,eWd:false,over:null,paused:true,speed:1,
     obj:{x:255,y:285,r:22},pc:{x:125,y:405},base:{x:14,y:H-14},sp:pick([{x:260,y:22},{x:455,y:55},{x:472,y:240}]),cam:{x:W/2,y:H/2,z:1},k:1,cw:300,ch:300,dpr:1,g:null,
@@ -93,14 +96,14 @@ function startBattle(inc){
     dT:0,aT:0,intelT:15,intel:null,zoneT:0,landT:0,landNeed:Math.max(10,20+M.garr),warnCd:0,warnN:0,fireAt:null,vampCd:0,satT:Math.max(0,M.satT),sup:eT>=3?2:(inc.L>=2.6||eT>=1)?1:0,
     antiSS:clamp(M.antiSS,0,.25),asmLow:clamp(M.asmLow,0,.6),antiLO:M.antiLO,jam:clamp(M.jam,0,.5),eIn:25*(1+clamp(M.eIntel,-.5,2)),reinT0:rs.near.length?T:T*2,
     willFire:inc.type==='scramble'?Math.random()<clamp((S.tension*C.eAggr-45)/250,0,.2):inc.type!=='intrusion'||Math.random()<clamp((S.tension*C.eAggr-10)/80+.15,.25,.95),
-    airOnly:inc.type==='scramble',eAir:0,pAir:0,eLost:0,eInit:0,pursuitK:0,divert:{ftr:0,aew:0},st:{sam:0,asm:0,aam:0,torp:0},ec:{},fn:0,tmax:420,intruded:false,logD:true,mk:null};
+    airOnly:inc.type==='scramble'||(!us.length&&!rs.all.length),eAir:0,pAir:0,eLost:0,eInit:0,pursuitK:0,divert:{ftr:0,aew:0},st:{sam:0,asm:0,aam:0,torp:0},ec:{},fn:0,tmax:420,intruded:false,logD:true,mk:null};
   if(inc.type==='landing'||inc.type==='retake'){B.hot=true;B.auth=true;}
   for(const k in inc.force)B.eInit+=ET[k].val*inc.force[k];
   setupP(us,B.pc);setupE(inc.force);
   if(!drill&&ISLZ.includes(z)){
     if(S.sectors[z].held)setupShore(z);
     else S.isl[z].egar.forEach((e,i)=>{if(e.t==='ssm'&&e.hp>0)mkE('eshore',B.obj.x+R(-4,4),B.obj.y+R(-4,4),'guard',{site:1,eg:i,asm:Math.max(2,Math.round(8*e.hp/10))});});}
-  airSetup(z,drill);
+  airSetup(z,drill);if(!drill)baseSites(z);
   const arr=(list,t,more,pos)=>B.pend.push({rein:1,t,f:()=>{setupP(list,pos);blog(`増援が到着：${list.map(u=>u.name).join('、')}`,'g');banner('増援　到着','g');if(more)B.reinT0=T*2;if(B.speed>4)setSpeed(4);uiRefresh(true);}});
   if(rs.near.length)arr(rs.near,T,rs.far.length>0,{x:B.pc.x-35,y:B.pc.y+35});
   if(rs.far.length)arr(rs.far,T*2,false,{x:B.pc.x-15,y:B.pc.y+55});
@@ -117,9 +120,9 @@ function startBattle(inc){
   lastTs=performance.now();cancelAnimationFrame(raf);raf=requestAnimationFrame(frame);}
 function applyUnits(){
   for(const f of B.u){if(f.side!=='P'||f.cat!=='air'||f.dead)continue;const h=B.ui[f.home];
-    if(f.ab){const hb=h&&h.ab?h:(B.ab||[])[0];if(hb){if(f.key==='aew')hb.retA=(hb.retA||0)+1;else hb.ret=(hb.ret||0)+f.n;}continue;}
+    if(f.ab){const hb=h&&h.ab?h:(B.ab||[])[0];if(hb){if(f.key==='aew')hb.retA=(hb.retA||0)+1;else if(f.key==='mpa')hb.retM=(hb.retM||0)+1;else hb.ret=(hb.ret||0)+f.n;}continue;}
     if(h&&!h.dead){if(f.key==='aew')h.aew++;else{h.ftr+=f.n;h.aamS+=f.aam;h.asmS+=f.asm;}}else B.divert[f.key==='aew'?'aew':'ftr']+=f.n;}
-  S.pool.ftr+=B.divert.ftr;S.pool.aew+=B.divert.aew;const win=B.over.res==='win',z=B.inc.sector,il=S.isl[z];
+  baseApply();S.pool.ftr+=B.divert.ftr;S.pool.aew+=B.divert.aew;const win=B.over.res==='win',z=B.inc.sector,il=S.isl[z];
   for(const b of B.u){if(b.side!=='P'||b.ref==null)continue;const su=U(b.ref);if(!su)continue;
     if(b.dead){sink(su);continue;}
     const t=PT[su.type];su.hp=Math.max(5,Math.round(b.hp/b.max*100));su.load.sam=b.sam;

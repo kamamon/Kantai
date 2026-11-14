@@ -156,7 +156,9 @@ function resBal(){const me=ME(),E=S.eco,X=polSum(1),W=S.w,al=natAlive(),lanes=ZO
   const need={oil:.5+S.units.length/14+(S.air||[]).length/8,steel:1+S.orders.filter(o=>o.kind==='unit').length*.7,rare:S.labs.length/4,food:1+heldSt().reduce((a,s)=>a+s.pop*S.eco.st[s.id].pg,0)/3000},o={};
   for(const r of RES){const k=r[0];let prod=0,imp=0;for(const st of heldSt())if(st.res===k)prod+=1+(E.st[st.id].b.mine||0);
     W.n.forEach((n,i)=>{const c=i!==me&&al[i]&&n.trd&&!n.sanc?natRes(i)[k]||0:0;if(c)imp+=c>=2?1.5:1;});imp*=open*tk;
-    const nd=+need[k].toFixed(1),d=clamp(nd-prod-imp,0,4);o[k]={need:nd,prod,imp:+imp.toFixed(1),def:+d.toFixed(1),sur:Math.max(0,prod-nd)};}
+    // 国庫での買い付けと備蓄を足して、なお足りないぶんが不足になる
+    const nd=+need[k].toFixed(1),T=S.trade,buy=T?(T.res[k].buy||0)*open:0,raw=nd-prod-imp-buy,cov=T?clamp(raw,0,T.stock[k]||0):0,d=clamp(raw-cov,0,4),sur=Math.max(0,prod-nd);
+    o[k]={need:nd,prod,imp:+imp.toFixed(1),buy:+buy.toFixed(1),cov:+cov.toFixed(1),def:+d.toFixed(1),sur,ext:Math.max(0,-raw-sur)};}
   o.open=open;return o;}
 /* ---------- 効果の合計 ---------- */
 // 国家方針・政策・顧問・勢力・与党・建物・資源・同盟・一時的な出来事を合わせる。能力値(STAT)と国政の値が混ざって返る
@@ -168,6 +170,8 @@ function polSum(noRes){if(!S||!S.pol)return{};const P=S.pol,o={},add=(fx,k2)=>{i
   const g=k=>(P.grp[k]-50)/50;add({gdpG:g('biz')*.5,morale:g('mil')*.08,buildT:g('lab')*.05,recruit:g('reg')*.1,stabT:g('reg')*4,rp:g('aca')*.05});
   add(PARTY[P.gov.p][2]);add(PARTY[P.gov.p][3]);
   for(const m of P.mods)if(m.until>S.month)add(m.fx);
+  econSum(add);
+  if(S.base&&S.base[0])add({dockSpd:.08*(S.base[0].port-1),rdRec:.05*(S.base[0].port-1),airRdy:.02*(S.base[0].air-1)});
   if(S.eco){add({buildT:Math.min(.2,.02*bldSum('yard')),rp:Math.min(.2,.02*bldSum('uni')),recruit:Math.min(.3,.03*bldSum('base')),stabT:Math.min(6,.6*bldSum('base')),trdK:Math.min(.4,.03*bldSum('port'))});
     if(!noRes){const rb=resBal(),h=o.resH?.5:1;add({upk:-.02*rb.oil.def*h,airRdy:-.04*rb.oil.def*h,buildT:-.03*rb.steel.def*h,rp:-.03*rb.rare.def*h,stabT:-1.5*rb.food.def*h});}}
   const W=S.w,me=ME(),rv=RVN();if(W){const al=natAlive();add({tension:(W.n[rv].rel+60)/100*.5+(inWar(rv)&&!inWar(rv).pl?.5:0)-(W.n[me].bloc===1?.1:0),intel:Math.min(.12,.04*W.n.filter((n,i)=>n.def&&al[i]).length),trdK:Math.min(.5,.05*W.n.filter((n,i)=>n.trd&&al[i]).length)});}
@@ -183,9 +187,9 @@ function polInit(){const C=S.cfg,r=rng32(331+ME()*7);worldInit();worldApply();
   const ts=ADV.map(a=>a[0]);for(let k=ts.length-1;k>0;k--){const j=Math.floor(r()*(k+1)),t=ts[k];ts[k]=ts[j];ts[j]=t;}for(const t of ts.slice(0,6))S.pol.pool.push({id:++S.pol.aid,t,n:mkName()});
   S.eco={st:{},g:1,gdp0:1,tre:200,ver:1};
   for(const st of myStates()){const b={ind:Math.floor(st.dev/2),infra:1};if(st.coast)b.port=1;if(st.cap){b.uni=1;if(st.coast)b.yard=1;b.base=1;}if(st.res)b.mine=1;S.eco.st[st.id]={dev:st.dev,b,q:null,pg:1};}
-  S.eco.gdp0=gdp();_M=null;S.lw=null;lwSync();}
+  S.eco.gdp0=gdp();_M=null;S.lw=null;lwSync();extInit(true);}
 // 以前の記録や、国を選び直したあとの読み込みで呼ぶ
-function polLoad(){if(!S)return;if(!S.w||!S.pol||!S.eco||!myStates().every(st=>S.eco.st[st.id]))polInit();else{worldApply();lwSync();}}
+function polLoad(){if(!S)return;if(!S.w||!S.pol||!S.eco||!myStates().every(st=>S.eco.st[st.id]))polInit();else{worldApply();lwSync();extInit();}}
 function focusOK(f){const D=S.pol.foc.done;return !D[f[0]]&&(!f[5].length||f[5].some(k=>D[k]))&&!f[6].some(k=>D[k]);}
 function focusDone(k,rep){const W=S.w,me=ME(),rv=RVN(),al=natAlive(),f=focBy[k];S.pol.foc.done[k]=1;S.pol.foc.cur=null;_M=null;rep.push([`国家方針「${f[2]}」が完了した`,'g']);
   if(k==='d2a'){W.n[me].bloc=1;W.n.forEach((n,i)=>{if(i===me)return;if(n.bloc===1)relAdd(i,15);else if(n.bloc===2)relAdd(i,-10);});S.tension=clamp(S.tension+3,0,100);wNews(`${NAT.f}が${BLOC[1].n}に加盟`,'am');}
@@ -211,7 +215,7 @@ function polMonth(rep){if(!S.pol)return;const P=S.pol,E=S.eco,X=polSum();
   if(P.foc.cur&&--P.foc.cur.left<=0)focusDone(P.foc.cur.k,rep);
   // 経済：成長、国庫、建設
   E.g*=1+(.8+(X.gdpG||0)+(P.stab-50)*.02)/1200;const rb=resBal(),G=gdp(),sur=RES.reduce((a,r)=>a+rb[r[0]].sur,0);
-  E.inc=Math.round((30+G)*(1+(X.trdK||0))+sur*6*rb.open);E.tre+=E.inc;
+  E.inc=Math.round((30+G)*(1+(X.trdK||0))+econMonth(rep,rb));E.tre=Math.max(0,E.tre+E.inc);
   for(const st of myStates()){const e=E.st[st.id];e.pg*=1+(.0008+.0003*(e.b.infra||0));if(e.q&&stHeld(st)>0&&--e.q.left<=0){if(e.q.k==='dev')e.dev++;else e.b[e.q.k]=(e.b[e.q.k]||0)+1;rep.push([`${stName(st)}：${e.q.k==='dev'?'開発が進んだ(開発度 '+e.dev+')':BLD.find(b=>b[0]===e.q.k)[1]+'が完成'}`,'g']);e.q=null;E.ver++;}}
   for(const r of RES)if(rb[r[0]].def>=1.5&&S.month%3===0)rep.push([`${r[1]}が足りない(不足 ${rb[r[0]].def})。${r[2]}に響いている`,'am']);
   if(S.month%12===6){const have=P.pool.map(a=>a.t),c=ADV.map(a=>a[0]).filter(t=>!have.includes(t));P.pool=P.pool.filter(a=>P.adv.includes(a.id)||Math.random()<.6);for(let i=0;i<2&&c.length&&P.pool.length<8;i++){const t=c.splice(Math.floor(Math.random()*c.length),1)[0];P.pool.push({id:++P.aid,t,n:mkName()});}}

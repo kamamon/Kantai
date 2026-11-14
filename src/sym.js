@@ -28,7 +28,7 @@ function silTop(g,kind,x,y,L,ang,fill,stroke){const p=TOPV[kind]||TOPV.ship;g.be
   if(kind==='hel'){g.strokeStyle=fill;g.lineWidth=1;g.beginPath();g.arc(x,y-L*.12*Math.cos(ang),L*.42,0,6.3);g.stroke();}}
 // 一覧に使う小さなSVG
 function silSVG(kind,w,col){const p=SIDE[kind]||SIDE.dd,h=Math.round(w*.52);return `<svg class="sil" width="${w}" height="${h}" viewBox="-0.54 -0.5 1.08 0.52" aria-hidden="true">${p.map(q=>{let d='';for(let i=0;i<q.length;i+=2)d+=(i?'L':'M')+q[i]+' '+q[i+1];return `<path d="${d}Z" fill="${col||'#9fd0ff'}"/>`;}).join('')}</svg>`;}
-const symKind=u=>u.site?'site':u.cat==='air'?(u.sk||(u.key==='aew'||u.key==='ebmr'||u.key==='erec'?'big':u.key==='euav'?'uav':'ftr')):u.cat==='sub'?'sub':(u.cvf||u.key==='ecv')?'cv':(u.key==='elst'||u.key==='lst'||u.key==='lhd'||u.key==='lpd'||u.key==='aoe')?'lst':(u.max<60&&u.side==='P')?'boat':'ship';
+const symKind=u=>u.site?'site':u.cat==='air'?(u.sk||(u.key==='aew'||u.key==='mpa'||u.key==='ebmr'||u.key==='erec'?'big':u.key==='euav'?'uav':'ftr')):u.cat==='sub'?'sub':(u.cvf||u.key==='ecv')?'cv':(u.key==='elst'||u.key==='lst'||u.key==='lhd'||u.key==='lpd'||u.key==='aoe')?'lst':(u.max<60&&u.side==='P')?'boat':'ship';
 // 戦術図の記号：艦は船体、航空機は機影。進む向きに回す
 function drawSym(g,x,y,u,ghost,sel,tg){const E=u.side==='E',c=E?'#ff6b5e':'#5fb0ff',f=E?'#ff8f84':'#8cc8ff',kd=symKind(u),zk=clamp(.8+.2*Math.sqrt(B.cam.z),1,2.1);
   if(u.dx!=null&&Math.abs(u.dx-u.x)+Math.abs(u.dy-u.y)>.02)u._a=Math.atan2(u.dy-u.y,u.dx-u.x)+Math.PI/2;else if(u._a==null)u._a=Math.atan2(B.obj.y-u.y,B.obj.x-u.x)+Math.PI/2;

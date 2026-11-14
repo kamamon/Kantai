@@ -79,9 +79,22 @@ rep("if(!P.length&&!B.pend.some(p=>p.rein))return finish('lose',{});","if(!P.len
 rep("else if(B.hot&&(B.sc==='airraid'||B.sc==='intrusion')&&!sp&&","else if(B.hot&&(B.sc==='airraid'||B.sc==='intrusion'||B.sc==='scramble')&&!sp&&")
 rep("res==='draw'?'領海侵入を許す'","res==='draw'?(B.sc==='scramble'?'領空侵犯を許す':'領海侵入を許す')")
 rep("g.fillText(B.iname+'　領海',","g.fillText(B.iname+(B.sc==='scramble'?'　領空':'　領海'),")
+# 哨戒機：基地から発進し、対艦ミサイルと短魚雷を積む。航空機からも警告を出せる
+rep("  if(kind==='aew'){if(c.aew<1)return toast('早期警戒機がない');","  if(kind==='mpa'){if(!(c.mpa>0))return toast('哨戒機がない');c.mpa--;const f=mkFlight(c,'mpa');blog(`${c.name} ${f.name}を発進`,'b');}\n  else if(kind==='aew'){if(c.aew<1)return toast('早期警戒機がない');")
+rep("if(h){if(u.key==='aew')h.aew++;else{h.turn.push(","if(h){if(u.key==='aew')h.aew++;else if(u.key==='mpa')h.mpa=(h.mpa||0)+1;else{h.turn.push(")
+rep("else{B.divert[u.key==='aew'?'aew':'ftr']+=u.n;blog(`${u.name} 本土基地に着陸`,'');}","else{if(u.key==='mpa'){const hb=(B.ab||[])[0];if(hb)hb.retM=(hb.retM||0)+1;}else B.divert[u.key==='aew'?'aew':'ftr']+=u.n;blog(`${u.name} 本土基地に着陸`,'');}")
+rep("h=B.u.find(x=>x.side==='P'&&!x.dead&&x.key==='cvl');u.home=h?h.id:0;","h=B.u.find(x=>x.side==='P'&&!x.dead&&x.key==='cvl'&&(u.key!=='mpa'||x.ab));u.home=h?h.id:0;")
+rep("(u.cat==='ship'&&t.cat==='sub');","((u.cat==='ship'||u.key==='mpa')&&t.cat==='sub');")
+rep("if(u.cat==='air'&&o.w==='asm'&&u.asm<=0)rtb(u);","if(u.cat==='air'&&u.key!=='mpa'&&o.w==='asm'&&u.asm<=0)rtb(u);")
+rep("${u.cat==='sub'?'魚雷':'対潜弾'}${n}発を発射","${u.cat==='sub'?'魚雷':u.key==='mpa'?'短魚雷':'対潜弾'}${n}発を発射")
+rep("if(!es.some(e=>ps.some(p=>dist(p,e)<=50)))return toast('無線が届かない。艦を相手の50km以内まで寄せること');\n  B.warnCd=15;B.warnN++;blog('国際VHFで警告：「貴艦は我が国の領海に接近している。直ちに針路を変更せよ」','b');",
+    "const fl0=B.u.filter(u=>u.side==='P'&&!u.dead&&u.cat==='air'&&!u.rtb),byShip=es.some(e=>ps.some(p=>dist(p,e)<=50)),byAir=!byShip&&es.some(e=>fl0.some(p=>dist(p,e)<=25));\n  if(!byShip&&!byAir)return toast('無線が届かない。艦を相手の50km以内、航空機なら25km以内まで寄せること');\n  B.warnCd=byAir?10:15;B.warnN++;blog(byAir?'航空機が低空で近づき、無線と信号で警告：「貴艦は我が国の領海に接近している。直ちに針路を変更せよ」':'国際VHFで警告：「貴艦は我が国の領海に接近している。直ちに針路を変更せよ」','b');")
+rep("+(B.willFire?-.3:.1)-(B.warnN-1)*.05,.05,.85);","+(B.willFire?-.3:.1)-(B.warnN-1)*.05-(byAir?.05:0),.05,.85);")
+rep("+(u.key==='ftr'?`、AAM ${u.aam}、ASM ${u.asm}`:'')+","+(u.key==='ftr'?`、AAM ${u.aam}、ASM ${u.asm}`:u.key==='mpa'?`、対艦ミサイル ${u.asm}、短魚雷 ${u.torp}`:'')+")
+rep("if(one.aew>0)h+=`<button data-a=\"launch:aew\"${no?' disabled':''}>早期警戒機を発艦</button>`;}","if(one.aew>0)h+=`<button data-a=\"launch:aew\"${no?' disabled':''}>早期警戒機を発艦</button>`;if(one.mpa>0)h+=`<button data-a=\"launch:mpa\"${no?' disabled':''}>哨戒機を発進(残${one.mpa})</button>`;}")
 bt,n1=re.subn(r"(\w+)\.key==='cvl'",r"\1.cvf",bt);bt,n2=re.subn(r"(\w+)\.key!=='cvl'",r"!\1.cvf",bt)
 print('cvl patches',n1,n2)
-js=common+rd('data2.js')+'\n'+rd('nations.js')+'\n'+rd('equip.js')+'\n'+rd('world.js')+'\n'+rd('mapview.js')+'\n'+rd('sym.js')+'\n'+rd('state2.js')+'\n'+rd('hq2a.js')+'\n'+rd('hq2b.js')+'\n'+rd('equip_ui.js')+'\n'+rd('org.js')+'\n'+rd('theater.js')+'\n'+rd('theater_ui.js')+'\n'+rd('editor.js')+'\n'+rd('air.js')+'\n'+rd('polity.js')+'\n'+rd('polity_ui.js')+'\n'+rd('landwar.js')+'\n'+bt+'\n'+rd('battle2.js')+'\n'+rd('ground.js')+'\n'+rd('view3d.js')
+js=common+rd('data2.js')+'\n'+rd('nations.js')+'\n'+rd('equip.js')+'\n'+rd('world.js')+'\n'+rd('mapview.js')+'\n'+rd('sym.js')+'\n'+rd('state2.js')+'\n'+rd('hq2a.js')+'\n'+rd('hq2b.js')+'\n'+rd('equip_ui.js')+'\n'+rd('org.js')+'\n'+rd('theater.js')+'\n'+rd('theater_ui.js')+'\n'+rd('editor.js')+'\n'+rd('air.js')+'\n'+rd('polity.js')+'\n'+rd('polity_ui.js')+'\n'+rd('landwar.js')+'\n'+rd('base.js')+'\n'+rd('army.js')+'\n'+rd('econ2.js')+'\n'+bt+'\n'+rd('battle2.js')+'\n'+rd('ground.js')+'\n'+rd('view3d.js')
 for bad in ['tech(','S.officers','REIN_T','B.cec','su.cmd',"PT.cvl.",'A.sector','mapSVG']:
     if bad in js:print('STALE:',bad,[js[m.start()-60:m.start()+40].replace('\n',' ') for m in re.finditer(re.escape(bad),js)][:3])
 out=head+'<script>\n'+js+'</script>\n</body>\n</html>\n'
