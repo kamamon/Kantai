@@ -5,10 +5,10 @@ const SAVE='soukai_no_tate_v3';
 function save(){if(S&&S.fleets)syncSectors();_M=null;_PM=null;try{localStorage.setItem(SAVE,JSON.stringify(S));}catch(e){}}
 function load(){try{const s=localStorage.getItem(SAVE);if(s){const o=JSON.parse(s);if(o&&o.v===3)return migrate(o);}}catch(e){}return null;}
 // 以前の版の記録に、あとから増えた項目を足す
-function migrate(o){if(!o.cfg.era)o.cfg.era=4;
+function migrate(o){if(!o.cfg.era)o.cfg.era=4;if(!PLN[o.cfg.planet])o.cfg.planet=0;
   if(!o.eqm){o.eqm={};for(const s of EQSK)o.eqm[s]=eqDef(s,4);for(const k in EQ_OLD)if(o.flags&&o.flags[k]){const e=EQ_OLD[k];o.eqm[e[0]]=e[1];o.flags[eqKey(e[0],e[1])]=1;}}
   for(const k in EQ_OLD)if(o.projs&&o.projs[k])delete o.projs[k];
-  if(!o.air){o.air=[];o.aid=0;o.aseq={};o.airlog=[];}if(!o.ebase)o.ebase={};if(!o.stats.scr){o.stats.scr=0;o.stats.scrMiss=0;}
+  if(!o.air){o.air=[];o.aid=0;o.aseq={};o.airlog=[];}if(!o.ebase)o.ebase={};if(o.stats.scr==null)o.stats.scr=0;if(o.stats.scrMiss==null)o.stats.scrMiss=0;
   return o;}
 const U=id=>S.units.find(u=>u.id===id);
 const lineById={};LINE.forEach(l=>{lineById[l[0]]=l;});
@@ -61,7 +61,7 @@ function mods(){if(_M)return _M;const M={};for(const k in STAT)M[k]=0;
   for(const p of PROJ)if(p.fx&&S.flags[p.k])for(const k in p.fx)M[k]+=p.fx[k];
   for(const s of EQSK){const fx=eqFx(s,eqCur(s).i);for(const k in fx)M[k]+=fx[k];}
   {const px=polSum();for(const k in px)if(k in M)M[k]+=px[k];}
-  const nn=NATS[S.cfg.nat]||NATS[0];for(const k in nn.fx)M[k]+=nn.fx[k];for(const k in CUR.efx)M[k]+=CUR.efx[k];if(S.ed)for(const k in S.ed.fx)if(k in M)M[k]+=S.ed.fx[k];
+  const nn=NATS[S.cfg.nat]||NATS[0];for(const k in nn.fx)M[k]+=nn.fx[k];{const gf=natGeo(S.cfg.nat||0).fx;for(const k in gf)if(k in M)M[k]+=gf[k];}for(const k in CUR.efx)M[k]+=CUR.efx[k];if(S.ed)for(const k in S.ed.fx)if(k in M)M[k]+=S.ed.fx[k];
   BITEM.forEach((b,i)=>{M[b[4]]+=b[5]*(S.bud[i]-2);});
   const pm=postMap(),has=(id,t)=>!!pm[id]&&pm[id].tr.includes(t),ab=(id,k)=>pm[id]?effAb(pm[id],k)-10:-4,cs=clamp(1+ab('hq:cs','adm')*.03,.8,1.4),st=(id,k)=>ab(id,k)*cs;
   M.reinT+=st('hq:n3','cmd')*1.5;M.q+=st('hq:n3','cmd')*.003;M.intel+=st('hq:n2','tec')*.02;M.satT+=st('hq:n2','tec');

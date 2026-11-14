@@ -52,7 +52,7 @@ function provColors(mode){const Wd=WORLD,n=Wd.P.length,LR=new Uint8Array(n),LG=n
     LR[p]=c[0];LG[p]=c[1];LB[p]=c[2];}
   return{LR,LG,LB};}
 const stDev=st=>S&&S.eco&&S.eco.st[st.id]?S.eco.st[st.id].dev:st.dev;
-function wPaint(){const Wd=WORLD,H=Wd&&Wd.hi;if(!H||!H.cv)return;const mode=S&&S.w?(ui.mmode||'pol'):'pol',key=mode+':'+(Wd.ver||0)+':'+(mode==='pol'||mode==='ter'||mode==='sta'?'':(S.w.ver||0)+'/'+(S.eco?S.eco.ver||0:0));if(H.key===key)return;H.key=key;
+function wPaint(){const Wd=WORLD,H=Wd&&Wd.hi;if(!H||!H.cv)return;const mode=ui.pmode||(S&&S.w?(ui.mmode||'pol'):'pol'),key=mode+':'+(Wd.ver||0)+':'+(mode==='pol'||mode==='ter'||mode==='sta'?'':(S.w.ver||0)+'/'+(S.eco?S.eco.ver||0:0));if(H.key===key)return;H.key=key;
   const px=new Uint32Array(H.im.data.buffer),hp=H.hp,sd=H.sd,tp=H.tp,N=hp.length,sea=new Uint32Array(256),terr=mode==='ter',L=terr?null:provColors(mode);
   for(let k=0;k<256;k++){const d=k/255;sea[k]=(0xff000000|((92-42*d)<<16)|((62-34*d)<<8)|(24-15*d))>>>0;}
   const isl=(0xff000000|(112<<16)|(154<<8)|168)>>>0;
@@ -104,7 +104,7 @@ function drawWorldCv(cv){const Wd=WORLD||genWorld(),m=cv.dataset.mode,cw=cv.clie
   const hi=cv.dataset.hi,ri=cv.dataset.ri,N0=Wd.nat[+hi||0],st=mvGet(m,m==='loc'?{}:{z:2.2,cx:N0.x,cy:N0.y});
   if(m!=='sel'&&st.hi!==hi){st.hi=hi;if(m==='view'||st.z>1.05){st.cx=N0.x;st.cy=N0.y;}}
   const v=mvFit(st,cw,ch,s0,{x:0,y:0,w:WW,h:WH},40),g=wPrep(cv,cw,ch),s=v.s;(ui.mvv=ui.mvv||{})[m]=v;if(!g)return;
-  wBase(g,v);if(m==='loc'){g.fillStyle='rgba(3,9,16,.35)';g.fillRect(0,0,cw,ch);}
+  wBase(g,v);if(m==='loc'&&hi!=null){g.fillStyle='rgba(3,9,16,.35)';g.fillRect(0,0,cw,ch);}
   const fill=(ni,col,a)=>{if(ni==null||ni===''||!Wd.nat[+ni])return;const k=natMask(+ni,col);if(!k)return;g.globalAlpha=a;g.drawImage(k.cv,(k.x-v.x0)*s,(k.y-v.y0)*s,k.w*s,k.h*s);g.globalAlpha=1;};
   if(m!=='view'){fill(ri,rgba32(255,70,60,1),.45);fill(hi,rgba32(255,255,255,1),m==='sel'?.25:.36);}wLines(g,v);
   const ring=(ni,col)=>{if(ni==null||ni===''||!Wd.nat[+ni])return;const N=Wd.nat[+ni];g.strokeStyle=col;g.lineWidth=2;g.beginPath();g.arc((N.x+.5-v.x0)*s,(N.y+.5-v.y0)*s,m==='loc'?9:13,0,6.3);g.stroke();};

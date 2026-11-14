@@ -273,6 +273,17 @@ svg.sil{vertical-align:middle;margin-right:5px}
 .tpal{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0}.tpal .btn{text-align:left}.tpal small,.urow .btn small,.brow .btn small{display:block;font-size:10.5px;opacity:.78;font-weight:normal}
 .tin{flex:1;min-width:0;background:#0b2233;border:1px solid var(--ln);color:#fff;padding:7px 8px;font-size:15px;border-radius:3px}
 .stp{display:inline-flex;align-items:center;gap:10px;vertical-align:middle}.stp button{width:34px;height:30px;background:var(--pn);border:1px solid var(--ln);border-radius:3px;color:#fff;font-size:16px}.stp button:disabled{opacity:.35}.stp b{min-width:26px;text-align:center}
+
+/* 惑星を選ぶ */
+.plsel{border:1px solid var(--ln);border-radius:4px;padding:8px 9px;margin:8px 0;background:var(--pn2)}
+.plsel .pts{margin:4px 0 8px 1.1em;padding:0;font-size:12.5px;line-height:1.6}
+.pllist{display:grid;gap:5px;margin:8px 0 12px}
+.pllist button{display:flex;flex-direction:column;gap:3px;background:var(--pn2);border:1px solid var(--ln);border-radius:3px;padding:7px 9px;color:var(--tx);text-align:left}
+.pllist button.on{background:#1d4e6b;border-color:#3b88ad;color:#fff}
+.pllist .pn b{font-size:14px;margin-right:8px}.pllist .pn small{color:var(--cy);font-size:12px}.pllist button.on .pn small{color:#cfe6f2}
+.pllist .lv{display:grid;grid-template-columns:repeat(4,auto);justify-content:start;gap:2px 9px;font-size:9.5px;color:var(--mut)}
+.plq{margin:6px 0 2px}.plsel .chips{margin:6px 0 4px}.pllist .lv i{font-style:normal;white-space:nowrap}.pllist button.on .lv{color:#cfe6f2}
+.plhd{margin:2px 0 8px}
 </style>
 </head>
 <body>
@@ -577,7 +588,7 @@ const FACD={hq:'ここを取った側が島を制する',air:'海域の敵活動
 
 /* ================= 惑星ペラギアの20か国(名称群テンプレート) ================= */
 // 国ごとに、艦名・人名・海と島の名・装備名・艦種や階級の呼び方が変わる。国も地名もすべて架空
-const PLANET='ペラギア';
+let PLANET='ペラギア';
 const WL=s=>s.split(' ').map(x=>x==='_'?'':x);
 // 艦種の呼び方(4系統)。tx=言い換え、fl=艦隊名[戦闘,潜水,輸送,新編]、hq=司令部名、cls=艦級の接尾
 const DSTY=[
@@ -1080,44 +1091,110 @@ Object.assign(ET,{
 SCN.scramble={n:'領空侵犯のおそれ',d:i=>`国籍不明機が${ISL[i.sector]}の領空へ向かっている。戦闘機を緊急発進させ、近づいて針路を変えさせよ。相手が撃たないかぎり、こちらからは撃てない。`,o:'戦闘機を15km以内に寄せて警告し、領空から去らせる'};
 DEFCFG.air={ftr:2,atk:0,bmr:0,aew:1,mpa:1,ewa:0,tkr:0,trn:1,uav:0};
 
-/* ================= 惑星ペラギアの世界地図 ================= */
-// 決まった種から毎回同じ世界を作る。陸は45か国の領土に、国は州に、州はプロヴィンスに分かれる。海は海域に分かれる。作戦図はこの地図の一部を切り出して描く
+/* ================= 惑星 ================= */
+// 惑星ごとに、地形の作り方(gen)・気候(clim)・資源(res)・世界の情勢(pol)・自国を取り巻く条件(sit)が違う。
+// 0番のペラギアは、これまでの世界とまったく同じものを作る(古い記録はプロヴィンスの番号で領土を覚えている)
+// lv=[海の広さ, 資源, 戦乱, 豊かさ] を1〜5で示す
+const PLG0={seed:48271,sea:.66,w:[1,.5,.25,.12,.055],edge:[24,.6,16.5,.7],shape:'',lake:0,isl:14,capIsl:68,pg:4.6,pmin:7,spd:0,rmin:100};
+const PLC0={wob:0,pol:.78,jl:.34,jm:.55,d0:.3,d1:.64,dm:.37,fm:.58,mM:.93,mH:.79};
+const PLR0={k:1,food:1,oil:1,steel:1,rare:1};
+const PLP0={nb:12,hotP:.22,hot0:0,drift:0,maxWar:3,warP:1,coupP:1,war0:0,mil:0,stab:0,peaceK:1,govK:null,govP:0};
+const PLS0={incF:1,eAggr:1,eGrow:1,landK:1,ten:0,budget:1,price:1,tradeN:4,rivK:1};
+const PLN=[
+  {n:'ペラギア',tag:'均衡の惑星',lv:[3,3,3,3],d:'海が地表の3分の2を占める。45の国が陸と海を分け合い、ふたつの陣営に割れて睨み合う。陸にも海にも火種がある、標準の世界。',
+    pts:['陸と海の釣り合いがとれている','ふたつの陣営と非同盟が、ほぼ同じ数だけある'],gen:{}},
+  {n:'テラニア',tag:'大陸の惑星',lv:[1,3,4,3],d:'海は地表の2割に満たない。ひと続きの大陸に内海と海峡が点々とあり、ほとんどの国が、陸でいくつもの国と接している。',
+    pts:['陸の国境が多く、本土への侵攻が起きやすい','海は狭い内海と海峡ばかりで、海上の事案は少ない','山と丘が多く、国境の地形が守りを左右する'],
+    gen:{seed:91813,sea:.23,w:[.42,.7,.5,.24,.1],edge:[9,.55,6,.6],lake:90,pg:6.6,pmin:9,capIsl:120,isl:20},clim:{mM:.9,mH:.72,wob:.16},pol:{hotP:.36,drift:.5,maxWar:5,warP:1.4},sit:{incF:.7,landK:1.5}},
+  {n:'タラッサ',tag:'大洋の惑星',lv:[5,3,2,3],d:'地表の9割近くが海。国はどれも島々の集まりで、陸の国境はほとんどない。守るべきものは、海と航路と島である。',
+    pts:['陸から攻め込まれることは、まずない','海上の事案が多く、相手の海軍の伸びも速い','資源は海を渡ってくる。輸入の値が高い'],
+    gen:{seed:60617,sea:.875,w:[.7,.6,.5,.3,.14],pg:3.3,pmin:4,isl:8,capIsl:36},clim:{jl:.5,jm:.45,wob:.16},pol:{hotP:.3,maxWar:2},sit:{incF:1.5,landK:.6,eGrow:1.1,price:1.15}},
+  {n:'ベルム',tag:'戦乱の惑星',lv:[2,3,5,2],d:'戦争が絶えない世界。国境という国境に兵が張りつき、任期の始まる日にも、いくつもの戦争が続いている。大国は小国を呑み、政変が相次ぐ。',
+    pts:['着任の時点で、すでに5つ前後の戦争が起きている','国境の緊張が上がりやすく、同時に7つまで戦争が起きる','陣営は小さく、頼れる国が少ない。政変も多い','国の大きさに、ひどく差がある'],
+    gen:{seed:33703,sea:.52,w:[.8,.65,.4,.2,.08],spd:.75,lake:160,pg:5.3,pmin:8},clim:{mM:.9,wob:.16},pol:{nb:7,hotP:.75,hot0:20,drift:1.2,maxWar:7,warP:2,coupP:2.2,war0:5,mil:.22,stab:-8,peaceK:.85,govK:[4,4,3],govP:.45},sit:{incF:1.4,eAggr:1.2,landK:1.7,ten:12}},
+  {n:'ケノス',tag:'枯渇の惑星',lv:[3,1,4,2],d:'掘り尽くされた世界。石油も鉄も希少鉱も、採れる州は数えるほどしかない。資源のある土地をめぐって、国どうしが争う。',
+    pts:['資源の採れる州が、ほかの惑星の3分の1ほどしかない','輸入の値はおよそ2倍。備蓄と通商の相手選びが効く','どの国も貧しく、防衛予算も少ない'],
+    gen:{seed:77447,sea:.6,w:[1,.55,.3,.14,.06],pg:5,pmin:8},clim:{dm:.46,fm:.64,wob:.16},res:{k:.25},dev:-1,pol:{hotP:.34,drift:.6,maxWar:4,warP:1.5},sit:{price:1.9,budget:.88,tradeN:2,ten:6}},
+  {n:'ニヴァリス',tag:'氷の惑星',lv:[3,3,2,2],d:'極の氷床が緯度の半ばまで張り出した、寒い世界。人が暮らせるのは赤道沿いの帯だけで、高緯度の国は広いばかりで人がいない。',
+    pts:['国土の半分以上が雪原。国の大きさと豊かさが比例しない','石油は多いが、食料が乏しい','人口が少なく、予算も人も足りない'],
+    gen:{seed:21589,sea:.56,shape:'caps',edge:[24,.6,10,.3],lake:150,pg:5.2,pmin:8},clim:{pol:.42,wob:.3,jl:0,jm:1,d0:.1,d1:.3,dm:.3,fm:.5},res:{oil:1.4,food:.55},pop:.8,pol:{maxWar:2,nb:10},sit:{budget:.9,incF:.9}},
+  {n:'ザハラ',tag:'砂の惑星',lv:[2,4,3,3],d:'陸の大半を砂漠が覆う、乾いた世界。人は海沿いと内海のほとりに集まり、砂の下には石油が眠る。',
+    pts:['石油の採れる州が多い。食料は乏しい','富は産油国に偏り、政変が起きやすい','陸が広く、国境は長い'],
+    gen:{seed:14983,sea:.4,w:[1,.5,.3,.14,.06],lake:140,pg:5.9,pmin:9},clim:{pol:.92,wob:.2,jl:.12,jm:.7,d0:0,d1:.84,dm:.6,fm:.74},res:{oil:1.9,food:.3,rare:1.3},pol:{coupP:1.7,hotP:.32,maxWar:4,warP:1.2,govK:[5],govP:.45},sit:{price:1.25,landK:1.2}},
+  {n:'ゲミナ',tag:'二極の惑星',lv:[3,3,3,3],d:'東西ふたつの大陸が、大洋をはさんで向かい合う。ほとんどの国がどちらかの陣営に属し、中立でいられる国はわずかしかない。',
+    pts:['45か国のうち、ほぼすべてがふたつの陣営に分かれている','緊張が高いところから始まり、対峙する国の力も大きい','陣営どうしの国境は、いつも火種を抱えている'],
+    gen:{seed:50411,sea:.6,shape:'two',w:[.8,.5,.3,.14,.06],pg:5,pmin:8},clim:{wob:.16},pol:{nb:21,hot0:8,drift:.3},sit:{ten:12,incF:1.3,rivK:1.15,eAggr:1.1}},
+  {n:'メディオ',tag:'内海の惑星',lv:[2,3,3,4],d:'輪のようにつながった大陸が、ひとつの大きな内海を囲む。どの国の艦隊も同じ海に出てくるので、海の上はいつも混み合っている。',
+    pts:['内海をはさんで多くの国が向かい合い、海上の事案がとても多い','外洋への出口は、いくつかの海峡だけ','交易で栄え、どの国もやや豊か'],
+    gen:{seed:86243,sea:.55,shape:'ring',lake:300,w:[.8,.5,.3,.14,.06],pg:5.2,pmin:8},clim:{wob:.16},dev:.6,pol:{hotP:.3},sit:{incF:1.6,eAggr:1.15,ten:5}},
+  {n:'エリュシア',tag:'平穏の惑星',lv:[4,4,1,5],d:'長い平和が続く、豊かな世界。戦争はめったに起きず、陣営も小さい。そのぶん、軍に金を出す理由を問われつづける。',
+    pts:['国境の緊張が下がりやすく、戦争は同時にひとつまで','どの国も開発が進み、資源も多い。輸入の値は安い','防衛予算は2割ほど少ない。抑止を保てるかが勝負'],
+    gen:{seed:29017,sea:.7},clim:{fm:.5,wob:.16},res:{k:1.35},dev:1.5,pol:{nb:6,hotP:.07,drift:-1.1,maxWar:1,warP:.3,coupP:.35,stab:10,peaceK:1.6,govK:[0,1,2],govP:.6},sit:{incF:.55,eAggr:.8,ten:-12,budget:.82,tradeN:8,price:.85}}
+];
+const PLLV=['海の広さ','資源','戦乱','豊かさ'];
+let PLC=0,_plK=null;
+// いまの惑星の設定(足りない項目は標準の値で埋める)
+function PL(){if(_plK&&_plK.i===PLC)return _plK;const p=PLN[PLC]||PLN[0];
+  return _plK={i:PLC,n:p.n,tag:p.tag,gen:Object.assign({},PLG0,p.gen),clim:Object.assign({},PLC0,p.clim),res:Object.assign({},PLR0,p.res),pol:Object.assign({},PLP0,p.pol),sit:Object.assign({},PLS0,p.sit),dev:p.dev||0,pop:p.pop||1};}
+// 地形に足す大きな起伏。u,v は 0〜1
+const WSHAPE={
+  two:(u,v)=>-1.25*Math.exp(-Math.pow((u-.5)/.085,2))+.42*(Math.exp(-Math.pow((u-.25)/.16,2)-Math.pow((v-.5)/.36,2))+Math.exp(-Math.pow((u-.75)/.16,2)-Math.pow((v-.5)/.36,2))),
+  ring:(u,v)=>{const dx=(u-.5)/.5,dy=(v-.5)/.46,d=Math.hypot(dx,dy),a=Math.atan2(dy,dx);let h=-1.2*Math.exp(-Math.pow(d/.4,2))+.52*Math.exp(-Math.pow((d-.72)/.19,2));
+    for(const t of[.45,2.6,-1.75]){let da=Math.abs(a-t);if(da>Math.PI)da=2*Math.PI-da;if(d>.25)h-=.95*Math.exp(-Math.pow(da*d/.05,2));}return h;},
+  caps:(u,v)=>{const la=Math.abs(v-.5)*2;return .75*Math.max(0,la-.5)-.22*Math.exp(-Math.pow(la/.28,2));}
+};
+
+/* ================= 惑星の世界地図 ================= */
+// 惑星ごとに決まった種から、毎回同じ世界を作る。陸は45か国の領土に、国は州に、州はプロヴィンスに分かれる。海は海域に分かれる。作戦図はこの地図の一部を切り出して描く
 const WW=432,WH=243,WN=WW*WH,WS=4;
-let WORLD=null;
+let WORLD=null,_wgen=0;
 function wHeap(){let cap=4096,K=new Float64Array(cap),V=new Int32Array(cap),n=0;return{n:()=>n,
   push(k,v){if(n===cap){cap*=2;const k2=new Float64Array(cap),v2=new Int32Array(cap);k2.set(K);v2.set(V);K=k2;V=v2;}let i=n++;while(i>0){const p=(i-1)>>1;if(K[p]<=k)break;K[i]=K[p];V[i]=V[p];i=p;}K[i]=k;V[i]=v;},
   pop(){const k0=K[0],v0=V[0];n--;if(n>0){const k=K[n],v=V[n];let i=0;for(;;){let c=i*2+1;if(c>=n)break;if(c+1<n&&K[c+1]<K[c])c++;if(k<=K[c])break;K[i]=K[c];V[i]=V[c];i=c;}K[i]=k;V[i]=v;}return[k0,v0];}};}
 // 複数の起点から同時に広げて、各マスの持ち主を決める
-function wGrow(seeds,pass,cost,diag,grp){const own=new Int16Array(WN).fill(-1),dist=new Float64Array(WN).fill(1e9),h=wHeap();
+function wGrow(seeds,pass,cost,diag,grp,spd){const own=new Int16Array(WN).fill(-1),dist=new Float64Array(WN).fill(1e9),h=wHeap();
   seeds.forEach((c,k)=>{if(c>=0){dist[c]=0;own[c]=k;h.push(0,c);}});
   while(h.n()){const t=h.pop(),d=t[0],c=t[1];if(d>dist[c])continue;const x=c%WW,y=(c-x)/WW;
     for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){if((!dx&&!dy)||(!diag&&dx&&dy))continue;const nx=x+dx,ny=y+dy;if(nx<0||ny<0||nx>=WW||ny>=WH)continue;const n=ny*WW+nx;if(!pass(n)||(grp&&grp[n]!==grp[c]))continue;
-      const nd=d+(dx&&dy?1.41:1)*cost(n);if(nd<dist[n]){dist[n]=nd;own[n]=own[c];h.push(nd,n);}}}
+      const stp=(dx&&dy?1.41:1)*cost(n),nd=d+(spd?stp*spd[own[c]]:stp);if(nd<dist[n]){dist[n]=nd;own[n]=own[c];h.push(nd,n);}}}
   return own;}
 const wnb=c=>{const x=c%WW,a=[];if(x>0)a.push(c-1);if(x<WW-1)a.push(c+1);if(c>=WW)a.push(c-WW);if(c<WN-WW)a.push(c+WW);return a;};
 const wd2=(a,b)=>{const dx=a%WW-b%WW,dy=Math.floor(a/WW)-Math.floor(b/WW);return dx*dx+dy*dy;};
 function wRuns(cells){const by={};for(const c of cells){const y=Math.floor(c/WW);(by[y]=by[y]||[]).push(c%WW);}const out=[];
   for(const y in by){const xs=by[y].sort((a,b)=>a-b);let s=xs[0],p=xs[0];for(let i=1;i<=xs.length;i++){if(i<xs.length&&xs[i]===p+1){p=xs[i];continue;}out.push([+y,s,p]);s=p=xs[i];}}return out;}
-function genWorld(){const r=rng32(48271);
+function genWorld(){const K=PL(),g=K.gen,cl=K.clim,rs=K.res,r=rng32(g.seed),gw=g.w,E=g.edge,shp=WSHAPE[g.shape]||null;
   const lat=(gw,gh)=>{const w=gw+2,g=new Float32Array(w*(gh+2));for(let i=0;i<g.length;i++)g[i]=r();
     return(x,y)=>{const fx=x*gw/WW,fy=y*gh/WH,xi=Math.floor(fx),yi=Math.floor(fy),tx=fx-xi,ty=fy-yi,sx=tx*tx*(3-2*tx),sy=ty*ty*(3-2*ty),a=g[yi*w+xi],b=g[yi*w+xi+1],c=g[(yi+1)*w+xi],d=g[(yi+1)*w+xi+1];return a+(b-a)*sx+(c-a)*sy+(a-b-c+d)*sx*sy;};};
   const n1=lat(7,4),n2=lat(14,8),n3=lat(28,16),n4=lat(56,32),nb=lat(36,20),n5=lat(112,63),nm=lat(22,13),hgt=new Float32Array(WN),rough=new Float32Array(WN);
-  for(let y=0;y<WH;y++)for(let x=0;x<WW;x++){const ex=Math.min(x,WW-1-x)/24,ey=Math.min(y,WH-1-y)/16.5,i=y*WW+x;
-    hgt[i]=n1(x,y)+n2(x,y)*.5+n3(x,y)*.25+n4(x,y)*.12+n5(x,y)*.055-Math.max(0,1-ex)*.6-Math.max(0,1-ey)*.7;rough[i]=nb(x,y);}
-  const thr=Array.from(hgt).sort((a,b)=>a-b)[Math.floor(WN*.66)],land=new Uint8Array(WN);for(let i=0;i<WN;i++)land[i]=hgt[i]>thr?1:0;
+  for(let y=0;y<WH;y++)for(let x=0;x<WW;x++){const ex=Math.min(x,WW-1-x)/E[0],ey=Math.min(y,WH-1-y)/E[2],i=y*WW+x;
+    let h=n1(x,y)*gw[0]+n2(x,y)*gw[1]+n3(x,y)*gw[2]+n4(x,y)*gw[3]+n5(x,y)*gw[4]-Math.max(0,1-ex)*E[1]-Math.max(0,1-ey)*E[3];if(shp)h+=shp(x/WW,y/WH);hgt[i]=h;rough[i]=nb(x,y);}
+  const thr=Array.from(hgt).sort((a,b)=>a-b)[Math.floor(WN*g.sea)],land=new Uint8Array(WN);for(let i=0;i<WN;i++)land[i]=hgt[i]>thr?1:0;
   // 外洋につながらない水面は陸に、小さすぎる陸は海にする
   const flood=(start,ok)=>{const seen=new Uint8Array(WN),q=[start],out=[start];seen[start]=1;while(q.length){const c=q.pop();for(const n of wnb(c))if(!seen[n]&&ok(n)){seen[n]=1;q.push(n);out.push(n);}}return{seen,out};};
-  let oc=flood(0,n=>!land[n]).seen;for(let i=0;i<WN;i++)if(!land[i]&&!oc[i])land[i]=1;
-  const comp=new Int32Array(WN).fill(-1),csize=[];for(let i=0;i<WN;i++){if(!land[i]||comp[i]>=0)continue;const f=flood(i,n=>land[n]===1&&comp[n]<0),id=csize.length;
-    if(f.out.length<14){for(const c of f.out)land[c]=0;continue;}for(const c of f.out)comp[c]=id;csize.push(f.out.length);}
+  // 外洋は、地図の隅につながる水面。隅が陸の惑星では、いちばん大きな水面を外洋とする
+  let o0=0;if(land[0]||g.shape||g.lake){const lab=new Uint8Array(WN);let bn=0;for(let i=0;i<WN;i++){if(land[i]||lab[i])continue;const q=[i];let n=1;lab[i]=1;while(q.length){const c=q.pop();for(const m of wnb(c))if(!land[m]&&!lab[m]){lab[m]=1;q.push(m);n++;}}if(n>bn){bn=n;o0=i;}}}
+  let oc=flood(o0,n=>!land[n]).seen;
+  // 内海を残す惑星：大きな内海から外洋まで、低いところを伝って海峡を掘る
+  if(g.lake){const lab=new Uint8Array(WN),lakes=[];for(let i=0;i<WN;i++){if(land[i]||oc[i]||lab[i])continue;const q=[i],out=[i];lab[i]=1;while(q.length){const c=q.pop();for(const n of wnb(c))if(!land[n]&&!oc[n]&&!lab[n]){lab[n]=1;q.push(n);out.push(n);}}if(out.length>=g.lake)lakes.push(out);}
+    lakes.sort((a,b)=>b.length-a.length);
+    for(const lk of lakes.slice(0,60)){const par=new Int32Array(WN).fill(-2),dd=new Float64Array(WN).fill(1e9),hp=wHeap();for(const c of lk){par[c]=-1;dd[c]=0;hp.push(0,c);}let hit=-1;
+      while(hp.n()&&hit<0){const t=hp.pop(),d=t[0],c=t[1];if(d>dd[c])continue;if(oc[c]){hit=c;break;}for(const n of wnb(c)){const x=n%WW,y=(n-x)/WW;if(x<1||y<1||x>WW-2||y>WH-2)continue;const nd=d+(land[n]?1+7*Math.max(0,hgt[n]-thr)+rough[n]:.15);if(nd<dd[n]){dd[n]=nd;par[n]=c;hp.push(nd,n);}}}
+      if(hit<0)continue;for(let c=hit;c>=0&&par[c]!==-1;c=par[c]){land[c]=0;oc[c]=1;for(const n of wnb(c)){const x=n%WW,y=(n-x)/WW;if(x>0&&y>0&&x<WW-1&&y<WH-1){land[n]=0;oc[n]=1;}}}
+      for(const c of lk)oc[c]=1;}
+    oc=flood(o0,n=>!land[n]).seen;}
+  for(let i=0;i<WN;i++)if(!land[i]&&!oc[i])land[i]=1;
+  const comp=new Int32Array(WN).fill(-1),csize=[],mk=new Uint8Array(WN);for(let i=0;i<WN;i++){if(!land[i]||comp[i]>=0)continue;const q=[i],fo=[i];mk[i]=1;while(q.length){const c=q.pop();for(const n of wnb(c))if(!mk[n]&&land[n]===1){mk[n]=1;q.push(n);fo.push(n);}}const id=csize.length;
+    if(fo.length<g.isl){for(const c of fo)land[c]=0;continue;}for(const c of fo)comp[c]=id;csize.push(fo.length);}
   const ocean=i=>!land[i],coast=[];for(let i=0;i<WN;i++)if(land[i]&&wnb(i).some(ocean))coast.push(i);
   // 首都は海沿いに、互いにできるだけ離して45か所選ぶ。どの国がどこに入るかは、北から南へ5段・各段9か国の目安に近い順で決める
-  const cc=coast.filter(c=>csize[comp[c]]>=68),mid=Math.floor(WH/2)*WW+Math.floor(WW/2),md=new Float32Array(cc.length).fill(1e9),pts=[];let cur=cc.reduce((b,c)=>wd2(c,mid)<wd2(b,mid)?c:b,cc[0]);
+  const cc=coast.filter(c=>csize[comp[c]]>=g.capIsl),mid=Math.floor(WH/2)*WW+Math.floor(WW/2),md=new Float32Array(cc.length).fill(1e9),pts=[];let cur=cc.reduce((b,c)=>wd2(c,mid)<wd2(b,mid)?c:b,cc[0]);
   for(let k=0;k<NATS.length;k++){pts.push(cur);let bi=0,bv=-1;for(let j=0;j<cc.length;j++){const d=wd2(cc[j],cur);if(d<md[j])md[j]=d;if(md[j]>bv){bv=md[j];bi=j;}}cur=cc[bi];}
   const caps=new Array(NATS.length).fill(-1),pairs=[];
   NGRID.forEach((row,ry)=>row.forEach((ni,cx)=>{const tx=(cx+.5)/9*WW,ty=(ry+.5)/5*WH;pts.forEach((c,pi)=>{const dx=c%WW-tx,dy=(Math.floor(c/WW)-ty)*1.6;pairs.push([dx*dx+dy*dy,ni,pi]);});}));
   pairs.sort((a,b)=>a[0]-b[0]);const used=new Set();for(const q of pairs){if(caps[q[1]]>=0||used.has(q[2]))continue;caps[q[1]]=pts[q[2]];used.add(q[2]);}
-  const own=wGrow(caps,i=>land[i]===1,i=>1+3*rough[i],false);
+  // 国の大きさに差をつける惑星では、国ごとに広がる速さを変える
+  let spd=null;if(g.spd){const r2=rng32(g.seed*7+13);spd=caps.map(()=>Math.exp((r2()-.5)*2*g.spd));}
+  const own=wGrow(caps,i=>land[i]===1,i=>1+3*rough[i],false,null,spd);
   for(let i=0;i<WN;i++)if(land[i]&&own[i]<0){let b=0,bd=1e9;caps.forEach((c,k)=>{const d=wd2(c,i);if(d<bd){bd=d;b=k;}});own[i]=b;}
   // 海を海域に分ける
   let seeds=[];for(let gy=15;gy<WH;gy+=30)for(let gx=15;gx<WW;gx+=31.5){let c=-1,bd=112;const px=Math.round(gx+(r()-.5)*12),py=Math.round(gy+(r()-.5)*12);
@@ -1125,7 +1202,7 @@ function genWorld(){const r=rng32(48271);
       if(c>=0&&!seeds.some(s=>wd2(s,c)<144))seeds.push(c);}
   const growSea=()=>wGrow(seeds,ocean,i=>1+.8*rough[i],true);let reg=growSea();
   const cnt=new Array(seeds.length).fill(0);for(let i=0;i<WN;i++)if(reg[i]>=0)cnt[reg[i]]++;
-  if(cnt.some(n=>n<100)){seeds=seeds.filter((s,k)=>cnt[k]>=100);reg=growSea();}
+  if(cnt.some(n=>n<g.rmin)){seeds=seeds.filter((s,k)=>cnt[k]>=g.rmin);reg=growSea();}
   const cells=seeds.map(()=>[]);for(let i=0;i<WN;i++)if(reg[i]>=0)cells[reg[i]].push(i);
   const R=cells.map(cs=>{let sx=0,sy=0;for(const c of cs){sx+=c%WW;sy+=Math.floor(c/WW);}const mx=sx/cs.length,my=sy/cs.length;let b=cs[0],bd=1e9;
     for(const c of cs){const dx=c%WW-mx,dy=Math.floor(c/WW)-my,d=dx*dx+dy*dy;if(d<bd){bd=d;b=c;}}return{c:b,x:b%WW,y:Math.floor(b/WW),n:cs.length,runs:wRuns(cs),adj:new Set()};});
@@ -1136,16 +1213,16 @@ function genWorld(){const r=rng32(48271);
   const nat=caps.map((c,k)=>{const cs=ncell[k].filter(i=>comp[i]===comp[c]);let sx=0,sy=0;for(const i of cs){sx+=i%WW;sy+=Math.floor(i/WW);}const mx=sx/cs.length,my=sy/cs.length;let b=c,bd=1e9;
     for(const i of cs){const dx=i%WW-mx,dy=Math.floor(i/WW)-my,d=dx*dx+dy*dy;if(d<bd){bd=d;b=i;}}return{cap:c,x:c%WW,y:Math.floor(c/WW),lx:b%WW,ly:Math.floor(b/WW),area:ncell[k].length,main:cs.length,runs:wRuns(ncell[k]),th:null};});
   // 地形：高さと湿り気と緯度で決める
-  const ter=new Uint8Array(WN),lh=[];for(let i=0;i<WN;i++)if(land[i]===1)lh.push(hgt[i]);lh.sort((a,b)=>a-b);const hM=lh[Math.floor(lh.length*.93)],hH=lh[Math.floor(lh.length*.79)];
-  for(let i=0;i<WN;i++){if(land[i]!==1)continue;const y=Math.floor(i/WW),la=Math.abs(y/WH-.5)*2,m=nm(i%WW,y),h=hgt[i];ter[i]=h>hM?5:h>hH?4:la>.78?7:la<.34&&m>.55?3:la>.3&&la<.64&&m<.37?6:m>.58?2:1;}
+  const ter=new Uint8Array(WN),lh=[];for(let i=0;i<WN;i++)if(land[i]===1)lh.push(hgt[i]);lh.sort((a,b)=>a-b);const hM=lh[Math.floor(lh.length*cl.mM)],hH=lh[Math.floor(lh.length*cl.mH)];
+  for(let i=0;i<WN;i++){if(land[i]!==1)continue;const y=Math.floor(i/WW),la0=Math.abs(y/WH-.5)*2,la=cl.wob?la0+(rough[i]-.5)*cl.wob:la0,m=nm(i%WW,y),h=hgt[i];ter[i]=h>hM?5:h>hH?4:la>cl.pol?7:la<cl.jl&&m>cl.jm?3:la>cl.d0&&la<cl.d1&&m<cl.dm?6:m>cl.fm?2:1;}
   // プロヴィンス：国の中を20マスほどの区画に分ける。首都は必ず1区画の中心にする
-  const ps=[];for(let gy=2;gy<WH;gy+=4.6)for(let gx=2;gx<WW;gx+=4.6){const x=Math.round(gx+(r()-.5)*3),y=Math.round(gy+(r()-.5)*3);if(x<0||y<0||x>=WW||y>=WH)continue;const i=y*WW+x;if(land[i]===1&&!caps.includes(i))ps.push(i);}
+  const ps=[];for(let gy=2;gy<WH;gy+=g.pg)for(let gx=2;gx<WW;gx+=g.pg){const x=Math.round(gx+(r()-.5)*3),y=Math.round(gy+(r()-.5)*3);if(x<0||y<0||x>=WW||y>=WH)continue;const i=y*WW+x;if(land[i]===1&&!caps.includes(i))ps.push(i);}
   for(const c of caps)ps.push(c);
   const prov=wGrow(ps,i=>land[i]===1,i=>1+2.5*rough[i],false,own);let np=ps.length;
   for(let pass=0,chg=1;chg&&pass<60;pass++){chg=0;for(let i=0;i<WN;i++){if(land[i]!==1||prov[i]>=0)continue;for(const n of wnb(i))if(prov[n]>=0&&own[n]===own[i]){prov[i]=prov[n];chg=1;break;}}}
   for(let i=0;i<WN;i++)if(land[i]===1&&prov[i]<0){const f=flood(i,n=>land[n]===1&&prov[n]<0&&own[n]===own[i]);for(const c of f.out)prov[c]=np;np++;}
   const pcs=Array.from({length:np},()=>[]);for(let i=0;i<WN;i++)if(prov[i]>=0)pcs[prov[i]].push(i);
-  for(let p=0;p<np;p++){const cs=pcs[p];if(!cs.length||cs.length>=7||cs.includes(caps[own[cs[0]]]))continue;const ct={};for(const c of cs)for(const n of wnb(c)){const q=prov[n];if(q>=0&&q!==p&&own[n]===own[c])ct[q]=(ct[q]||0)+1;}
+  for(let p=0;p<np;p++){const cs=pcs[p];if(!cs.length||cs.length>=g.pmin||cs.includes(caps[own[cs[0]]]))continue;const ct={};for(const c of cs)for(const n of wnb(c)){const q=prov[n];if(q>=0&&q!==p&&own[n]===own[c])ct[q]=(ct[q]||0)+1;}
     let b=-1,bv=0;for(const q in ct)if(ct[q]>bv){bv=ct[q];b=+q;}if(b<0)continue;for(const c of cs){prov[c]=b;pcs[b].push(c);}pcs[p]=[];}
   const P=[],pmap=new Int32Array(np).fill(-1);
   for(let p=0;p<np;p++){const cs=pcs[p];if(!cs.length)continue;let sx=0,sy=0,co=0;const tc=[0,0,0,0,0,0,0,0];for(const c of cs){sx+=c%WW;sy+=Math.floor(c/WW);tc[ter[c]]++;if(!co&&wnb(c).some(n=>land[n]===0))co=1;}
@@ -1164,8 +1241,8 @@ function genWorld(){const r=rng32(48271);
     N.st=[];for(let k=s0;k<ST.length;k++){const st=ST[k],ps2=st.provs.map(id=>P[id]),capS=ps2.some(p=>p.cap),tc=[0,0,0,0,0,0,0,0];let pop=0,cells=0,co=0;
       for(const p of ps2){pop+=p.n*DENS[p.ter]*(p.coast?1.25:1);cells+=p.n;tc[p.ter]+=p.n;if(p.coast)co=1;}
       const cp=capS?ps2.find(p=>p.cap):ps2.slice().sort((a,b)=>(b.n+(b.coast?10:0)+(b.ter===1?6:0))-(a.n+(a.coast?10:0)+(a.ter===1?6:0)))[0];
-      st.cap=capS?1:0;st.city=cp.id;st.x=cp.x;st.y=cp.y;st.ter=tc.indexOf(Math.max(...tc));st.coast=co;st.cells=cells;st.pop=Math.round(pop*(capS?1.7:1)*4.5);st.dev=clamp(Math.round((capS?5:2.4)+r()*2.2+(co?.5:0)),1,8);
-      {let v=r();st.res='';for(const q of RESK[st.ter]){if(v<q[1]){st.res=q[0];break;}v-=q[1];}}N.st.push(st.id);}});
+      st.cap=capS?1:0;st.city=cp.id;st.x=cp.x;st.y=cp.y;st.ter=tc.indexOf(Math.max(...tc));st.coast=co;st.cells=cells;st.pop=Math.round(pop*(capS?1.7:1)*4.5*K.pop);st.dev=clamp(Math.round((capS?5:2.4)+r()*2.2+(co?.5:0)+K.dev),1,8);
+      {let v=r();st.res='';for(const q of RESK[st.ter]){const pq=Math.min(.95,q[1]*rs.k*rs[q[0]]);if(v<pq){st.res=q[0];break;}v-=pq;}}N.st.push(st.id);}});
   // 河川：海までいちばん低いところを伝う道筋を全陸地で求め、集まった流れの太いところを川にする
   const par=new Int32Array(WN).fill(-1),rd=new Float64Array(WN).fill(1e9),hp=wHeap(),ord=[],jit=new Float32Array(WN);for(let i=0;i<WN;i++)jit[i]=r();
   for(const c of coast)if(r()<.035){rd[c]=0;hp.push(0,c);}   // 河口
@@ -1174,7 +1251,7 @@ function genWorld(){const r=rng32(48271);
       const nd=d+(dx&&dy?1.41:1)*(1+Math.max(0,hgt[n]-thr)*6+jit[n]*2.5);if(nd<rd[n]){rd[n]=nd;par[n]=c;hp.push(nd,n);}}}
   const flow=new Float32Array(WN);for(let k=ord.length-1;k>=0;k--){const c=ord[k];flow[c]+=1;if(par[c]>=0)flow[par[c]]+=flow[c];}
   const riv=[];for(const c of ord)if(par[c]>=0&&flow[c]>=26)riv.push([c,par[c],flow[c]]);
-  return WORLD={hgt,thr,land,own,reg,R,nat,ter,prov,P,ST,riv,pown:Int16Array.from(P,p=>p.nat)};}
+  return WORLD={hgt,thr,land,own,reg,R,nat,ter,prov,P,ST,riv,pown:Int16Array.from(P,p=>p.nat),pl:PLC,ver:(_wgen++)*1e6};}
 // その国の作戦海域：首都の前の海を本土近海とし、近い順に7海域を取る。遠い3つが島のある海域、外側の2つが敵の泊地になる
 function natTheater(i){const Wd=WORLD||genWorld(),N=Wd.nat[i];if(N.th)return N.th;const R=Wd.R,dc=r=>{const dx=R[r].x-N.x,dy=R[r].y-N.y;return dx*dx+dy*dy;};
   let home=-1,bd=1e9;for(let c=0;c<WN;c++)if(Wd.reg[c]>=0&&Wd.land[c]===0){const d=wd2(c,N.cap);if(d<bd){bd=d;home=Wd.reg[c];}}
@@ -1201,6 +1278,10 @@ function applyTheater(ni){const th=natTheater(ni),R=WORLD.R;
   ZONES[8].n=`敵 ${d8}方泊地`;ZONES[9].n=d9===d8?`敵 ${d9}方第二泊地`:`敵 ${d9}方泊地`;for(const k of[8,9]){SECT[k]=ZONES[k].n;ISL[k]=ZONES[k].n;ZS[k]=ZONES[k].n.slice(2);}}
 
 /* ---------- 描画 ---------- */
+
+// 惑星を切り替える。地形・国境・海域を作り直し、領土は元の持ち主に戻す
+function setPlanet(k,fresh){k=PLN[k]?k:0;if(!WORLD||WORLD.pl!==k){PLC=k;PLANET=PLN[k].n;WORLD=null;genWorld();NMASK.length=0;if(typeof ui!=='undefined'&&ui){ui.wsel=null;ui.mv=null;ui.mvv=null;}return true;}
+  if(fresh){for(let p=0;p<WORLD.P.length;p++)WORLD.pown[p]=WORLD.P[p].nat;WORLD.ver++;NMASK.length=0;}return false;}
 
 /* ---------- 地図：高精細の下絵・境界線・拡大と移動 ---------- */
 const HW=WW*WS,HH=WH*WS,SEA0=50000,ISLT=60000,NOC=65535;
@@ -1256,7 +1337,7 @@ function provColors(mode){const Wd=WORLD,n=Wd.P.length,LR=new Uint8Array(n),LG=n
     LR[p]=c[0];LG[p]=c[1];LB[p]=c[2];}
   return{LR,LG,LB};}
 const stDev=st=>S&&S.eco&&S.eco.st[st.id]?S.eco.st[st.id].dev:st.dev;
-function wPaint(){const Wd=WORLD,H=Wd&&Wd.hi;if(!H||!H.cv)return;const mode=S&&S.w?(ui.mmode||'pol'):'pol',key=mode+':'+(Wd.ver||0)+':'+(mode==='pol'||mode==='ter'||mode==='sta'?'':(S.w.ver||0)+'/'+(S.eco?S.eco.ver||0:0));if(H.key===key)return;H.key=key;
+function wPaint(){const Wd=WORLD,H=Wd&&Wd.hi;if(!H||!H.cv)return;const mode=ui.pmode||(S&&S.w?(ui.mmode||'pol'):'pol'),key=mode+':'+(Wd.ver||0)+':'+(mode==='pol'||mode==='ter'||mode==='sta'?'':(S.w.ver||0)+'/'+(S.eco?S.eco.ver||0:0));if(H.key===key)return;H.key=key;
   const px=new Uint32Array(H.im.data.buffer),hp=H.hp,sd=H.sd,tp=H.tp,N=hp.length,sea=new Uint32Array(256),terr=mode==='ter',L=terr?null:provColors(mode);
   for(let k=0;k<256;k++){const d=k/255;sea[k]=(0xff000000|((92-42*d)<<16)|((62-34*d)<<8)|(24-15*d))>>>0;}
   const isl=(0xff000000|(112<<16)|(154<<8)|168)>>>0;
@@ -1308,7 +1389,7 @@ function drawWorldCv(cv){const Wd=WORLD||genWorld(),m=cv.dataset.mode,cw=cv.clie
   const hi=cv.dataset.hi,ri=cv.dataset.ri,N0=Wd.nat[+hi||0],st=mvGet(m,m==='loc'?{}:{z:2.2,cx:N0.x,cy:N0.y});
   if(m!=='sel'&&st.hi!==hi){st.hi=hi;if(m==='view'||st.z>1.05){st.cx=N0.x;st.cy=N0.y;}}
   const v=mvFit(st,cw,ch,s0,{x:0,y:0,w:WW,h:WH},40),g=wPrep(cv,cw,ch),s=v.s;(ui.mvv=ui.mvv||{})[m]=v;if(!g)return;
-  wBase(g,v);if(m==='loc'){g.fillStyle='rgba(3,9,16,.35)';g.fillRect(0,0,cw,ch);}
+  wBase(g,v);if(m==='loc'&&hi!=null){g.fillStyle='rgba(3,9,16,.35)';g.fillRect(0,0,cw,ch);}
   const fill=(ni,col,a)=>{if(ni==null||ni===''||!Wd.nat[+ni])return;const k=natMask(+ni,col);if(!k)return;g.globalAlpha=a;g.drawImage(k.cv,(k.x-v.x0)*s,(k.y-v.y0)*s,k.w*s,k.h*s);g.globalAlpha=1;};
   if(m!=='view'){fill(ri,rgba32(255,70,60,1),.45);fill(hi,rgba32(255,255,255,1),m==='sel'?.25:.36);}wLines(g,v);
   const ring=(ni,col)=>{if(ni==null||ni===''||!Wd.nat[+ni])return;const N=Wd.nat[+ni];g.strokeStyle=col;g.lineWidth=2;g.beginPath();g.arc((N.x+.5-v.x0)*s,(N.y+.5-v.y0)*s,m==='loc'?9:13,0,6.3);g.stroke();};
@@ -1430,10 +1511,10 @@ const SAVE='soukai_no_tate_v3';
 function save(){if(S&&S.fleets)syncSectors();_M=null;_PM=null;try{localStorage.setItem(SAVE,JSON.stringify(S));}catch(e){}}
 function load(){try{const s=localStorage.getItem(SAVE);if(s){const o=JSON.parse(s);if(o&&o.v===3)return migrate(o);}}catch(e){}return null;}
 // 以前の版の記録に、あとから増えた項目を足す
-function migrate(o){if(!o.cfg.era)o.cfg.era=4;
+function migrate(o){if(!o.cfg.era)o.cfg.era=4;if(!PLN[o.cfg.planet])o.cfg.planet=0;
   if(!o.eqm){o.eqm={};for(const s of EQSK)o.eqm[s]=eqDef(s,4);for(const k in EQ_OLD)if(o.flags&&o.flags[k]){const e=EQ_OLD[k];o.eqm[e[0]]=e[1];o.flags[eqKey(e[0],e[1])]=1;}}
   for(const k in EQ_OLD)if(o.projs&&o.projs[k])delete o.projs[k];
-  if(!o.air){o.air=[];o.aid=0;o.aseq={};o.airlog=[];}if(!o.ebase)o.ebase={};if(!o.stats.scr){o.stats.scr=0;o.stats.scrMiss=0;}
+  if(!o.air){o.air=[];o.aid=0;o.aseq={};o.airlog=[];}if(!o.ebase)o.ebase={};if(o.stats.scr==null)o.stats.scr=0;if(o.stats.scrMiss==null)o.stats.scrMiss=0;
   return o;}
 const U=id=>S.units.find(u=>u.id===id);
 const lineById={};LINE.forEach(l=>{lineById[l[0]]=l;});
@@ -1486,7 +1567,7 @@ function mods(){if(_M)return _M;const M={};for(const k in STAT)M[k]=0;
   for(const p of PROJ)if(p.fx&&S.flags[p.k])for(const k in p.fx)M[k]+=p.fx[k];
   for(const s of EQSK){const fx=eqFx(s,eqCur(s).i);for(const k in fx)M[k]+=fx[k];}
   {const px=polSum();for(const k in px)if(k in M)M[k]+=px[k];}
-  const nn=NATS[S.cfg.nat]||NATS[0];for(const k in nn.fx)M[k]+=nn.fx[k];for(const k in CUR.efx)M[k]+=CUR.efx[k];if(S.ed)for(const k in S.ed.fx)if(k in M)M[k]+=S.ed.fx[k];
+  const nn=NATS[S.cfg.nat]||NATS[0];for(const k in nn.fx)M[k]+=nn.fx[k];{const gf=natGeo(S.cfg.nat||0).fx;for(const k in gf)if(k in M)M[k]+=gf[k];}for(const k in CUR.efx)M[k]+=CUR.efx[k];if(S.ed)for(const k in S.ed.fx)if(k in M)M[k]+=S.ed.fx[k];
   BITEM.forEach((b,i)=>{M[b[4]]+=b[5]*(S.bud[i]-2);});
   const pm=postMap(),has=(id,t)=>!!pm[id]&&pm[id].tr.includes(t),ab=(id,k)=>pm[id]?effAb(pm[id],k)-10:-4,cs=clamp(1+ab('hq:cs','adm')*.03,.8,1.4),st=(id,k)=>ab(id,k)*cs;
   M.reinT+=st('hq:n3','cmd')*1.5;M.q+=st('hq:n3','cmd')*.003;M.intel+=st('hq:n2','tec')*.02;M.satT+=st('hq:n2','tec');
@@ -1635,30 +1716,31 @@ function showFiscal(f){const p=a=>Math.round(askChance(a)*100);
 /* ---------- タイトルとカスタムスタート ---------- */
 function begin(cfg){newGame(cfg);save();ui.tab='home';render();showHelp();}
 function showTitle(){const has=!!load();mq.length=0;
-  modal(`<div class="alert">惑星${PLANET}　機動艦隊司令部</div><h2 class="big">蒼海の盾</h2><p class="sm">海が地表の大半を占める惑星${PLANET}。45の国が陸と海を分け合い、ふたつの陣営に割れて睨み合っている。一国の守りと舵取りを預かり、撃たせず、撃たずに守り抜けるか。</p>${has?'<p class="sm mut">新しく始めると、いまの記録は上書きされる。</p>':''}<div class="mbtn">${has?`<button class="btn pri" data-m="c">続きから</button>`:''}<button class="btn ${has?'':'pri'}" data-m="n">国を選んで始める</button></div>`,
-  {c:()=>{closeModal();S=load();applyNation(S.cfg.nat,S.cfg.riv);applyEdits(S.ed);polLoad();_M=null;_PM=null;render();if(S.over)showOver();else if(gpNext())groundPrompt();else if(S.pending)showIncident();},n:()=>{closeModal();ui.cs=null;ui.nview='list';ui.wsc=null;ui.nsc=0;showNation();}});}
+  modal(`<div class="alert">機動艦隊司令部</div><h2 class="big">蒼海の盾</h2><p class="sm">45の国が陸と海を分け合い、陣営に割れて睨み合っている。舞台は${PLN.length}の惑星から選ぶ。海ばかりの星、海のほとんどない星、資源の尽きた星、戦争の絶えない星。一国の守りと舵取りを預かり、撃たせず、撃たずに守り抜けるか。</p>${has?'<p class="sm mut">新しく始めると、いまの記録は上書きされる。</p>':''}<div class="mbtn">${has?`<button class="btn pri" data-m="c">続きから</button>`:''}<button class="btn ${has?'':'pri'}" data-m="n">惑星と国を選んで始める</button></div>`,
+  {c:()=>{closeModal();S=load();setPlanet(S.cfg.planet||0,true);applyNation(S.cfg.nat,S.cfg.riv);applyEdits(S.ed);polLoad();_M=null;_PM=null;render();if(S.over)showOver();else if(gpNext())groundPrompt();else if(S.pending)showIncident();},n:()=>{closeModal();ui.cs=null;ui.nview='list';ui.wsc=null;ui.nsc=0;ui.pl=null;showPlanet();}});}
 // 国を選ぶ画面。20か国の名称群を見比べて、対峙する国も決める
 function showNation(){if(ui.nat==null)ui.nat=0;const info=ui.nview==='info',i=ui.nat,N=NATS[i],rv=ui.riv==null||ui.riv===i||!NATS[ui.riv]?N.rv:ui.riv,D=DSTY[N.ds],sv=TXL;let html;
   if(!info){
-    html=`<div class="alert">惑星${PLANET}</div><h2>国を選ぶ</h2><p class="sm mut">世界地図か下の一覧で国をタップすると、その国の情報が開く。地図は指で動かせて、＋－か2本指で拡大できる。</p>
+    html=`<div class="alert">惑星${PLANET}　${PLN[PLC].tag}</div><h2>国を選ぶ</h2><p class="sm mut">世界地図か下の一覧で国をタップすると、その国の情報が開く。地図は指で動かせて、＋－か2本指で拡大できる。国土の広さや隣の国は、惑星によって変わる。</p>
   ${mapBox('sel',`data-hi="${i}"`)}
   <div class="nlist">${NATS.map((x,k)=>`<button class="${k===i?'on':''}" onclick="A.nsel(${k})"><i class="flag" style="${flagCSS(x)}"></i>${x.n}</button>`).join('')}</div>
-  <div class="mbtn"><button class="btn" data-m="back">タイトルへ戻る</button></div>`;
+  <div class="mbtn"><button class="btn" data-m="pl">惑星を選び直す</button><button class="btn" data-m="back">タイトルへ戻る</button></div>`;
   }else{
     TXL=D.tx.concat(GSTY[N.gs].tx,RSTY[N.rk].tx);const nm=natNames(i),ex=k=>tx(PT[k].n)+'「'+nm[k].slice(0,2).join('」「')+'」',ppl=[0,1,2].map(()=>mkName(N)).join('、');
     html=`<div class="brow nnav"><button class="btn sm" onclick="A.nback()">← 国の選択に戻る</button><span class="grow"></span><button class="btn sm" onclick="A.nsel(${(i+NATS.length-1)%NATS.length})" aria-label="前の国">‹ 前</button><button class="btn sm" onclick="A.nsel(${(i+1)%NATS.length})" aria-label="次の国">次 ›</button></div>
   <div class="uh"><i class="flag big" style="${flagCSS(N)}"></i><b>${N.f}</b></div><p class="sm">${N.d}。</p>
-  ${mapBox('loc',`data-hi="${i}" data-ri="${rv}"`,'loc')}<p class="sm mut">白が${N.n}、赤が対峙する国。</p>
+  ${mapBox('loc',`data-hi="${i}" data-ri="${rv}"`,'loc')}<p class="sm mut">惑星${PLANET}での位置。白が${N.n}、赤が対峙する国。</p>
   <dl class="kv2"><dt>首都</dt><dd>${N.cap}</dd><dt>海軍</dt><dd>${N.n}${N.navy}</dd><dt>国柄</dt><dd><b class="am">${N.tr[0]}</b><br><span class="sm">${N.tr[1]}</span></dd>
+  ${natGeoHTML(i)}
   <dt>艦の名</dt><dd class="sm">${ex('cvl')}<br>${ex('ddg')}<br>${ex('dd')}<br>${ex('ss')}</dd><dt>人の名</dt><dd class="sm">${ppl}</dd><dt>階級</dt><dd class="sm">${RSTY[N.rk].rank.slice(3).join('・')}</dd>
   <dt>陸上部隊</dt><dd class="sm">${GTK.slice(0,4).map(k=>GT[k].n).join('、')} ほか</dd><dt>守る島</dt><dd class="sm">${[1,4,7].map((z,k)=>seaName(N,z)+'の'+N.isl[k]).join('、')}</dd><dt>海域</dt><dd class="sm">${[2,3,5,6].map(z=>seaName(N,z)).join('、')}</dd></dl>
   <h3 class="sub">装備</h3>${eqCards(N,natF(N))}
   <details class="lin"><summary>装備の世代(${EQSK.length}系列)</summary><p class="sm mut">「現用」から始めた場合の、この国の開始時の機種。得意な分野は1世代新しく、苦手な分野は1世代古い。</p>${(()=>{const e=eqStart(i,4);return eqTable(s=>e[s]);})()}</details>
   <div class="srow"><label>対峙する国</label><select onchange="A.nriv(+this.value)" aria-label="対峙する国">${NATS.map((x,k)=>k===i?'':`<option value="${k}" ${k===rv?'selected':''}>${x.f}${k===N.rv?'(宿敵)':''}</option>`).join('')}</select></div>
   <div class="mbtn"><button class="btn pri" data-m="go">${N.n}で着任する(標準の設定)</button><button class="btn" data-m="k">カスタムスタート</button><button class="btn" data-m="nb">国の選択に戻る</button></div>`;}
-  const out=tx(html);TXL=sv;const pick1=()=>({nat:i,riv:rv,nation:N.f,fleetName:D.hq});
+  const out=tx(html);TXL=sv;const pick1=()=>({nat:i,riv:rv,nation:N.f,fleetName:D.hq,planet:PLC});
   if(mq.length&&mq[0].nat){mq[0].html=html;mq[0].cbs.cur=pick1;}
-  else{modal(html,{cur:pick1,go:()=>{const c=mq[0].cbs.cur();closeModal();begin(c);},k:()=>{const c=mq[0].cbs.cur();closeModal();ui.cs=Object.assign(ui.cs||JSON.parse(JSON.stringify(DEFCFG)),c);showSetup();},nb:()=>A.nback(),back:()=>{closeModal();showTitle();}});mq[mq.length-1].nat=1;}
+  else{modal(html,{cur:pick1,go:()=>{const c=mq[0].cbs.cur();closeModal();begin(c);},k:()=>{const c=mq[0].cbs.cur();closeModal();ui.cs=Object.assign(ui.cs||JSON.parse(JSON.stringify(DEFCFG)),c);showSetup();},nb:()=>A.nback(),pl:()=>{closeModal();showPlanet();},back:()=>{closeModal();showTitle();}});mq[mq.length-1].nat=1;}
   $('#mbox').innerHTML=out;drawMaps();}
 function showSetup(){const c=ui.cs,f=c.fleet;
   const st=(k,lbl,step,min,max,unit)=>`<div class="srow"><label>${lbl}</label><div class="stp"><button onclick="A.cs('${k}',${-step},${min},${max})" aria-label="${lbl}を減らす">－</button><span>${c[k].toLocaleString()}${unit||''}</span><button onclick="A.cs('${k}',${step},${min},${max})" aria-label="${lbl}を増やす">＋</button></div></div>`;
@@ -1669,7 +1751,8 @@ function showSetup(){const c=ui.cs,f=c.fleet;
   const html=`<div class="alert">カスタムスタート</div><h2>任期の条件を決める</h2><div class="brow">${PRESET.map((p,i)=>`<button class="btn sm" onclick="A.csp(${i})">${p[0]}</button>`).join('')}</div>
   <h3 class="sub">国</h3>
   <div class="srow"><label><i class="flag" style="${flagCSS(NATS[c.nat])}"></i> ${NATS[c.nat].n}</label><button class="btn sm" onclick="A.csnat()">国を選び直す</button></div>
-  <p class="sm mut">対峙する国：${NATS[c.riv==null?NATS[c.nat].rv:c.riv].f}　国柄：${NATS[c.nat].tr[0]}</p>
+  <p class="sm mut">対峙する国：${NATS[c.riv==null?NATS[c.nat].rv:c.riv].f}　国柄：${NATS[c.nat].tr[0]}　地勢：${natGeo(c.nat).t[0]}</p>
+  <p class="sm mut">惑星：${PLN[PLC].n}(${PLN[PLC].tag})${plSitText(PLC).length?`。この惑星の条件が、下で決めた値にさらに掛かる：${plSitText(PLC).join('、')}`:''}</p>
   <h3 class="sub">名前</h3>
   <div class="srow"><label>司令官</label><input value="${esc(c.cmdr)}" placeholder="(任意)" oninput="ui.cs.cmdr=this.value" maxlength="16" aria-label="司令官の名前"></div>
   <div class="srow"><label>国名</label><input value="${esc(c.nation)}" oninput="ui.cs.nation=this.value" maxlength="12" aria-label="国名"></div>
@@ -1954,6 +2037,8 @@ function autoFleets(){const mkF=(n,zone,role)=>{const f={id:++S.fid,n,zone,dest:
   syncSectors();}
 function newGame(c){c=c||{};const C=Object.assign({},DEFCFG,c);C.fleet=Object.assign({},DEFCFG.fleet,c.fleet||{});C.gnd=Object.assign({},DEFCFG.gnd,c.gnd||{});C.air=Object.assign({},DEFCFG.air,c.air||{});_M=null;_PM=null;
   // 国を決め、その国の名称群に切り替えてから部隊を作る
+  // 惑星を決め、その惑星の情勢を設定に掛ける(一度だけ)
+  C.planet=PLN[C.planet]?C.planet:0;setPlanet(C.planet,true);if(!C.plx){const PS=PL().sit;C.eAggr=+(C.eAggr*PS.eAggr).toFixed(3);C.incF=+(C.incF*PS.incF).toFixed(3);C.eGrow=+(C.eGrow*PS.eGrow).toFixed(3);C.budget=Math.round(C.budget*PS.budget/10)*10;C.tension=clamp(C.tension+PS.ten,0,95);C.plx=1;}
   C.nat=NATS[C.nat]?C.nat:0;if(!NATS[C.riv]||C.riv===C.nat)C.riv=NATS[C.nat].rv;applyNation(C.nat,C.riv);if(c.nation==null)C.nation=NAT.f;if(c.fleetName==null)C.fleetName=DSTY[NAT.ds].hq;
   S={v:3,cfg:C,month:0,fy:0,funds:C.funds,budget:C.budget,support:C.support,tension:C.tension,bud:BITEM.map(()=>2),units:[],used:[],seq:0,pool:{ftr:0,aew:0},
     stock:{sam:48,asm:24,aam:32,torp:16},orders:[],debts:[],ledger:[],ext:0,pers:{morale:62,pipe:[],auto:true,pol:'auto',rep:[],sp:0,resv:0,resvEnd:0},off:[],enl:{},
@@ -2240,7 +2325,7 @@ function gActs(g){let b='';
       else if(ISLZ.includes(f.zone)&&S.sectors[f.zone].held)b=`<button class="btn sm" onclick="A.gmove(${g.id},'i${f.zone}')">${ISL[f.zone]}に下ろす</button>`;
       else b=`<span class="sm mut">${ISLZ.includes(f.zone)?'島は占領下。「作戦」の上陸作戦で揚げる':'本土近海か、島のある海域に着くと下ろせる'}</span>`;}}
   return `<div class="urow"><label>移動</label><div class="brow grow" style="margin:0">${b}</div></div><div class="urow"><label>管理</label><button class="btn sm" onclick="A.gdis(${g.id})">解隊</button></div>`;}
-UV.gnd=()=>{let h=`<section class="sec"><h2>陸上部隊 ${S.gnd.length}個</h2><p class="mut sm">島の守備と奪還を担う。海を渡るには、輸送艦を含む艦隊に乗せて運ぶ。本土にいるあいだは練度と戦力が回復する。新しい部隊は「調達」で編成できる。</p>`;
+UV.gnd=()=>{let h=`<section class="sec"><h2>陸上部隊 ${S.gnd.length}個</h2><p class="mut sm">島の守備と奪還を担う。海を渡るには、輸送艦を含む艦隊に乗せて運ぶ。本土にいるあいだは練度と戦力が回復する。本土の部隊をどのプロヴィンスに置くかは、「国政」の国防の地図で決める。新しい部隊は「調達」で編成できる。</p>`;
   if(!S.gnd.length)h+='<p class="al am">陸上部隊がない</p>';
   for(const g of S.gnd)h+=gRow(g,gActs(g));
   return h+'</section>';};
@@ -2270,10 +2355,10 @@ function showIncident(){const inc=S.pending;if(!inc)return;const z=inc.sector,us
   const rn=(rs.near.length?`隣の海域から：${rs.near.map(u=>u.name).join('、')}<br><span class="mut sm">戦闘開始の${T}分後に着く</span>`:'')+(rs.near.length&&rs.far.length?'<br>':'')+(rs.far.length?`2つ先の海域から：${rs.far.map(u=>u.name).join('、')}<br><span class="mut sm">${T*2}分後に着く</span>`:'');
   modal(`<div class="alert r">${rt?'作戦計画':'事案発生'}</div><h2>${SECT[z]}　${SCN[inc.type].n}</h2><p>${SCN[inc.type].d(inc)}</p><dl class="kv2"><dt>敵情(推定)</dt><dd>${inc.intel}</dd><dt>現場の兵力</dt><dd>${us.length?us.map(u=>u.name).join('、'):sc?'所在の艦隊なし':'<b class="r">所在の艦隊なし</b>'}</dd><dt>増援</dt><dd>${rn||'なし'}</dd><dt>基地の航空部隊</dt><dd>${af.length?af.map(a=>a.name).join('、'):sc?'<b class="r">届く戦闘飛行隊がいない</b>':'なし'}</dd>${inc.type==='landing'?`<dt>島の守備隊</dt><dd>${gar.length?gar.map(g=>g.name).join('、'):'<b class="r">なし</b>'}</dd>`:''}</dl><div class="mbtn">${can?`<button class="btn pri" data-m="fight">出撃し、自ら指揮を執る</button><button class="btn" data-m="auto">現場指揮官に任せる(自動解決)</button>`:''}<button class="btn" data-m="ignore">${rt?'作戦を中止する':can?'静観する':'対処できない(静観)'}</button></div>`,
   {fight:()=>{closeModal();if(can)startBattle(inc);else ignoreInc(inc);},auto:()=>{closeModal();if(can)autoResolve(inc);else ignoreInc(inc);},ignore:()=>{closeModal();if(rt){S.pending=null;save();render();}else ignoreInc(inc);}});}
-function showHelp(){const C=S.cfg;modal(`<div class="alert">着任</div><h2>${esc(C.fleetName)}司令部</h2><p>${C.cmdr?esc(C.cmdr)+'司令。':''}惑星${PLANET}。あなたは${esc(C.nation)}の${NAT.navy}で艦隊を預かる。対峙するのは${RIV.f}。任期の${C.years}年間、${[1,4,7].map(z=>SECT[z]+'の'+ISL[z]).join('、')}を守り抜く。支持率が0%になれば更迭される。</p>
+function showHelp(){const C=S.cfg;modal(`<div class="alert">着任</div><h2>${esc(C.fleetName)}司令部</h2><p>${C.cmdr?esc(C.cmdr)+'司令。':''}惑星${PLANET}(${PLN[PLC].tag})。あなたは${esc(C.nation)}の${NAT.navy}で艦隊を預かる。対峙するのは${RIV.f}。任期の${C.years}年間、${[1,4,7].map(z=>SECT[z]+'の'+ISL[z]).join('、')}を守り抜く。支持率が0%になれば更迭される。</p>
 <p class="sm">世界は${BLOC[1].n}(${S.w.n.filter(n=>n.bloc===1).length}か国)と${BLOC[2].n}(${S.w.n.filter(n=>n.bloc===2).length}か国)に割れている。${RIV.n}は${BLOC[2].s}の一員で、${NAT.n}はどちらにも属していない。どの国と組み、どこまで備えるかも、あなたが決める。</p>
-<p class="sm mut">国柄「${NAT.tr[0]}」：${NAT.tr[1]}</p>
-<ul class="sm"><li><b>作戦</b>：艦隊を海域へ送る。事案にはその海域の艦隊が当たり、隣と2つ先の海域からは増援が遅れて着く。シーレーンを空けたままにすると収入が減る</li><li><b>部隊</b>：艦の所属と演習・整備・改修、艦隊の編成、航空部隊の基地、陸上部隊の輸送と空輸。「編成表」で陸上部隊の中隊の組み合わせを決め、「基地」で港湾と飛行場を広げ、対空・対艦ミサイル基地を置く</li><li><b>航空部隊</b>：本土と島の飛行場に置く。国籍不明機には戦闘飛行隊が緊急発進し、受け持つ海域の海戦には基地から戦闘機を出せる</li><li><b>陸上部隊</b>：島の守備隊になる。敵に上陸されると地上戦になり、守備隊がいなければ無抵抗で占領される</li><li><b>本土の守り</b>：${lwNb().length?`${lwNb().map(natN).join('、')}と陸で接している。関係が悪く守りが薄いと、相手は国境を越えてくる。本土にいる陸上部隊と兵役の政策が抑えになる。開戦すると、敵は毎月プロヴィンスへ攻めかかり、こちらからも進攻できる。どの戦いも、自ら指揮するか任せるかを選べる。首都が落ちれば任期は終わる。「国政」の国防で国境の緊張と構えを見られる`:'この国は陸で他国と接していないので、本土が陸から攻め込まれることはない'}</li><li><b>奪還</b>：占領された島は、制海を得て、砲爆撃で叩き、上陸して司令部を制圧すれば取り戻せる</li><li><b>人事</b>：組織図の枠をタップして幹部を任命する</li><li><b>開発</b>：16分野の研究と、旧式から構想中までの装備の世代交代、新しい艦種の開発</li><li><b>予算</b>：64費目の配分と年度の折衝</li><li><b>国政</b>：世界情勢と外交、国防とドクトリン、国家方針、政策と顧問、州の開発、防衛産業の育成、資源の貿易と武器の輸出。政治力をためて使う</li><li><b>翌月へ進む</b>で時間が進む</li></ul>
+${PLC?`<p class="sm">${PLN[PLC].d}</p>`:''}<p class="sm mut">国柄「${NAT.tr[0]}」：${NAT.tr[1]}<br>地勢「${natGeo(C.nat).t[0]}」：${natGeo(C.nat).t[1]}。${fxText(natGeo(C.nat).fx).replace(/<[^>]+>/g,'')}</p>
+<ul class="sm"><li><b>作戦</b>：艦隊を海域へ送る。事案にはその海域の艦隊が当たり、隣と2つ先の海域からは増援が遅れて着く。シーレーンを空けたままにすると収入が減る</li><li><b>部隊</b>：艦の所属と演習・整備・改修、艦隊の編成、航空部隊の基地、陸上部隊の輸送と空輸。「編成表」で陸上部隊の中隊の組み合わせを決め、「基地」で港湾と飛行場を広げ、対空・対艦ミサイル基地を置く</li><li><b>航空部隊</b>：本土と島の飛行場に置く。国籍不明機には戦闘飛行隊が緊急発進し、受け持つ海域の海戦には基地から戦闘機を出せる</li><li><b>陸上部隊</b>：島の守備隊になる。敵に上陸されると地上戦になり、守備隊がいなければ無抵抗で占領される</li><li><b>本土の守り</b>：${lwNb().length?`${lwNb().map(natN).join('、')}と陸で接している。関係が悪く守りが薄いと、相手は国境を越えてくる。本土にいる陸上部隊と兵役の政策が抑えになる。本土の部隊はプロヴィンスごとに置く(「国政」の国防の地図。配置は参謀に任せることもできる)。開戦すると、敵の部隊は隣のプロヴィンスへ攻めかかり、そこにいる部隊が戦う。こちらも、隣にいる部隊で敵のプロヴィンスへ進攻できる。どの戦いも、自ら指揮するか任せるかを選べる。首都が落ちれば任期は終わる`:'この国は陸で他国と接していないので、本土が陸から攻め込まれることはない'}</li><li><b>奪還</b>：占領された島は、制海を得て、砲爆撃で叩き、上陸して司令部を制圧すれば取り戻せる</li><li><b>人事</b>：組織図の枠をタップして幹部を任命する</li><li><b>開発</b>：16分野の研究と、旧式から構想中までの装備の世代交代、新しい艦種の開発</li><li><b>予算</b>：64費目の配分と年度の折衝</li><li><b>国政</b>：世界情勢と外交、国防とドクトリン、国家方針、政策と顧問、州の開発、防衛産業の育成、資源の貿易と武器の輸出。政治力をためて使う</li><li><b>翌月へ進む</b>で時間が進む</li></ul>
 <p><b>海戦の操作</b></p><ul class="sm"><li>自部隊をタップで選択、海面をタップで移動、敵をタップで目標に指定。右下の「3D」で立体表示。＋－と2本指で大きく拡大できる</li><li>領空侵犯には、航空基地をタップして戦闘機を上げ、相手の15km以内に寄せて「警告」する</li><li>敵が撃つか領海に居座るまで、武器は使えない。艦を相手の50km以内に寄せて「警告」し、退去させれば最良の結果になる。航空機からも、25km以内に寄せれば警告できる</li><li>哨戒航空隊が届く海域では、航空基地から哨戒機を上げられる。対艦ミサイルと短魚雷を積み、潜水艦も探せる。艦がいない海域の事案にも、哨戒機と攻撃飛行隊だけで出られる</li></ul>
 <p><b>地上戦の操作</b></p><ul class="sm"><li>ターン制。自部隊をタップして、水色のマスへ移動、赤い枠の敵をタップで攻撃</li><li>動かず撃たなかった部隊は陣地を固める。森・丘・市街は守りやすい</li><li>艦砲射撃・爆撃・ミサイルは、その海域にいる艦隊が支援する。施設を制圧すると効果が自軍に移る</li></ul>
 <p class="sm mut">「概況」の図上演習で、海戦・上陸戦・緊急発進を練習できる。作戦図と世界地図は、＋－か2本指で拡大し、指で動かせる。</p>
@@ -2617,18 +2702,21 @@ const inWar=i=>S.w.wars.find(w=>w.a===i||w.d===i)||null;
 const relAdd=(i,v)=>{const n=S.w.n[i];if(i===ME())return;n.rel=clamp(n.rel+v,-100,100);n.rb=clamp((n.rb||0)+v*.8,-60,60);};
 function worldApply(){const Wd=WORLD||genWorld();for(let p=0;p<Wd.P.length;p++)Wd.pown[p]=Wd.P[p].nat;if(S&&S.w)for(const p in S.w.own)Wd.pown[p]=S.w.own[p];Wd.ver=(Wd.ver||0)+1;NMASK.length=0;}
 const provTake=(p,o)=>{provSet(p,o);if(WORLD.P[p].nat===o)delete S.w.own[p];else S.w.own[p]=o;};
-function worldInit(){const Wd=WORLD||genWorld(),me=ME(),rv=RVN(),r=rng32(7001+me*131+rv*17),d=(a,b)=>Math.hypot(Wd.nat[a].x-Wd.nat[b].x,Wd.nat[a].y-Wd.nat[b].y);
-  const ord=NATS.map((N,i)=>i).filter(i=>i!==me&&i!==rv).map(i=>[d(i,me)/(d(i,me)+d(i,rv)+1e-6)+(r()-.5)*.36,i]).sort((a,b)=>a[0]-b[0]).map(x=>x[1]),bl={};ord.forEach((i,k)=>{bl[i]=k<12?1:k>=ord.length-12?2:0;});
+function worldInit(){const Wd=WORLD||genWorld(),PP=PL().pol,PS=PL().sit,me=ME(),rv=RVN(),r=rng32(7001+me*131+rv*17),rg=rng32(9203+me*17+rv*5),d=(a,b)=>Math.hypot(Wd.nat[a].x-Wd.nat[b].x,Wd.nat[a].y-Wd.nat[b].y);
+  const ord=NATS.map((N,i)=>i).filter(i=>i!==me&&i!==rv).map(i=>[d(i,me)/(d(i,me)+d(i,rv)+1e-6)+(r()-.5)*.36,i]).sort((a,b)=>a[0]-b[0]).map(x=>x[1]),bl={};ord.forEach((i,k)=>{bl[i]=k<PP.nb?1:k>=ord.length-PP.nb?2:0;});
   const n=NATS.map((N,i)=>{const g=Math.floor(r()*6),bloc=i===me?0:i===rv?2:bl[i];
     const rel=i===me?100:i===rv?-60:Math.round((bloc===1?20:bloc===2?-22:0)+(r()-.5)*36);
-    return{rel,rb:0,bloc,gov:bloc===2&&r()<.6?3+Math.floor(r()*2):g,ldr:mkName(N),stab:Math.round(45+r()*40),mil:+(.8+r()*.5).toFixed(2),imp:0,trd:0,def:0,sanc:0,aid:0};});
-  S.w={n,own:{},wars:[],news:[],hot:[],ver:1,seq:0,rivK:1,bn:''};
+    const g1=bloc===2&&r()<.6?3+Math.floor(r()*2):g;return{rel,rb:0,bloc,gov:PP.govK&&rg()<PP.govP?PP.govK[Math.floor(rg()*PP.govK.length)]:g1,ldr:mkName(N),stab:clamp(Math.round(45+r()*40)+PP.stab,8,95),mil:+(.8+r()*.5+PP.mil).toFixed(2),imp:0,trd:0,def:0,sanc:0,aid:0};});
+  S.w={n,own:{},wars:[],news:[],hot:[],ver:1,seq:0,rivK:PS.rivK,bn:''};
   const seen={};for(const p of Wd.P)for(const a of p.adj){const q=Wd.P[a];if(q.nat<=p.nat||p.nat===me||q.nat===me)continue;const k=p.nat+'_'+q.nat;if(seen[k])continue;seen[k]=1;const A=n[p.nat],B=n[q.nat],opp=A.bloc&&B.bloc&&A.bloc!==B.bloc;
-    if(opp||r()<.22)S.w.hot.push({a:p.nat,b:q.nat,t:Math.round((opp?35:18)+r()*25)});}
+    if(opp||r()<PP.hotP)S.w.hot.push({a:p.nat,b:q.nat,t:Math.round((opp?35:18)+r()*25)+PP.hot0});}
   // はじめから、関係のよい国のいくつかとは通商がある
   {const mine={};for(const st of Wd.nat[me].st)if(Wd.ST[st].res)mine[Wd.ST[st].res]=1;const sc=i=>n[i].rel+Object.keys(natRes0(i)).filter(k=>!mine[k]).length*25;
-    n.map((x,i)=>i).filter(i=>i!==me&&i!==rv&&n[i].rel>=0).sort((a,b)=>sc(b)-sc(a)).slice(0,4).forEach(i=>{n[i].trd=1;});}
-  wNews(`${NAT.f}と${RIV.f}の対立が深まる。${BLOC[1].n}と${BLOC[2].n}は互いに相手の出方をうかがっている`,'am');}
+    n.map((x,i)=>i).filter(i=>i!==me&&i!==rv&&n[i].rel>=0).sort((a,b)=>sc(b)-sc(a)).slice(0,PS.tradeN).forEach(i=>{n[i].trd=1;});}
+  // 戦乱の惑星では、着任の時点でいくつもの戦争が続いている
+  if(PP.war0){const busy={},pw=natPw();for(const h of S.w.hot.slice().sort((x,y)=>y.t-x.t)){if(S.w.wars.length>=PP.war0)break;if(h.a===rv||h.b===rv||busy[h.a]||busy[h.b])continue;busy[h.a]=busy[h.b]=1;
+      const a=pw[h.a]>=pw[h.b]?h.a:h.b,d=a===h.a?h.b:h.a;S.w.wars.push({id:++S.w.seq,a,d,m0:-1-Math.floor(r()*5),ex:Math.floor(r()*6)});h.t=100;wNews(`${NATS[a].f}と${NATS[d].f}の戦争が続いている`,'r');}}
+  wNews(PP.nb<=8?`${NAT.f}と${RIV.f}の対立が深まる。陣営はどちらも小さく、多くの国がどこにも属していない`:PP.nb>=18?`${NAT.f}と${RIV.f}の対立が深まる。世界は${BLOC[1].n}と${BLOC[2].n}に二分されている`:`${NAT.f}と${RIV.f}の対立が深まる。${BLOC[1].n}と${BLOC[2].n}は互いに相手の出方をうかがっている`,'am');}
 function warStart(a,d,rep){const W=S.w,me=ME(),rv=RVN();W.wars.push({id:++W.seq,a,d,m0:S.month,ex:0});W.n[a].stab=clamp(W.n[a].stab+4,5,95);
   const t=`${NATS[a].f}が${NATS[d].f}に侵攻した`;wNews(t,'r');rep.push(['世界：'+t,'r']);
   if(a===rv||d===rv)rep.push([`${RIV.n}は戦争に兵力を割いている。こちらへの圧力は弱まる見込み`,'g']);
@@ -2653,23 +2741,23 @@ function warStep(w,rep,pw){const Wd=WORLD,P=Wd.P,ow=Wd.pown,W=S.w,a=w.a,d=w.d,mo
   if(k>0)push(d,a,k);else if(k<0)push(a,d,-k);W.ver++;w.ex+=1+Math.abs(k)*.3;W.n[d].stab=clamp(W.n[d].stab-1,5,95);W.n[a].stab=clamp(W.n[a].stab-.6,5,95);
   if(w.cap!=null)return warEnd(w,w.cap,w.cap===a?d:a,'cap',rep);
   if(natCnt(d)<=2&&d!==rv)return warEnd(w,a,d,'cap',rep);if(natCnt(a)<=2&&a!==rv)return warEnd(w,d,a,'cap',rep);
-  if(mo>=9&&Math.random()<(mo-8)*.05+w.ex*.004)warEnd(w,null,null,'peace',rep);}
+  if(mo>=9&&Math.random()<((mo-8)*.05+w.ex*.004)*PL().pol.peaceK)warEnd(w,null,null,'peace',rep);}
 function coup(i,rep){const W=S.w,n=W.n[i],rv=RVN(),old=n.gov;n.gov=old>=3?pick([0,2]):pick([3,4]);n.ldr=mkName(NATS[i]);n.stab=55;if(n.nap>S.month){n.nap=0;wNews(`${natN(i)}の新政権が、${NAT.n}との不可侵条約を破棄した`,'r');rep.push([`${natN(i)}の新政権が不可侵条約を破棄した`,'r']);}
   const t=n.gov===4?`${NATS[i].f}で軍が政権を掌握。${n.ldr}${GOVL[4]}が全権を握った`:n.gov===3?`${NATS[i].f}で政変。一党支配の体制に移った`:`${NATS[i].f}で政権が倒れ、選挙による政府が生まれた`;wNews(t,i===rv?'r':'am');
   if(i===rv){const dT=n.gov>=3?8:-10;S.tension=clamp(S.tension+dT,0,100);rep.push([`${RIV.n}で政変。${dT>0?'強硬派が実権を握り、緊張が高まった':'新政府は対話を口にしている'}`,dT>0?'r':'g']);relAdd(i,dT>0?-8:12);}
   else{if(Math.random()<.4)n.bloc=n.gov>=3?(Math.random()<.6?2:0):(Math.random()<.6?1:0);if(Math.random()<.5&&!S.pol.evq&&Math.abs(n.rel)<60)S.pol.evq={k:'coup',x:i};}}
-function worldMonth(rep){const W=S.w,me=ME(),rv=RVN(),al=natAlive(),pw=natPw(),pb=W.n[me].bloc,X=polSum();
+function worldMonth(rep){const W=S.w,PP=PL().pol,me=ME(),rv=RVN(),al=natAlive(),pw=natPw(),pb=W.n[me].bloc,X=polSum();
   W.n.forEach((n,i)=>{if(i===me||!al[i])return;const base=(i===rv?-60:0)+(pb&&n.bloc===pb?38:pb===1&&n.bloc===2?-28:pb===3&&n.bloc===2?-14:pb===0&&n.bloc===1?10:pb===0&&n.bloc===2?-12:0)+(n.trd?12:0)+(n.def?18:0)-(n.sanc?45:0);
     n.rel=clamp(n.rel+(base+(n.rb||0)-n.rel)*.04+(n.imp>0?2.5*(1+(X.relG||0)):0),-100,100);if(n.imp>0)n.imp--;n.rb=(n.rb||0)*.97;
     n.stab=clamp(n.stab+R(-2.5,2.5)+(50-n.stab)*.03-(n.sanc?.8:0),5,95);});
   if(W.n[rv].sanc)W.rivK=Math.max(.85,W.rivK-.004);
   for(const w of W.wars.slice())if(!w.pl)warStep(w,rep,pw);
   for(const h of W.hot){if(h.a===me||h.b===me)continue;const A=W.n[h.a],B=W.n[h.b];if(!al[h.a]||!al[h.b]||inWar(h.a)||inWar(h.b))continue;
-    h.t=clamp(h.t+R(-3,3.6)+(A.bloc&&B.bloc&&A.bloc!==B.bloc?.5:0)+(A.gov===4||B.gov===4?.4:0)-(h.calm>S.month?3:0),0,100);
+    h.t=clamp(h.t+R(-3,3.6)+PP.drift+(A.bloc&&B.bloc&&A.bloc!==B.bloc?.5:0)+(A.gov===4||B.gov===4?.4:0)-(h.calm>S.month?3:0),0,100);
     if(h.t>70&&!h.n1&&Math.random()<.5){h.n1=1;wNews(`${natN(h.a)}と${natN(h.b)}の国境で衝突。双方が相手を非難している`,'am');}
-    if(h.t>=85&&W.wars.length<3&&S.month>=6&&Math.random()<.25){const att=pw[h.a]*R(.8,1.25)>=pw[h.b]?h.a:h.b;warStart(att,att===h.a?h.b:h.a,rep);}}
+    if(h.t>=85&&W.wars.length<PP.maxWar&&S.month>=(PP.war0?1:6)&&Math.random()<.25*PP.warP){const att=pw[h.a]*R(.8,1.25)>=pw[h.b]?h.a:h.b;warStart(att,att===h.a?h.b:h.a,rep);}}
   lwMonth(rep);
-  W.n.forEach((n,i)=>{if(i!==me&&al[i]&&!inWar(i)&&n.stab<42&&Math.random()<(45-n.stab)/700)coup(i,rep);});
+  W.n.forEach((n,i)=>{if(i!==me&&al[i]&&!inWar(i)&&n.stab<42&&Math.random()<(45-n.stab)/700*PP.coupP)coup(i,rep);});
   if(Math.random()<.6){const ids=W.n.map((n,i)=>i).filter(i=>al[i]&&i!==me),a=pick(ids),b=pick(ids.filter(i=>i!==a)),A=natN(a),Bn=natN(b),bl=W.n[a].bloc;
     wNews(pick([`${A}と${Bn}が海上で合同演習を実施`,`${A}が新型艦の進水を発表`,`${A}の${W.n[a].ldr}${GOVL[W.n[a].gov]}が${Bn}を訪問`,`${A}で反政府デモ。数万人が首都に集まった`,`${A}が国防費の増額を決定`,`${A}と${Bn}が通商協定に署名`,
       bl?`${blocN(bl)}の首脳会議が閉幕。結束を確認`:`${A}は非同盟の立場を改めて表明`,`${A}の沖で不審船。${Bn}の関与が疑われている`,`${A}が長射程ミサイルの発射試験に成功と発表`,`${A}で大規模な停電。サイバー攻撃との見方も`]),'');}
@@ -2884,7 +2972,7 @@ function wOverlay(g,v){if(!S||!S.w)return;const Wd=WORLD,s=v.s;g.textAlign='cent
   if(ui.wsel!=null&&Wd.P[ui.wsel]){const p=Wd.P[ui.wsel],x=(p.x+.5-v.x0)*s,y=(p.y+.5-v.y0)*s;g.strokeStyle='#ffd166';g.lineWidth=2;g.beginPath();g.arc(x,y,Math.max(7,Math.sqrt(p.n)*s*.55),0,6.3);g.stroke();}}
 GV.world=()=>{const W=S.w,Wd=WORLD,me=ME(),rv=RVN(),al=natAlive(),pw=natPw(),mode=ui.mmode||'pol';let sel='<p class="sm mut">地図をタップすると、その土地の州と持ち主がわかる。＋－と2本指で拡大すると、州とプロヴィンスの境、河川、都市が見える。</p>';
   if(ui.wsel!=null&&Wd.P[ui.wsel]){const p=Wd.P[ui.wsel],st=Wd.ST[p.st],o=Wd.pown[p.id];
-    sel=`<div class="item"><div class="uh"><b>${stName(st)}</b><span class="loc">${stCity(st)}${st.cap?'(首都)':''}</span></div><dl class="kv2"><dt>持ち主</dt><dd>${natN(o)}${o!==p.nat?`　<span class="r">占領下(本来は${natN(p.nat)})</span>`:''}</dd><dt>地形</dt><dd>${TERN[p.ter]}${p.coast?'・海沿い':''}</dd><dt>州の人口</dt><dd>${st.pop.toLocaleString()}万人</dd><dt>開発度</dt><dd>${stDev(st)}</dd><dt>資源</dt><dd>${st.res?RES.find(r=>r[0]===st.res)[1]:'なし'}</dd></dl>${o!==me?`<div class="brow"><button class="btn sm" onclick="A.nat(${o})">${natN(o)}を見る</button>${lwCanAtk(p.id)?`<button class="btn sm pri" onclick="A.lwatk(${p.id})">ここへ進攻する</button>`:''}</div>`:''}</div>`;}
+    sel=`<div class="item"><div class="uh"><b>${stName(st)}</b><span class="loc">${stCity(st)}${st.cap?'(首都)':''}</span></div><dl class="kv2"><dt>持ち主</dt><dd>${natN(o)}${o!==p.nat?`　<span class="r">占領下(本来は${natN(p.nat)})</span>`:''}</dd><dt>地形</dt><dd>${TERN[p.ter]}${p.coast?'・海沿い':''}</dd><dt>州の人口</dt><dd>${st.pop.toLocaleString()}万人</dd><dt>開発度</dt><dd>${stDev(st)}</dd><dt>資源</dt><dd>${st.res?RES.find(r=>r[0]===st.res)[1]:'なし'}</dd></dl>${lwProvPanel(p.id)}${o!==me?`<div class="brow"><button class="btn sm" onclick="A.nat(${o})">${natN(o)}を見る</button></div>`:''}</div>`;}
   const bl=[1,2,3,0].map(b=>{const ms=W.n.map((n,i)=>i).filter(i=>al[i]&&W.n[i].bloc===b);if(b===3&&!ms.length)return'';const tot=ms.reduce((a,i)=>a+pw[i],0);return{b,ms,tot};}).filter(Boolean),mx=Math.max(...bl.map(x=>x.tot),1);
   return `<section class="sec"><h2>世界情勢</h2>${polBar()}${mapBox('view',`data-hi="${me}" data-ri="${rv}"`)}
   <div class="chips">${MMODE.map(m=>`<button class="${mode===m[0]?'on':''}" onclick="A.mmode('${m[0]}')">${m[1]}</button>`).join('')}</div>${sel}</section>
@@ -2913,7 +3001,7 @@ const DIP=[
 function showNat(i){const W=S.w,n=W.n[i],N=NATS[i],rv=RVN(),pw=natPw(),al=natAlive(),rank=pw.map((v,k)=>k).filter(k=>al[k]).sort((a,b)=>pw[b]-pw[a]).indexOf(i)+1,w=inWar(i),res=natRes(i),cnt=natCnt(i),orig=WORLD.P.filter(p=>p.nat===i).length,cbs={ok:closeModal};
   const acts=DIP.map(d=>{const why=d[4](n,i),lack=S.pol.pp<d[2];cbs['d_'+d[0]]=()=>{closeModal();A.dip(i,d[0]);};return why==='締結済み'||(d[0]==='unsanc'&&why)||(d[0]==='sum'&&i!==rv)||(d[0]==='sanc'&&n.sanc)?'':`<div class="item"><div class="uh"><b>${d[1]}</b><span class="loc">政治力 ${d[2]}</span></div><p class="sm mut">${d[3]}</p><button class="btn sm" data-m="d_${d[0]}" ${why||lack?'disabled':''}>${why||(lack?'政治力が足りない':'実行する')}</button></div>`;}).join('');
   modal(`<div class="nhead"><i class="flag big" style="${flagCSS(N)}"></i><div><h2>${N.f}</h2><p class="sm mut">${N.d}</p></div></div>
-  <dl class="kv2"><dt>首脳</dt><dd>${n.ldr}${GOVL[n.gov]}</dd><dt>政体</dt><dd>${GOV[n.gov]}</dd><dt>陣営</dt><dd>${blocN(n.bloc)}</dd><dt>国力</dt><dd>世界${rank}位(${Math.round(pw[i]).toLocaleString()})</dd><dt>領土</dt><dd>${cnt}プロヴィンス${cnt!==orig?`(もとは${orig})`:''}</dd><dt>政情</dt><dd>${n.stab>=65?'安定':n.stab>=42?'ふつう':'<span class="r">不安定</span>'}</dd>
+  <dl class="kv2"><dt>首脳</dt><dd>${n.ldr}${GOVL[n.gov]}</dd><dt>政体</dt><dd>${GOV[n.gov]}</dd><dt>陣営</dt><dd>${blocN(n.bloc)}</dd><dt>国力</dt><dd>世界${rank}位(${Math.round(pw[i]).toLocaleString()})</dd><dt>領土</dt><dd>${cnt}プロヴィンス${cnt!==orig?`(もとは${orig})`:''}</dd><dt>政情</dt><dd>${n.stab>=65?'安定':n.stab>=42?'ふつう':'<span class="r">不安定</span>'}</dd><dt>地勢</dt><dd>${natGeo(i).t[0]}<span class="mut">(もとの国土は広さ${natGeo(i).rank}位、陸で接する国 ${natGeo(i).nb.length})</span></dd>
   <dt>我が国との関係</dt><dd><b class="${relCol(n.rel)}">${n.rel>0?'+':''}${Math.round(n.rel)}　${relWord(n.rel)}</b></dd><dt>取り決め</dt><dd>${[n.trd?'通商協定':'',n.def?'防衛協力':'',n.sanc?'<span class="r">制裁中</span>':'',n.aid>S.month?'援助中':'',n.imp>0?'関係を改善中':''].filter(Boolean).join('、')||'なし'}</dd>
   <dt>産出する資源</dt><dd>${RES.filter(r=>res[r[0]]).map(r=>r[1]+(res[r[0]]>=2?'(余り)':'')).join('、')||'なし'}</dd><dt>戦争</dt><dd>${w?`<span class="r">${natN(w.a===i?w.d:w.a)}と交戦中(${S.month-w.m0}か月目)</span>`:'なし'}</dd></dl>
   <h3 class="sub">外交</h3><p class="sm">政治力 <b>${Math.floor(S.pol.pp)}</b></p>${acts}<div class="mbtn"><button class="btn pri" data-m="ok">閉じる</button></div>`,cbs);}
@@ -2956,7 +3044,7 @@ VIEW.gov=()=>subtabs('gov',[['world','情勢'],['dip','外交'],['focus','方針
   VIEW.home=()=>{const P=S.pol,cur=P.foc.cur;return home0()+`<section class="sec"><h2>国政と世界</h2>${polBar()}<p class="sm">${cur?`国家方針「${focBy[cur.k][2]}」を進めている(あと${cur.left}か月)`:'<span class="am">国家方針が選ばれていない</span>'}　与党：${PARTY[P.gov.p][0]}</p>${S.w.news.slice(0,4).map(n=>`<div class="logl ${n.c}"><span>${dateStr(n.m).replace(/^海暦/,'')}</span>${n.t}</div>`).join('')}<div class="brow"><button class="btn sm" onclick="A.tab('gov')">国政を開く</button></div></section>`;};
   alerts=function(){const a=al0(),P=S.pol;if(P){if(!P.foc.cur&&FOC.some(f=>focusOK(f)&&P.pp>=f[4]))a.push(['国家方針を選べる(国政 → 方針)','am']);if(P.stab<35)a.push(['安定度が低い。政治力と経済が伸びない','r']);if(S.eco.tre>=600)a.push([`国庫に${Math.round(S.eco.tre)}億円ある。州の開発に使える`,'']);const rb=resBal();for(const r of RES)if(rb[r[0]].def>=1)a.push([`${r[1]}が不足している(${r[2]}に響く)`,'am']);}return a;};}
 Object.assign(A,{
-  mmode(k){ui.mmode=k;render();},wsel(p){ui.wsel=p;if(ui.tab==='gov'&&ui.sub.gov==='world')render();else drawMaps();},nat(i){showNat(i);},dipf(k){ui.dipf=k;render();},fbr(k){ui.fbr=k;render();},
+  mmode(k){ui.mmode=k;render();},wsel(p){ui.wsel=p;if(ui.tab==='gov'&&(ui.sub.gov==='world'||ui.sub.gov==='hd'))render();else drawMaps();},nat(i){showNat(i);},dipf(k){ui.dipf=k;render();},fbr(k){ui.fbr=k;render();},
   dip(i,k){const W=S.w,n=W.n[i],d=DIP.find(x=>x[0]===k),P=S.pol,rv=RVN();if(!d||d[4](n,i)||P.pp<d[2])return;P.pp-=d[2];let msg='';
     if(k==='imp'){n.imp=6;msg=`${natN(i)}に特使を送った`;}
     else if(k==='trd'){n.trd=1;relAdd(i,5);grpAdd({biz:3});msg=`${natN(i)}と通商協定を結んだ`;wNews(`${NAT.n}と${natN(i)}が通商協定に署名`,'');}
@@ -3013,104 +3101,155 @@ function lwEnemy(e){const W=S.w,al=natAlive(),me=ME(),eco=natEco(),n=W.n[e];
   const rel=Math.min(1,Math.sqrt(Math.max(1,eco[me])/Math.max(1,eco[e]))*1.3),bl=n.bloc?Math.min(.2,.04*W.n.filter((x,k)=>k!==e&&k!==me&&al[k]&&x.bloc===n.bloc).length):0;
   return natPw()[e]*.074*rel*(1+bl)*(e===RVN()?W.rivK:1)*clamp(1+.04*eTech(),.75,1.5)*(.8+.2*S.cfg.eAggr);}
 // 交戦中の相手の兵力。損害で勢いが落ち、こちらの領内に深く入るほど補給が伸びて息切れする
-const lwE=()=>{const L=S.lw;return lwEnemy(L.e)*L.es*clamp(1-.02*lwOcc(),.72,1);};
+const lwE=()=>{const L=S.lw;return L.eu?gstr(L.eu):lwEnemy(L.e);};
 /* ---------- 国境の緊張 ---------- */
-function lwSync(){if(!S||!S.w)return;const W=S.w,me=ME(),rv=RVN(),pb=W.n[me].bloc;if(S.lw===undefined)S.lw=null;if(S.lw){const L=S.lw;if(!L.bq)L.bq=[];if(L.bat){L.bq.push(L.bat);L.bat=null;}for(const x of L.bq.concat(S.gpend&&S.gpend.home?[S.gpend]:[]))if(x.city==null&&!x.atk)x.city=1;}   // 前の版の記録では、待っている戦いはすべて都市の攻防
+function lwSync(){if(!S||!S.w)return;const W=S.w,me=ME(),rv=RVN(),pb=W.n[me].bloc;if(S.lw===undefined)S.lw=null;if(!S.dep)S.dep={auto:1};if(WORLD&&WORLD.pown)lwPos();if(S.lw){const L=S.lw;if(!L.bq)L.bq=[];if(L.bat){L.bq.push(L.bat);L.bat=null;}if(!L.eu){L.bq=[];if(S.gpend&&S.gpend.home)S.gpend=null;lwPos();if(S.dep.auto)lwDeploy(true);lwArmy();}}   // 前の版の交戦中の記録：敵の部隊を並べ直し、待っていた戦いは組み直す
   for(const e of lwNb()){if(lwHot(e))continue;const n=W.n[e],hostile=n.rel<-15||(n.bloc===2&&pb!==2);W.hot.push({a:Math.min(me,e),b:Math.max(me,e),t:e===rv?RI(38,48):hostile?RI(26,40):RI(6,20)});}}
-function lwMonth(rep){const W=S.w,me=ME(),rv=RVN(),al=natAlive(),C=S.cfg;lwSync();if(S.lw)return lwStep(rep);if(C.landW===0||C.landW===false)return;
+function lwMonth(rep){const W=S.w,me=ME(),rv=RVN(),al=natAlive(),C=S.cfg;lwSync();lwPos();if(S.lw)return lwStep(rep);if(S.dep.auto)lwDeploy();if(C.landW===0||C.landW===false)return;
   const nbs=lwNb(),P=lwPow(),pb=W.n[me].bloc;
   for(const h of W.hot){if(h.a!==me&&h.b!==me)continue;const e=h.a===me?h.b:h.a,n=W.n[e];if(!al[e]||!nbs.includes(e)){h.t=Math.max(0,h.t-2);continue;}
     if(inWar(e)){h.t=clamp(h.t-1.2,0,100);continue;}
     const E=lwEnemy(e),det=P.def/Math.max(1,E),opp=(n.bloc===2&&pb!==2)||(pb&&n.bloc&&n.bloc!==pb),nap=n.nap>S.month,calm=h.calm>S.month;
-    h.t=clamp(h.t+(R(-2.2,3.2)+(n.rel<-40?1.4:n.rel<-15?.6:n.rel>30?-2.2:n.rel>10?-1:0)+(opp?.5:0)+(n.gov===4?.4:0)+(e===rv?clamp((S.tension-45)*.05,-.8,1.2):0))*(.6+.4*C.eAggr)-(det>=1.25?1.4:det>=1?.6:det<.75?-.7:0)-(n.def?3:0)-(n.trd?.5:0)-(nap?4:0)-(calm?4:0),0,100);
+    h.t=clamp(h.t+(R(-2.2,3.2)+(n.rel<-40?1.4:n.rel<-15?.6:n.rel>30?-2.2:n.rel>10?-1:0)+(opp?.5:0)+(n.gov===4?.4:0)+(e===rv?clamp((S.tension-45)*.05,-.8,1.2):0))*(.6+.4*C.eAggr)+PL().pol.drift*.5*PL().sit.landK-(det>=1.25?1.4:det>=1?.6:det<.75?-.7:0)-(n.def?3:0)-(n.trd?.5:0)-(nap?4:0)-(calm?4:0),0,100);
     if(h.t<55){h.n1=0;h.n2=0;}
     if(h.t>=60&&!h.n1){h.n1=1;const t=`${natN(e)}が${NAT.n}との国境に兵力を集めている`;wNews(t,'am');rep.unshift(['国境：'+t,'am']);}
     if(h.t>=75&&!h.n2){h.n2=1;rep.unshift([`国境：${natN(e)}軍の動きが慌ただしい。侵攻の恐れがある(国政 → 国防)`,'r']);if(!S.pol.evq)S.pol.evq={k:'border',x:e};}
-    if(h.t>=85&&S.month>=12&&!nap&&!calm&&n.rel<-10&&Math.random()<.22){
+    if(h.t>=85&&S.month>=12&&!nap&&!calm&&n.rel<-10&&Math.random()<Math.min(.6,.22*PL().sit.landK)){
       if(E*R(.85,1.25)>P.def*.95){lwStart(e,rep);return;}
       if(h.t>=93){h.t-=RI(10,16);const t=`${natN(e)}は国境の部隊を引いた。${NAT.n}の守りを前に、踏み切れなかったとみられる`;wNews(t,'g');rep.push(['国境：'+t,'g']);}}}}
 /* ---------- 開戦 ---------- */
 function lwStart(e,rep,byMe){const W=S.w,me=ME(),rv=RVN(),n=W.n[e],h=lwHot(e),al=natAlive(),pb=W.n[me].bloc;
-  S.lw={e,m0:S.month,att:byMe?1:0,st:byMe?'ctr':'hold',es:1,ex:0,k:0,bq:[],auto:0,atkM:null,atkN:0,res:[],mLost:0,mGain:0,askM:null,offM:null,q:byMe?[]:[{k:'start'}],sh:0,lost:0,won:0};
+  S.lw={e,m0:S.month,att:byMe?1:0,st:byMe?'ctr':'hold',es:1,ex:0,k:0,bq:[],auto:0,res:[],mLost:0,mGain:0,askM:null,offM:null,q:byMe?[]:[{k:'start'}],sh:0,lost:0,won:0};
   W.wars.push({id:++W.seq,a:byMe?me:e,d:byMe?e:me,m0:S.month,ex:0,pl:1});n.trd=0;n.def=0;n.imp=0;n.nap=0;n.rel=Math.min(n.rel,-70);n.rb=Math.min(n.rb||0,-30);if(h){h.t=100;h.calm=0;}
   S.tension=clamp(S.tension+(e===rv?15:5),0,100);S.support=clamp(S.support+(byMe?-2:4),0,100);if(!byMe)S.pol.stab=clamp(S.pol.stab+3,0,100);
   const t=byMe?`${NAT.f}が失地の奪還を掲げ、${NATS[e].f}に攻め込んだ`:`${NATS[e].f}が${NAT.f}に侵攻した`;wNews(t,'r');rep.unshift([(byMe?'開戦：':'侵攻：')+t,'r']);
   const fr=W.n.map((x,i)=>i).filter(i=>i!==me&&i!==e&&al[i]&&((pb&&W.n[i].bloc===pb)||W.n[i].def));
   if(fr.length&&!byMe){for(const i of fr)relAdd(i,3);wNews(`${fr.slice(0,4).map(natN).join('、')}${fr.length>4?'など':''}が${NAT.n}への支援を表明`,'g');}
-  W.ver++;_M=null;}
-/* ---------- 前線 ---------- */
-// 前線の戦いはプロヴィンスごとに行う。敵は毎月いくつかのプロヴィンスへ攻めかかり、こちらからも月に3回まで進攻できる
-const LW_ATK=3,LWSEQ_E=['inf','arm','inf','art','inf','arm','aa'],LWSEQ_G=['inf','inf','art','arm','aa','inf','arm'];
+  lwPos();lwArmy();W.ver++;_M=null;}
+/* ---------- 配置 ---------- */
+// 本土の陸上部隊はプロヴィンスにいる(g.pv)。敵の部隊は交戦中だけ S.lw.eu に並ぶ。
+// 戦いは、隣り合うプロヴィンスの部隊どうしで行う。部隊は月に1度、動くか攻めるかできる(g.am)
+const LWSEQ_E=['inf','arm','inf','art','inf','inf','arm','aa'];
+const lwCapP=()=>{const c=lwGeo().cap;return c?c.id:0;};
+const lwAt=p=>S.gnd.filter(g=>g.loc==='home'&&g.pv===p);
+const lwEAt=p=>S.lw&&S.lw.eu?S.lw.eu.filter(u=>u.pv===p):[];
+const lwActed=g=>!!S.lw&&g.am===S.month;
+const lwMvR=g=>{const m=gST(g).mv;return m>=4?4:m>=3?3:2;};
+const lwByStr=(a,b)=>gPW(b)*b.hp-gPW(a)*a.hp;
+const lwD=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+// pから、自国の土地だけを通って届くプロヴィンスと歩数
+function lwReach(p,r){const P=WORLD.P,ow=WORLD.pown,me=ME(),d={[p]:0},q=[p];for(let i=0;i<q.length;i++){const c=q[i];if(d[c]>=r)continue;for(const n of P[c].adj)if(ow[n]===me&&d[n]==null){d[n]=d[c]+1;q.push(n);}}return d;}
+function lwNearOwn(p){const P=WORLD.P,ow=WORLD.pown,me=ME();if(p!=null&&P[p]){const seen={[p]:1},q=[p];for(let i=0;i<q.length&&i<500;i++){if(ow[q[i]]===me)return q[i];for(const n of P[q[i]].adj)if(!seen[n]){seen[n]=1;q.push(n);}}}return lwCapP();}
+// 本土の部隊の居場所を正す。本土に着いたばかりの部隊は首都に入る
+function lwPos(){if(!S||!S.w||!WORLD||!WORLD.pown)return;const me=ME(),ow=WORLD.pown,cap=lwCapP();for(const g of S.gnd){if(g.loc!=='home'){if(g.pv!=null)delete g.pv;continue;}if(g.pv==null||!WORLD.P[g.pv])g.pv=cap;else if(ow[g.pv]!==me)g.pv=lwNearOwn(g.pv);}}
 // fromの土地のうち、toの土地に接するもの。toが本来の持ち主の土地を先に、あとはfromの首都に近い順
 function lwCand(from,to,ownOnly,jit){const P=WORLD.P,ow=WORLD.pown,tc=WORLD.nat[from],cand=[],sc={};
   for(let p=0;p<P.length;p++)if(ow[p]===from&&(!ownOnly||P[p].nat===to)&&P[p].adj.some(q=>ow[q]===to)){cand.push(p);sc[p]=(P[p].nat===to?-1e6:0)+((P[p].x-tc.x)*(P[p].x-tc.x)+(P[p].y-tc.y)*(P[p].y-tc.y))*(jit?R(.55,1.45):1);}
   return cand.sort((x,y)=>sc[x]-sc[y]);}
 const lwDir=(pr,to)=>{const dx=to.x-pr.x,dy=to.y-pr.y;return Math.abs(dy)>=Math.abs(dx)?(dy<0?0:2):(dx>0?1:3);};
 const lwPName=p=>{const pr=WORLD.P[p],s=WORLD.ST[pr.st];return s.city===p?stCity(s):`${stName(s)}の${TERN[pr.ter]||'平地'}`;};
-// 守りにつく部隊：本土の陸上部隊のうち強い順(都市は7個、ほかは4個)と、郷土防衛隊
-function lwDefenders(gp){const con=S.pol.law.con,n=gp&&!gp.city?4:7,un=S.gnd.filter(g=>g.loc==='home').sort((a,b)=>gPW(b)*b.hp-gPW(a)*a.hp).slice(0,n).map(gRef);
-  un.push({type:'inf',hp:5+con,name:'郷土防衛隊',tr:35+con*8});return un;}
-// 敵が攻めてくる戦い。敵の数は、守る部隊の戦力と、前線全体の兵力差から決める
-function lwMkBat(p){const Wd=WORLD,pr=Wd.P[p],s=Wd.ST[pr.st],L=S.lw,city=s.city===p&&pr.nat===ME()?1:0,cap=city&&pr.cap?1:0,r=lwE()/Math.max(1,lwPow().def);
-  const want=gstr(lwDefenders({city}))*clamp(r,.6,1.8)*(cap?1:city?.87:.8),hp=clamp(Math.round(6+L.es*4),7,10),force=[];for(let i=0;i<7&&(i<(city?3:2)||gstr(force)<want);i++)force.push({t:LWSEQ_E[i],hp:i?hp:10});
-  return{home:1,z:0,pid:p,seed:RI(1,999999999),name:lwPName(p),sname:stName(s),ter:pr.ter,cap,city,dir:lwDir(pr,Wd.nat[L.e]),L:cap?2.8:city?2.4:2.1,fr:1,force};}
-// こちらが攻める戦い。敵の守りは、兵力差と、都市・首都・敵地の奥深さで厚くなる
-function lwMkAtk(p,ids){const Wd=WORLD,pr=Wd.P[p],s=Wd.ST[pr.st],L=S.lw,me=ME(),own=pr.nat===me?1:0,city=s.city===p?1:0,cap=city&&pr.cap&&!own?1:0,r=lwE()/Math.max(1,lwPow().def);
-  const n=clamp(Math.round(1.4+clamp(r,.5,1.8)*1.3+city+cap*2+(own?0:lwGeo().got*.12)),2,7),hp=clamp(Math.round(6+L.es*4),6,10),egar=[];for(let i=0;i<n;i++)egar.push({t:LWSEQ_G[i],hp:i?hp:10});
-  return{home:1,atk:1,z:0,pid:p,seed:RI(1,999999999),name:lwPName(p),sname:stName(s),ter:pr.ter,cap,city,own,dir:lwDir(pr,Wd.nat[me]),egar,fort:cap?2:city||!own?1:0,units:ids||[]};}
-const lwAtkPool=m=>S.gnd.filter(g=>g.loc==='home'&&g.fm!==m&&g.hp>=3).sort((a,b)=>gPW(b)*b.hp-gPW(a)*a.hp);
-const lwAtkUsed=()=>{const L=S.lw;return L&&L.atkM===S.month?L.atkN||0:0;};
+// どのプロヴィンスにもいる郷土防衛隊。都市では少し厚く、首都には警備隊もいる
+function lwMilitia(p){const con=S.pol.law.con,pr=WORLD.P[p],city=WORLD.ST[pr.st].city===p,hp=clamp(Math.round((5+con+(city?2:0))*(1+(polSum(1).grdK||0)*.5)),3,10),m=[{type:'inf',hp,name:'郷土防衛隊',tr:35+con*8}];if(city&&pr.cap)m.push({type:'inf',hp,name:'首都警備隊',tr:55});return m;}
+// 守りにつくのは、そのプロヴィンスにいる部隊(強い順に7個)と郷土防衛隊
+function lwDefenders(gp){return lwAt(gp.pid).sort(lwByStr).slice(0,7).map(gRef).concat(lwMilitia(gp.pid));}
+// 参謀の配置：脅威の大きい国境に厚く置き、首都に1個残す。手で動かした部隊(pin)は動かさない
+function lwDeploy(all){lwPos();const me=ME(),P=WORLD.P,ow=WORLD.pown,L=S.lw,cap=lwCapP(),w={},un=S.gnd.filter(g=>g.loc==='home'&&(all||!g.pin)&&!(L&&(g.am===S.month||g.fx===S.month)));if(!un.length)return 0;
+  for(const p of P){if(ow[p.id]!==me)continue;let t=0;for(const q of p.adj){const o=ow[q];if(o===me)continue;if(L){if(o===L.e)t+=6+gstr(lwEAt(q))/10;}else{const h=lwHot(o);if(h&&h.t>=30)t+=h.t/10;}}
+    if(t>0)w[p.id]=t*(WORLD.ST[p.st].city===p.id?1.5:1)*(1+2/(1+lwD(p,P[cap])/12));}
+  const keys=Object.keys(w).map(Number);let n=0;if(!keys.length){for(const g of un)if(g.pv!==cap){g.pv=cap;n++;}return n;}
+  const load={};for(const g of S.gnd)if(g.loc==='home'&&!un.includes(g))load[g.pv]=(load[g.pv]||0)+g.hp*gPW(g);
+  un.sort(lwByStr);if(un.length>=4&&!(load[cap]>0)){const k=un.pop();if(k.pv!==cap){k.pv=cap;n++;}}
+  for(const g of un){let best=keys[0],bv=-1;for(const k of keys){const v=w[k]/(1+(load[k]||0)/45);if(v>bv){bv=v;best=k;}}if(g.pv!==best){g.pv=best;n++;}load[best]=(load[best]||0)+g.hp*gPW(g);}
+  return n;}
+/* ---------- 敵の部隊 ---------- */
+// 開戦のとき、相手がこの国境に回す兵力を、部隊として並べる
+function lwArmy(){const L=S.lw,n=clamp(Math.round(lwEnemy(L.e)/50),3,16);L.eu=[];L.eseq=0;L.en0=n;for(let i=0;i<n;i++)L.eu.push({id:++L.eseq,t:LWSEQ_E[i%LWSEQ_E.length],hp:10,pv:-1,am:-1});lwEDeploy();}
+// 敵の配置：こちらの首都に近い前線ほど厚い。前線を離れた部隊は前線へ送られる
+function lwEDeploy(){const L=S.lw,me=ME(),e=L.e,P=WORLD.P,ow=WORLD.pown,cap=P[lwCapP()],F=lwCand(e,me,false,false);
+  if(!F.length){const hc=P.find(p=>p.nat===e&&p.cap&&ow[p.id]===e)||P.find(p=>ow[p.id]===e);for(const u of L.eu)if(!P[u.pv]||ow[u.pv]!==e)u.pv=hc?hc.id:-1;return;}
+  F.sort((a,b)=>lwD(P[a],cap)-lwD(P[b],cap));const inF=new Set(F),cnt={};for(const u of L.eu)if(inF.has(u.pv))cnt[u.pv]=(cnt[u.pv]||0)+1;
+  for(const u of L.eu){if(inF.has(u.pv))continue;let best=F[0],bv=-1;F.forEach((p,i)=>{const v=1/(1+i*.3)/(1+(cnt[p]||0)*1.1);if(v>bv){bv=v;best=p;}});u.pv=best;cnt[best]=(cnt[best]||0)+1;}}
+/* ---------- 戦いを組む ---------- */
+// 敵が攻めてくる戦い。攻め手は、隣のプロヴィンスにいる敵の部隊
+function lwMkBat(p,att){const Wd=WORLD,pr=Wd.P[p],s=Wd.ST[pr.st],city=s.city===p&&pr.nat===ME()?1:0,cap=city&&pr.cap?1:0;
+  return{home:1,z:0,pid:p,seed:RI(1,999999999),name:lwPName(p),sname:stName(s),ter:pr.ter,cap,city,dir:lwDir(pr,Wd.P[att[0].pv]||Wd.nat[S.lw.e]),L:cap?2.8:city||att.length>=4?2.4:2.1,fr:1,force:att.map(u=>({t:u.t,hp:u.hp,eref:u.id}))};}
+// こちらが攻める戦い。守り手は、そのプロヴィンスにいる敵の部隊と、都市の守備隊
+function lwMkAtk(q,ids){const Wd=WORLD,pr=Wd.P[q],s=Wd.ST[pr.st],me=ME(),own=pr.nat===me?1:0,city=s.city===q?1:0,cap=city&&pr.cap&&!own?1:0,egar=lwEAt(q).sort(lwByStr).slice(0,6).map(u=>({t:u.t,hp:u.hp,eref:u.id})),g0=S.gnd.find(g=>ids&&ids[0]===g.id);
+  if(city){egar.push({t:'inf',hp:own?6:7});if(cap){egar.push({t:'inf',hp:8});egar.push({t:'art',hp:7});}}
+  return{home:1,atk:1,z:0,pid:q,seed:RI(1,999999999),name:lwPName(q),sname:stName(s),ter:pr.ter,cap,city,own,dir:lwDir(pr,g0&&Wd.P[g0.pv]||Wd.nat[me]),egar,empty:egar.length?0:1,fort:cap?2:city&&!own?1:0,units:ids||[]};}
+// qへ攻め込める部隊：隣のプロヴィンスにいて、今月まだ動いておらず、戦力が3以上
+function lwAtkPool(q,m){lwPos();const me=ME(),adj=new Set(WORLD.P[q].adj.filter(x=>WORLD.pown[x]===me));if(m==null)m=S.month;return S.gnd.filter(g=>g.loc==='home'&&adj.has(g.pv)&&g.am!==m&&g.hp>=3).sort(lwByStr);}
 const lwCanAtk=p=>{const L=S.lw;return !!L&&WORLD.pown[p]===L.e&&WORLD.P[p].adj.some(q=>WORLD.pown[q]===ME());};
-const lwAtkWhy=()=>{const L=S.lw;return !L?'交戦中ではない':S.gpend||(L.bq&&L.bq.length)||S.pending?'先に、決着を待っている戦いを片づける':lwAtkUsed()>=LW_ATK?`進攻は月に${LW_ATK}回まで`:!lwAtkPool(S.month).length?'進攻に出せる部隊がいない(本土にいて、戦力3以上、今月まだ攻めていない部隊)':'';};
+const lwAtkWhy=q=>{const L=S.lw;return !L?'交戦中ではない':S.gpend||(L.bq&&L.bq.length)||S.pending?'先に、決着を待っている戦いを片づける':q!=null&&!lwAtkPool(q).length?'隣のプロヴィンスに、今月動ける部隊がいない(戦力3以上で、まだ動いていない部隊を寄せる)':'';};
+// 後方からの支援射撃：戦場に出ない特科・ロケットの部隊のうち、そのプロヴィンスか隣にいるもの
+function lwArtSup(pid,used){const me=ME(),near=new Set(WORLD.P[pid].adj.filter(x=>WORLD.pown[x]===me).concat([pid]));return Math.min(3,S.gnd.filter(g=>g.loc==='home'&&near.has(g.pv)&&gArt(g.type)&&g.hp>=4&&!used.includes(g.id)).length);}
 // 進攻の見込み。こちらの戦力÷敵の守り
-const lwArtSup=ids=>Math.min(3,S.gnd.filter(g=>g.loc==='home'&&gArt(g.type)&&g.hp>=4&&!ids.includes(g.id)).length);
-function lwAtkOdds(d,un){const M=mods(),X=polSum(1);return (gstr(un,g=>.8+.4*g.tr/100)*(1+(M.gndPow||0))*(1+(X.ofK||0))+airStrikers(0).length*20+lwArtSup(un.map(g=>g.id))*15)/Math.max(1,gstr(d.egar)*(1+.05*eTech())*(1.15+.1*d.fort)*(LWTER[d.ter]||1));}
+function lwAtkOdds(d,un){if(d.empty)return 9;const M=mods(),X=polSum(1);return (gstr(un,g=>.8+.4*g.tr/100)*(1+(M.gndPow||0))*(1+(X.ofK||0))+airStrikers(0).length*20+lwArtSup(d.pid,un.map(g=>g.id))*15)/Math.max(1,gstr(d.egar)*(1+.05*eTech())*(1.15+.1*d.fort)*(LWTER[d.ter]||1));}
 /* ---------- 戦いの決着を世界に反映する ---------- */
 function lwNote(t,name,win){const L=S.lw;if(!L)return;(L.res=L.res||[]).unshift({t,name,win:win?1:0});if(L.res.length>8)L.res.pop();}
+// 退く：隣の自国のプロヴィンスのうち首都に近いほうへ。退路がなければ、戦力を失って首都へ逃れる
+function lwRetreatP(p){const P=WORLD.P,ow=WORLD.pown,me=ME(),cap=P[lwCapP()],to=P[p].adj.filter(q=>ow[q]===me).sort((a,b)=>lwD(P[a],cap)-lwD(P[b],cap))[0],un=lwAt(p);for(const g of un){if(to!=null)g.pv=to;else{g.pv=cap.id;g.hp=Math.min(g.hp,2);}}return to==null?un.length:0;}
+function lwRetreatE(q){const L=S.lw,P=WORLD.P,ow=WORLD.pown,ec=WORLD.nat[L.e],to=P[q].adj.filter(x=>ow[x]===L.e).sort((a,b)=>lwD(P[a],ec)-lwD(P[b],ec))[0];let lost=0;for(const u of lwEAt(q)){if(to!=null)u.pv=to;else{L.eu=L.eu.filter(y=>y!==u);lost++;}}return lost;}
+// 戦術戦のあと、戦場に出た敵部隊の戦力を写す。自動の決着では、勝敗に応じて削る
+function lwEWrite(){const L=S.lw;if(!L||!L.eu||!G)return;for(const u of G.u){if(u.side!=='E'||!u.eref)continue;const x=L.eu.find(y=>y.id===u.eref);if(!x)continue;x.fx=S.month;if(u.hp<=0)L.eu=L.eu.filter(y=>y!==x);else x.hp=u.hp;}}
+function lwEHit(list,lost){const L=S.lw;for(const x of list){const u=L.eu.find(y=>y.id===x.eref);if(!u)continue;u.fx=S.month;u.hp-=lost?RI(1,3):RI(0,1);if(u.hp<=0)L.eu=L.eu.filter(y=>y!==u);}}
 // 守る戦い。支持率と緊張度の増減、結果の文を返す
 function lwBatEnd(win,why,gp){const L=S.lw,e=L.e,o=[],big=gp.city;let dS,dT=0;lwNote('def',gp.name,win);
-  if(win){L.es=Math.max(.45,L.es-(big?.12:.05));L.ex+=big?3:1;if(big)L.sh=S.month+1;L.won=(L.won||0)+1;if(big||why!=='auto')S.stats.wins++;dS=gp.cap?8:big?5:2;o.push(`${gp.name}を守り抜いた${big?`。${natN(e)}軍の攻勢は勢いを失った`:''}`);hlog(`${gp.name}：迫る${natN(e)}軍を退けた`,'g');}
-  else{provTake(gp.pid,e);S.w.ver++;L.lost=(L.lost||0)+1;L.mLost=(L.mLost||0)+1;if(why!=='retreat'&&(big||why!=='auto'))S.stats.loss++;dS=why==='retreat'?(big?-4:-1):gp.cap?-10:big?-6:-2;dT=big?1:0;
-    o.push(gp.cap?`首都${gp.name}が${natN(e)}軍の手に落ちた`:big?`${gp.name}は${natN(e)}軍の手に落ちた。${gp.sname}は経済から外れる`:`${gp.name}を失った`);hlog(`${gp.name}が${natN(e)}軍に占領された`,'r');if(big)wNews(`${natN(e)}軍が${gp.cap?'首都':''}${gp.name}を占領`,'r');}
+  if(win){L.ex+=big?3:1;if(big)L.sh=S.month+1;L.won=(L.won||0)+1;if(big||why!=='auto')S.stats.wins++;dS=gp.cap?8:big?5:2;o.push(`${gp.name}を守り抜いた${big?`。${natN(e)}軍の攻勢は勢いを失った`:''}`);hlog(`${gp.name}：迫る${natN(e)}軍を退けた`,'g');}
+  else{provTake(gp.pid,e);S.w.ver++;const cut=lwRetreatP(gp.pid);let n=0;for(const x of gp.force){const u=L.eu.find(y=>y.id===x.eref);if(u&&n<3){u.pv=gp.pid;n++;}}
+    L.lost=(L.lost||0)+1;L.mLost=(L.mLost||0)+1;if(why!=='retreat'&&(big||why!=='auto'))S.stats.loss++;dS=why==='retreat'?(big?-4:-1):gp.cap?-10:big?-6:-2;dT=big?1:0;
+    o.push(gp.cap?`首都${gp.name}が${natN(e)}軍の手に落ちた`:big?`${gp.name}は${natN(e)}軍の手に落ちた。${gp.sname}は経済から外れる`:`${gp.name}を失った`);if(cut)o.push(`退路を断たれた${cut}個部隊が、戦力を失って首都へ逃れた`);
+    hlog(`${gp.name}が${natN(e)}軍に占領された`,'r');if(big)wNews(`${natN(e)}軍が${gp.cap?'首都':''}${gp.name}を占領`,'r');}
   _M=null;return{dS,dT,L:o};}
-// 攻める戦い
+// 攻める戦い。勝てば、攻めた部隊がそのプロヴィンスへ進む
 function lwAtkEnd(win,why,d){const L=S.lw,e=L.e,o=[];let dS,dT=0;lwNote('atk',d.name,win);
-  if(win){provTake(d.pid,ME());S.w.ver++;L.es=Math.max(.45,L.es-(d.city?.08:.04));L.ex+=1;L.mGain=(L.mGain||0)+1;if(why!=='auto')S.stats.wins++;dS=d.own?(d.city?5:2):(d.city?3:1);
-    o.push(d.own?`${d.name}を奪い返した${d.city?`。${d.sname}が経済に戻る`:''}`:`${natN(e)}の${d.name}を占領した`);hlog(d.own?`${d.name}を${natN(e)}軍から奪い返した`:`${natN(e)}の${d.name}を占領した`,'g');if(d.city)wNews(`${NAT.n}軍が${d.own?'':natN(e)+'の'}${d.name}を${d.own?'奪還':'占領'}`,'g');if(d.cap)L.capE=1;}
-  else{L.es=Math.min(1.1,L.es+.01);if(why!=='auto')S.stats.loss++;dS=why==='retreat'?-1:-2;o.push(`${d.name}への進攻は失敗した`);hlog(`${d.name}への進攻は失敗した`,'r');}
+  if(win){provTake(d.pid,ME());S.w.ver++;const cut=lwRetreatE(d.pid);for(const g of S.gnd)if(d.units.includes(g.id)&&g.loc==='home'&&g.rt!==S.month)g.pv=d.pid;
+    L.ex+=1;L.mGain=(L.mGain||0)+1;if(why!=='auto'&&!d.empty)S.stats.wins++;dS=d.own?(d.city?5:2):(d.city?3:1);
+    o.push(d.own?`${d.name}を奪い返した${d.city?`。${d.sname}が経済に戻る`:''}`:`${natN(e)}の${d.name}を占領した`);if(cut)o.push(`退路を断たれた敵の${cut}個部隊が降伏した`);
+    hlog(d.own?`${d.name}を${natN(e)}軍から奪い返した`:`${natN(e)}の${d.name}を占領した`,'g');if(d.city)wNews(`${NAT.n}軍が${d.own?'':natN(e)+'の'}${d.name}を${d.own?'奪還':'占領'}`,'g');if(d.cap)L.capE=1;}
+  else{if(why!=='auto')S.stats.loss++;dS=why==='retreat'?-1:-2;o.push(`${d.name}への進攻は失敗した`);hlog(`${d.name}への進攻は失敗した`,'r');}
   _M=null;return{dS,dT,L:o};}
 // 相手の首都を落としていれば、その場で降伏させる。知らせの文を返す
 function lwCapEnd(){if(!S.lw||!S.lw.capE)return'';const rep=[];lwEnd('win',rep);for(const r of rep)hlog(r[0],r[1]);return rep.length?rep[rep.length-1][0].replace(/^講和：/,''):'';}
-// 本土の戦いで戦力が尽きた部隊は、消えずに潰走する(戦力1で後方へ下がる)
-const lwKill=un=>{const dead=un.filter(g=>g.hp<=0);for(const g of dead){g.hp=1;g.tr=Math.max(20,g.tr-6);}return dead;};
+// 本土の戦いで戦力が尽きた部隊は、消えずに潰走する(戦力1で残る)
+const lwKill=un=>{const dead=un.filter(g=>g.hp<=0);for(const g of dead){g.hp=1;g.tr=Math.max(20,g.tr-6);g.rt=S.month;}return dead;};
 // 自動で決着をつける
 function lwResolveDef(gp){const L=S.lw,M=mods(),X=polSum(1),st=LWST.find(x=>x[0]===L.st)||LWST[0],def=lwDefenders(gp),un=S.gnd.filter(g=>def.some(d=>d.ref===g.id));
-  const P=gstr(def,g=>.8+.4*g.tr/100)*(1+(M.gndPow||0))*1.35*st[3]*(1+(X.hdK||0))+airStrikers(0).length*25,E=gstr(gp.force)*(1+.05*eTech()),win=Math.random()<clamp(.5+(P-E)/Math.max(1,P+E)*.9,.06,.94);
-  for(const g of un){g.hp-=Math.round((win?RI(0,1):RI(0,2)+(gp.city?1:0))*st[4]);g.tr=Math.min(100,g.tr+2);g.fx=S.month;}return{win,dead:lwKill(un),r:lwBatEnd(win,'auto',gp)};}
-function lwResolveAtk(d,un){const win=Math.random()<clamp(.5+(lwAtkOdds(d,un)-1)/(lwAtkOdds(d,un)+1)*.9,.05,.95);
-  for(const g of un){g.hp-=win?RI(0,1):RI(1,2);g.tr=Math.min(100,g.tr+2);g.fx=S.month;}return{win,dead:lwKill(un),r:lwAtkEnd(win,'auto',d)};}
-// 参謀による進攻。構えに従い、司令が先月使わなかった回数だけ、勝ち目のある相手に仕掛ける
-function lwStaff(lr){const L=S.lw,me=ME(),e=L.e,pm=S.month-1;if(L.st==='hold')return;const ctr=L.st==='ctr',used=L.atkM===pm?L.atkN||0:0;
-  for(let i=used;i<(ctr?LW_ATK:2);i++){const tg=lwCand(e,me,!ctr,false);if(!tg.length)break;const un=S.gnd.filter(g=>g.loc==='home'&&g.fm!==pm&&g.fs!==S.month&&g.hp>=4).sort((a,b)=>gPW(b)*b.hp-gPW(a)*a.hp).slice(0,5);if(!un.length)break;
-    const d=lwMkAtk(tg[0],un.map(g=>g.id));if(lwAtkOdds(d,un)<(ctr?.9:1.05))break;for(const g of un)g.fs=S.month;const o=lwResolveAtk(d,un);S.support=clamp(S.support+o.r.dS*.5,0,100);
-    lr.push([`本土：参謀の進攻　${o.r.L[0]}${o.dead.length?`(潰走：${o.dead.map(g=>g.name).join('、')})`:''}`,o.win?'g':'r']);if(L.capE)break;}}
-function lwStep(rep){const L=S.lw,W=S.w,me=ME(),e=L.e,rv=RVN(),n=W.n[e],mo=S.month-L.m0,st=LWST.find(x=>x[0]===L.st)||LWST[0],lr=[],P=WORLD.P;
-  n.rel=Math.min(n.rel,-60);if(e===rv)S.tension=Math.max(S.tension,70);if(!L.bq)L.bq=[];if(L.bat){L.bq.push(L.bat);L.bat=null;}if(L.bq.length||(S.gpend&&S.gpend.home))return;
+  const P=gstr(def,g=>.8+.4*g.tr/100)*(1+(M.gndPow||0))*1.35*st[3]*(1+(X.hdK||0))*(LWTER[gp.ter]||1)+(un.length?airStrikers(0).length*25+lwArtSup(gp.pid,un.map(g=>g.id))*15:0),E=gstr(gp.force)*(1+.05*eTech()),win=Math.random()<clamp(.5+(P-E)/Math.max(1,P+E)*.9,.06,.94);
+  for(const g of un){g.hp-=Math.round((win?RI(0,1):RI(0,2)+(gp.city?1:0))*st[4]);g.tr=Math.min(100,g.tr+2);g.fx=S.month;}lwEHit(gp.force,win);return{win,dead:lwKill(un),r:lwBatEnd(win,'auto',gp)};}
+function lwResolveAtk(d,un){const od=lwAtkOdds(d,un),win=d.empty||Math.random()<clamp(.5+(od-1)/(od+1)*.9,.05,.95);
+  if(!d.empty)for(const g of un){g.hp-=win?RI(0,1):RI(1,2);g.tr=Math.min(100,g.tr+2);g.fx=S.month;}lwEHit(d.egar,win);return{win,dead:lwKill(un),r:lwAtkEnd(win,'auto',d)};}
+/* ---------- 月の処理 ---------- */
+// 参謀による進攻。構えに従い、勝ち目のある相手にだけ仕掛ける。先月動かなかった部隊を使う
+function lwStaff(lr){const L=S.lw,me=ME(),e=L.e,pm=S.month-1;if(L.st==='hold')return;const ctr=L.st==='ctr';let n=0;
+  for(const q of lwCand(e,me,!ctr,false)){if(n>=(ctr?3:2)||L.capE)break;const un=lwAtkPool(q,pm).filter(g=>g.sm!==S.month&&g.hp>=4).slice(0,5);if(!un.length)continue;const d=lwMkAtk(q,un.map(g=>g.id));if(lwAtkOdds(d,un)<(ctr?.9:1.05))continue;
+    for(const g of un)g.sm=S.month;const o=lwResolveAtk(d,un);n++;S.support=clamp(S.support+o.r.dS*.5,0,100);lr.push([`本土：参謀の進攻　${o.r.L.join('。')}${o.dead.length?`(潰走：${o.dead.map(g=>g.name).join('、')})`:''}`,o.win?'g':'r']);}}
+// 敵の番：補充し、前線へ寄せ、勝ち目のあるプロヴィンスへ攻めかかる(月に3か所まで)
+function lwETurn(lr){const L=S.lw,me=ME(),e=L.e,P=WORLD.P,ow=WORLD.pown,st=LWST.find(x=>x[0]===L.st)||LWST[0],M=mods(),X=polSum(1),mo=S.month-L.m0,cap=P[lwCapP()];
+  for(const u of L.eu){const deep=P[u.pv]&&P[u.pv].nat!==e;u.hp=Math.min(10,u.hp+(u.fx>=S.month-1?(deep?0:1):2));}
+  if(L.eu.length<L.en0&&S.month%2===0&&L.ex<45)L.eu.push({id:++L.eseq,t:LWSEQ_E[L.eseq%LWSEQ_E.length],hp:8,pv:-1,am:-1});
+  lwEDeploy();if(L.sh>=S.month)return 0;
+  const cands=[];for(const p of lwCand(me,e,false,false)){const att=[];for(const q of P[p].adj)if(ow[q]===e)for(const u of lwEAt(q))if(u.am!==S.month&&u.hp>=4)att.push(u);if(!att.length)continue;att.sort(lwByStr);
+    const a6=att.slice(0,6),dv=gstr(lwDefenders({pid:p}),g=>.8+.4*(g.tr||50)/100)*(1+(M.gndPow||0))*1.35*st[3]*(1+(X.hdK||0))*(LWTER[P[p].ter]||1),od=gstr(a6)*(1+.05*eTech())*(mo<2&&!L.att?1.15:1)/Math.max(1,dv);
+    cands.push({p,a6,od,v:od*(WORLD.ST[P[p].st].city===p?1.4:1)*(1+1.5/(1+lwD(P[p],cap)/10))*R(.8,1.2)});}
+  cands.sort((a,b)=>b.v-a.v);let n=0;const used=new Set();
+  for(const c of cands){if(n>=3)break;if(c.od<.95||c.a6.some(u=>used.has(u.id)))continue;for(const u of c.a6){used.add(u.id);u.am=S.month;}n++;const b=lwMkBat(c.p,c.a6);
+    if(lwAt(c.p).length&&(b.city||!L.auto)){L.bq.push(b);continue;}
+    const o=lwResolveDef(b);S.support=clamp(S.support+o.r.dS*.5,0,100);lr.push([`本土：${o.r.L.join('。')}${o.dead.length?`(潰走：${o.dead.map(g=>g.name).join('、')})`:''}`,o.win?'g':'r']);if(lwCapLost())break;}
+  return n;}
+function lwStep(rep){const L=S.lw,W=S.w,me=ME(),e=L.e,rv=RVN(),n=W.n[e],mo=S.month-L.m0,lr=[];
+  n.rel=Math.min(n.rel,-60);if(e===rv)S.tension=Math.max(S.tension,70);if(!L.bq)L.bq=[];if(!L.eu)lwArmy();lwPos();if(L.bq.length||(S.gpend&&S.gpend.home))return;
   L.k=(L.mLost||0)-(L.mGain||0);L.mLost=0;L.mGain=0;
+  if(S.dep.auto)lwDeploy();
   lwStaff(lr);if(L.capE){rep.unshift(...lr);lwEnd('win',rep);return;}
-  // 敵の攻勢。兵力差が開くほど、攻めかかる場所が増える
-  const pw=lwPow(),E=lwE(),ratio=E/Math.max(1,pw.def*st[3])*R(.85,1.2)*(mo<2&&!L.att?1.15:1),field=S.gnd.some(g=>g.loc==='home');
-  let nE=L.sh>=S.month?0:ratio>=1.6?3:ratio>=1.1?2:ratio>=.7?1:Math.random()<.45?1:0;if(nE&&Math.random()<.25)nE+=Math.random()<.5?1:-1;nE=clamp(nE,0,3);
-  for(const p of lwCand(me,e,false,true).slice(0,nE)){const b=lwMkBat(p);
-    if(b.city&&!field){provTake(p,e);L.lost=(L.lost||0)+1;L.mLost++;lwNote('def',b.name,0);wNews(`${natN(e)}軍が${b.cap?'首都':''}${b.name}を占領`,'r');lr.push([`本土：守る部隊がなく、${b.cap?'首都':''}${b.name}が${natN(e)}軍の手に落ちた`,'r']);S.support=clamp(S.support-(b.cap?10:5),0,100);if(b.cap)break;continue;}
-    if(b.city||(field&&!L.auto)){L.bq.push(b);continue;}
-    const o=lwResolveDef(b);S.support=clamp(S.support+o.r.dS*.5,0,100);lr.push([`本土：${o.r.L[0]}${o.dead.length?`(潰走：${o.dead.map(g=>g.name).join('、')})`:''}`,o.win?'g':'r']);}
+  const nE=lwETurn(lr);
   if(L.bq.length)lr.unshift([`本土：${natN(e)}軍が${L.bq.map(b=>(b.cap?'首都':'')+b.name).join('、')}に攻めかかってきた`,'r']);
   L.ex+=1+.3*nE;if(nE||lr.length)for(const a of S.air||[])if(a.base===0&&airOK(a)&&(a.type==='ftr'||a.type==='atk'||a.type==='bmr'))a.rdy=Math.max(15,a.rdy-6);
-  L.es=clamp(L.es+.014-Math.min(.03,airStrikers(0).length*.012),.45,1.1);
+  for(const u of L.eu)if(airStrikers(0).length&&WORLD.P[u.pv]&&WORLD.P[u.pv].nat===me&&Math.random()<.2)u.hp=Math.max(2,u.hp-1);   // こちらの領内へ入った敵は、爆撃にさらされる
+  L.es=clamp(gstr(L.eu)/Math.max(1,L.en0*55),.1,1.2);
   S.support=clamp(S.support-lwOcc()/Math.max(1,lwGeo().orig)*2.5,0,100);n.stab=clamp(n.stab-.6,5,95);
   if(!lr.length)lr.push(['本土：前線は動いていない','']);rep.unshift(...lr);W.ver++;_M=null;
-  if(!L.bq.length&&!lwCapLost()&&mo>=4&&S.month-(L.offM==null?-99:L.offM)>=4&&Math.random()<clamp((mo-3)*.03+L.ex*.004+(L.es<.7?.12:0)+(L.k<0?.06:0),0,.45)){L.offM=S.month;L.q.push({k:'offer'});}}
+  if(!L.bq.length&&!lwCapLost()&&mo>=4&&S.month-(L.offM==null?-99:L.offM)>=4&&Math.random()<clamp((mo-3)*.03+L.ex*.004+(L.es<.7?.12:0)+(L.es<.45?.2:0)+(L.k<0?.06:0),0,.6)){L.offM=S.month;L.q.push({k:'offer'});}}
 /* ---------- 講和 ---------- */
 function lwTerms(){const occ=lwOcc(),got=lwGeo().got;
   if(got>=3&&got>occ){const v=100+got*30;return{k:'rep',v,t:`${NAT.n}は占領地から兵を引き、相手は賠償(国庫に${v}億円)を払う。国境は戦前の線に戻る`};}
@@ -3124,35 +3263,72 @@ function lwEnd(how,rep){const L=S.lw,W=S.w,P=WORLD.P,ow=WORLD.pown,me=ME(),e=L.e
   else if(T.k==='sq'){back();out();S.support=clamp(S.support+2,0,100);t=`${NAT.n}と${natN(e)}が停戦。国境は戦前の線に戻る`;}
   else{out();S.support=clamp(S.support-6,0,100);S.pol.stab=clamp(S.pol.stab-5,0,100);c='r';t=`${NAT.n}と${natN(e)}が講和。${NAT.n}は${T.n}プロヴィンスを失った`;}
   W.wars=W.wars.filter(w=>!w.pl);if(h){h.t=22;h.n1=0;h.n2=0;h.calm=S.month+24;}n.rel=Math.max(n.rel,-50);n.rb=Math.max(n.rb||0,-15);if(e===rv&&T.k!=='win')S.tension=clamp(S.tension-8,0,100);
-  S.lw=null;W.ver++;_M=null;wNews(t,c);rep.push(['講和：'+t,c]);return T;}
+  S.lw=null;W.ver++;_M=null;for(const g of S.gnd){delete g.am;delete g.sm;}lwPos();wNews(t,c);rep.push(['講和：'+t,c]);return T;}
 /* ---------- 戦いの前の決定 ---------- */
+const lwEList=l=>l.map(u=>`${GT[u.t].n}<span class="mut">(戦力${u.hp})</span>`).join('、');
 // 敵が攻めてきたとき：自ら指揮する、任せる、明け渡す
 function lwPrompt(){const gp=S.gpend,L=S.lw,me=ME();if(!gp||!gp.home||S.over)return;const next=()=>{if(S.over)showOver();else if(gpNext())groundPrompt();};
   if(!L||WORLD.pown[gp.pid]!==me){S.gpend=null;save();return next();}
+  gp.force=gp.force.filter(x=>L.eu.some(u=>u.id===x.eref));if(!gp.force.length){S.gpend=null;save();return next();}
   const e=L.e,done=(ttl,body,r)=>{polApply(r.dS,r.dT);checkOver();save();render();modal(`<div class="alert r">${ttl}</div><h2>${gp.name}</h2>${body}<div class="pol">支持率 ${sg(r.dS)}</div><div class="mbtn"><button class="btn pri" data-m="ok">確認</button></div>`,{ok:()=>{closeModal();next();}});};
-  if(!S.gnd.some(g=>g.loc==='home')&&gp.city){S.gpend=null;return done('陥落',`<p>守る部隊がなく、${natN(e)}軍は抵抗を受けずに市内へ入った。</p>`,lwBatEnd(false,'none',gp));}
-  if(L.auto&&!gp.city)return lwAuto(true);
+  if(!lwAt(gp.pid).length||(L.auto&&!gp.city))return lwAuto(!gp.city);
   save();const left=(L.bq||[]).length;
-  modal(`<div class="alert r">${gp.cap?'首都防衛戦':gp.city?'都市の攻防':'前線の防御'}</div><h2>${natN(e)}軍が${gp.name}に${gp.city?'迫る':'攻めかかる'}</h2><p>${gp.cap?'<b class="r">ここが落ちれば、政府は降伏し、任期は終わる。</b>':gp.city?`${gp.sname}の中心都市。落とされると、この州は経済から外れる。`:`${gp.sname}のプロヴィンス。失えば、前線が1つ内へ下がる。`}敵は${['北','東','南','西'][gp.dir]}から司令部を目指してくる。${gp.city?10:8}ターン守り抜けば退けられる。</p>
-  <dl class="kv2"><dt>敵</dt><dd>${gp.force.length}個部隊(推定)</dd><dt>守る部隊</dt><dd>${lwDefenders(gp).map(g=>`${g.name}<span class="mut">(戦力${g.hp})</span>`).join('、')}</dd><dt>地形</dt><dd>${TERN[gp.ter]||'平地'}</dd>${left?`<dt>ほかの戦い</dt><dd>このあと${left}か所</dd>`:''}</dl>
-  <div class="mbtn col"><button class="btn pri" data-m="f">自ら指揮する</button><button class="btn" data-m="a">現地の指揮官に任せる<small>自動で決着をつける</small></button>${gp.cap?'':`<button class="btn" data-m="r">戦わずに明け渡す<small>部隊は無傷で下がる。支持率 ${gp.city?'−4':'−1'}</small></button>`}${gp.city?'':'<button class="btn" data-m="all">この戦争では、前線の戦いを任せる<small>都市と首都の戦いだけ、判断を求められる。「国政 → 国防」で戻せる</small></button>'}</div>`,
-  Object.assign({f:()=>{closeModal();startGround('defend',0);},a:()=>{closeModal();lwAuto();}},gp.cap?{}:{r:()=>{closeModal();S.gpend=null;done('後退',`<p>部隊は${gp.name}を離れ、次の線まで下がった。</p>`,lwBatEnd(false,'retreat',gp));}},gp.city?{}:{all:()=>{closeModal();L.auto=1;hlog('前線の戦いを現地の指揮官に任せることにした','');lwAuto(true);}}));}
+  modal(`<div class="alert r">${gp.cap?'首都防衛戦':gp.city?'都市の攻防':'前線の防御'}</div><h2>${natN(e)}軍が${gp.name}に${gp.city?'迫る':'攻めかかる'}</h2><p>${gp.cap?'<b class="r">ここが落ちれば、政府は降伏し、任期は終わる。</b>':gp.city?`${gp.sname}の中心都市。落とされると、この州は経済から外れる。`:`${gp.sname}のプロヴィンス。失えば、ここの部隊は隣へ退く。`}敵は${['北','東','南','西'][gp.dir]}から司令部を目指してくる。${gp.city?10:8}ターン守り抜けば退けられる。</p>
+  <dl class="kv2"><dt>攻めてくる敵</dt><dd>${lwEList(gp.force)}</dd><dt>ここを守る部隊</dt><dd>${lwDefenders(gp).map(g=>`${g.name}<span class="mut">(戦力${g.hp})</span>`).join('、')}</dd><dt>地形</dt><dd>${TERN[gp.ter]||'平地'}</dd>${left?`<dt>ほかの戦い</dt><dd>このあと${left}か所</dd>`:''}</dl>
+  <div class="mbtn col"><button class="btn pri" data-m="f">自ら指揮する</button><button class="btn" data-m="a">現地の指揮官に任せる<small>自動で決着をつける</small></button>${gp.cap?'':`<button class="btn" data-m="r">戦わずに明け渡す<small>部隊は無傷で隣へ退く。支持率 ${gp.city?'−4':'−1'}</small></button>`}${gp.city?'':'<button class="btn" data-m="all">この戦争では、前線の戦いを任せる<small>都市と首都の戦いだけ、判断を求められる。「国政 → 国防」で戻せる</small></button>'}</div>`,
+  Object.assign({f:()=>{closeModal();startGround('defend',0);},a:()=>{closeModal();lwAuto();}},gp.cap?{}:{r:()=>{closeModal();S.gpend=null;done('後退',`<p>部隊は${gp.name}を離れ、隣のプロヴィンスへ退いた。</p>`,lwBatEnd(false,'retreat',gp));}},gp.city?{}:{all:()=>{closeModal();L.auto=1;hlog('前線の戦いを現地の指揮官に任せることにした','');lwAuto(true);}}));}
 function lwAuto(quiet){const gp=S.gpend,L=S.lw;if(!gp||!gp.home||!L)return;S.gpend=null;const o=lwResolveDef(gp),r=o.r,win=o.win,next=()=>{if(S.over)showOver();else if(gpNext())groundPrompt();};
   polApply(r.dS,r.dT);S.pers.morale=clamp(S.pers.morale+(win?(gp.city?3:1):(gp.city?-4:-1)),5,100);checkOver();save();render();
   if(quiet&&!S.over){toast(r.L[0]);return next();}
   modal(`<div class="alert ${win?'g':'r'}">${win?'防衛成功':gp.city?'陥落':'後退'}</div><h2>${gp.name}</h2>${r.L.map(l=>`<p>${l}。</p>`).join('')}${o.dead.length?`<p class="sm r">潰走：${o.dead.map(g=>g.name).join('、')}</p>`:''}<div class="pol">支持率 ${sg(r.dS)}${r.dT?`　緊張度 ${sg(r.dT)}`:''}</div><div class="mbtn"><button class="btn pri" data-m="ok">確認</button></div>`,{ok:()=>{closeModal();next();}});}
-// こちらから攻める：目標のプロヴィンスと、投入する部隊を決める
-function lwAtkModal(){const a=ui.lwa,L=S.lw;if(!a||!L)return;const d=a.d,pool=lwAtkPool(S.month),un=pool.filter(g=>a.ids.includes(g.id)),od=un.length?lwAtkOdds(d,un):0,cbs={x:()=>{closeModal();ui.lwa=null;}};
+// こちらから攻める：隣のプロヴィンスにいる部隊から、投入する部隊を決める
+function lwAtkModal(){const a=ui.lwa,L=S.lw;if(!a||!L)return;const q=a.q,pool=lwAtkPool(q),un=pool.filter(g=>a.ids.includes(g.id)),d=lwMkAtk(q,un.map(g=>g.id)),od=un.length?lwAtkOdds(d,un):0,cbs={x:()=>{closeModal();ui.lwa=null;}};
   for(const g of pool)cbs['u'+g.id]=()=>{const i=a.ids.indexOf(g.id);if(i>=0)a.ids.splice(i,1);else if(a.ids.length<5)a.ids.push(g.id);closeModal();lwAtkModal();};
-  const go=f=>()=>{closeModal();ui.lwa=null;const us=lwAtkPool(S.month).filter(g=>a.ids.includes(g.id));if(!us.length||lwAtkWhy()||!lwCanAtk(d.pid))return;L.atkN=lwAtkUsed()+1;L.atkM=S.month;for(const g of us)g.fm=S.month;d.units=us.map(g=>g.id);
-    if(f)return startGround('assault',0,d);
-    const o=lwResolveAtk(d,us),r=o.r,cap=lwCapEnd();polApply(r.dS,r.dT);S.pers.morale=clamp(S.pers.morale+(o.win?1:-1),5,100);checkOver();save();render();
-    modal(`<div class="alert ${o.win?'g':'r'}">${o.win?(d.own?'奪還':'占領'):'進攻失敗'}</div><h2>${d.name}</h2>${r.L.map(l=>`<p>${l}。</p>`).join('')}${cap?`<p><b class="g">${cap}。</b></p>`:''}${o.dead.length?`<p class="sm r">潰走：${o.dead.map(g=>g.name).join('、')}</p>`:''}<div class="pol">支持率 ${sg(r.dS)}</div><div class="mbtn"><button class="btn pri" data-m="ok">確認</button></div>`,{ok:()=>{closeModal();if(S.over)showOver();}});};
+  const go=f=>()=>{closeModal();ui.lwa=null;const us=lwAtkPool(q).filter(g=>a.ids.includes(g.id));if(!us.length||lwAtkWhy(q)||!lwCanAtk(q))return;const d2=lwMkAtk(q,us.map(g=>g.id));for(const g of us){g.am=S.month;g.pin=1;}
+    if(f&&!d2.empty)return startGround('assault',0,d2);
+    const o=lwResolveAtk(d2,us),r=o.r,cap=lwCapEnd();polApply(r.dS,r.dT);if(!d2.empty)S.pers.morale=clamp(S.pers.morale+(o.win?1:-1),5,100);checkOver();save();render();
+    modal(`<div class="alert ${o.win?'g':'r'}">${o.win?(d2.own?'奪還':'占領'):'進攻失敗'}</div><h2>${d2.name}</h2>${r.L.map(l=>`<p>${l}。</p>`).join('')}${o.win?'<p class="sm mut">攻めた部隊は、このプロヴィンスへ進んだ。</p>':''}${cap?`<p><b class="g">${cap}。</b></p>`:''}${o.dead.length?`<p class="sm r">潰走：${o.dead.map(g=>g.name).join('、')}</p>`:''}<div class="pol">支持率 ${sg(r.dS)}</div><div class="mbtn"><button class="btn pri" data-m="ok">確認</button></div>`,{ok:()=>{closeModal();if(S.over)showOver();}});};
   cbs.f=go(1);cbs.a=go(0);
   modal(`<div class="alert">進攻</div><h2>${d.name}</h2><p class="sm">${d.own?'占領されている自国の土地':`${natN(L.e)}の領土`}・${TERN[d.ter]||'平地'}${d.city?'・州の中心都市':''}${d.cap?'・<b class="am">相手の首都。落とせば降伏させられる</b>':''}</p>
-  <dl class="kv2"><dt>敵の守り</dt><dd>${d.egar.length}個部隊(推定)${d.fort?`・陣地${d.fort>1?'は堅い':'あり'}`:''}</dd><dt>見込み</dt><dd>${!un.length?'部隊を選ぶ':`<b class="${od>=1.3?'g':od>=.95?'':od>=.7?'am':'r'}">${od>=1.3?'優勢':od>=.95?'互角':od>=.7?'やや劣勢':'劣勢'}</b>`}</dd><dt>支援</dt><dd>砲兵の射撃 ${lwArtSup(a.ids)}回　爆撃 ${Math.min(3,airStrikers(0).length)}回<br><span class="sm mut">投入しない特科・ロケットの部隊が後方から撃つ</span></dd><dt>今月の進攻</dt><dd>${lwAtkUsed()+1}回目／${LW_ATK}回</dd></dl>
-  <h3 class="sub">投入する部隊 ${un.length}／5</h3><div class="chips">${pool.map(g=>`<button class="${a.ids.includes(g.id)?'on':''}" data-m="u${g.id}">${g.name}<small>戦力${g.hp}</small></button>`).join('')}</div><p class="sm mut">攻めた部隊は、今月はもう進攻に出せない。敵が攻めてきたときの守りにはつける。</p>
-  <div class="mbtn col"><button class="btn pri" data-m="f" ${un.length?'':'disabled'}>自ら指揮する</button><button class="btn" data-m="a" ${un.length?'':'disabled'}>参謀に任せる<small>自動で決着をつける</small></button><button class="btn" data-m="x">やめる</button></div>`,cbs);}
+  <dl class="kv2"><dt>守る敵</dt><dd>${d.empty?'<b class="g">いない。戦わずに占領できる</b>':lwEList(d.egar)+(d.fort?`<br><span class="sm mut">陣地${d.fort>1?'は堅い':'あり'}</span>`:'')}</dd>${d.empty?'':`<dt>見込み</dt><dd>${!un.length?'部隊を選ぶ':`<b class="${od>=1.3?'g':od>=.95?'':od>=.7?'am':'r'}">${od>=1.3?'優勢':od>=.95?'互角':od>=.7?'やや劣勢':'劣勢'}</b>`}</dd><dt>支援</dt><dd>砲兵の射撃 ${lwArtSup(q,a.ids)}回　爆撃 ${Math.min(3,airStrikers(0).length)}回<br><span class="sm mut">隣にいて投入しない特科・ロケットの部隊が、後方から撃つ</span></dd>`}</dl>
+  <h3 class="sub">隣のプロヴィンスから投入する部隊 ${un.length}／5</h3><div class="chips">${pool.map(g=>`<button class="${a.ids.includes(g.id)?'on':''}" data-m="u${g.id}">${g.name}<small>戦力${g.hp}・${lwPName(g.pv)}</small></button>`).join('')}</div><p class="sm mut">勝てば、攻めた部隊がこのプロヴィンスへ進む。攻めた部隊は、今月はもう動けない。</p>
+  <div class="mbtn col">${d.empty?`<button class="btn pri" data-m="a" ${un.length?'':'disabled'}>前進して占領する</button>`:`<button class="btn pri" data-m="f" ${un.length?'':'disabled'}>自ら指揮する</button><button class="btn" data-m="a" ${un.length?'':'disabled'}>参謀に任せる<small>自動で決着をつける</small></button>`}<button class="btn" data-m="x">やめる</button></div>`,cbs);}
+// 部隊を動かす：選んだプロヴィンスへ、届く部隊を呼ぶ
+function lwCallModal(){const c=ui.lwc;if(!c)return;lwPos();const p=c.p,war=!!S.lw,pool=S.gnd.filter(g=>g.loc==='home'&&g.pv!==p&&(!war||(g.am!==S.month&&lwReach(g.pv,lwMvR(g))[p]!=null))).sort(lwByStr),cbs={x:()=>{closeModal();ui.lwc=null;}};
+  for(const g of pool)cbs['u'+g.id]=()=>{const i=c.ids.indexOf(g.id);if(i>=0)c.ids.splice(i,1);else c.ids.push(g.id);closeModal();lwCallModal();};
+  cbs.go=()=>{closeModal();ui.lwc=null;const us=pool.filter(g=>c.ids.includes(g.id));if(!us.length||WORLD.pown[p]!==ME())return;for(const g of us){g.pv=p;g.pin=1;if(S.lw)g.am=S.month;}hlog(`${us.length}個部隊を${lwPName(p)}へ動かした`,'');save();render();toast(`${us.length}個部隊を動かした`);};
+  modal(`<div class="alert">移動</div><h2>${lwPName(p)}へ</h2><p class="sm mut">${war?'交戦中は、部隊は月に1度だけ動ける。徒歩の部隊は2つ先、機械化は3つ先、戦車は4つ先のプロヴィンスまで届く。':'平時は、本土のどこへでも動かせる。'}手で動かした部隊は、参謀の配置から外れてその場にとどまる。</p>
+  ${pool.length?`<div class="chips">${pool.map(g=>`<button class="${c.ids.includes(g.id)?'on':''}" data-m="u${g.id}">${g.name}<small>戦力${g.hp}・${lwPName(g.pv)}</small></button>`).join('')}</div>`:'<p class="al am">ここへ届く、今月まだ動いていない部隊がいない</p>'}
+  <div class="mbtn"><button class="btn pri" data-m="go" ${c.ids.length?'':'disabled'}>${c.ids.length}個部隊を動かす</button><button class="btn" data-m="x">やめる</button></div>`,cbs);}
+/* ---------- 地図と配置の画面 ---------- */
+// 選んだプロヴィンスにいる部隊と、そこでできること
+function lwProvPanel(p){lwPos();const L=S.lw,me=ME(),ow=WORLD.pown[p],un=lwAt(p);let h='';
+  if(ow===me){h+=un.length?`<p class="sm"><b>ここにいる部隊 ${un.length}</b><br>${un.map(g=>`${g.name}<span class="mut">(戦力${g.hp}${lwActed(g)?'・行動済み':''}${g.pin?'・固定':''})</span>`).join('、')}</p>`:'<p class="sm mut">ここに部隊はいない。攻められたら、郷土防衛隊だけで守る。</p>';
+    if(L){const th=WORLD.P[p].adj.filter(q=>WORLD.pown[q]===L.e).reduce((a,q)=>a.concat(lwEAt(q)),[]);if(th.length)h+=`<p class="sm"><b class="r">隣にいる敵 ${th.length}</b><br>${lwEList(th)}</p>`;}
+    h+=`<div class="brow"><button class="btn sm pri" onclick="A.lwcall(${p})">ここへ部隊を動かす</button>${un.some(g=>g.pin)?`<button class="btn sm" onclick="A.lwunpin(${p})">固定を解く</button>`:''}</div>`;}
+  else if(L&&ow===L.e){const adj=WORLD.P[p].adj.some(q=>WORLD.pown[q]===me),eu=lwEAt(p);
+    h+=adj?`<p class="sm"><b>敵の部隊 ${eu.length}</b>${eu.length?'<br>'+lwEList(eu):'<span class="mut">　いない</span>'}</p><div class="brow"><button class="btn sm pri" onclick="A.lwatk(${p})">ここへ進攻する</button></div>`:'<p class="sm mut">前線から離れていて、敵の配置はわからない。</p>';}
+  return h;}
+function lwMapSec(){lwPos();const me=ME(),L=S.lw,p=ui.wsel,P=WORLD.P,dep=S.dep||{auto:1};
+  let h=`<section class="sec"><h2>部隊の配置</h2><p class="mut sm">本土の陸上部隊は、プロヴィンスごとに置く。地図の青い札が味方、赤い札が前線の敵で、数字は部隊の数。敵は隣のプロヴィンスへ攻めてくるので、そこにいる部隊が戦う。地図をタップして、部隊を動かす先や攻める先を選ぶ。</p>${mapBox('view',`data-hi="${me}" data-ri="${L?L.e:RVN()}"`)}
+  <div class="brow"><button class="btn sm" onclick="A.lwzoom()">自国を大きく映す</button></div>`;
+  h+=p!=null&&P[p]?`<div class="item"><div class="uh"><b>${lwPName(p)}</b><span class="loc">${natN(WORLD.pown[p])}・${TERN[P[p].ter]||'平地'}${WORLD.ST[P[p].st].city===p?(P[p].cap?'・首都':'・都市'):''}</span></div>${lwProvPanel(p)||'<p class="sm mut">他国の土地。</p>'}</div>`:'<p class="sm mut">プロヴィンスをタップすると、そこの部隊が見える。</p>';
+  h+=`<h3 class="sub">配置のしかた</h3><div class="chips"><button class="${dep.auto?'on':''}" onclick="A.lwdep(1)">参謀が配置する</button><button class="${dep.auto?'':'on'}" onclick="A.lwdep(0)">自分で配置する</button></div><p class="sm mut">${dep.auto?'参謀は毎月、脅威の大きい国境に部隊を寄せ、首都に1個残す。手で動かした部隊は、固定を解くまで動かさない。':'部隊は、動かさないかぎりその場にとどまる。本土に着いた部隊は首都に入る。'}</p><div class="brow"><button class="btn sm" onclick="A.lwredep()">いま参謀に配置させる</button></div>`;
+  if(L){const e=L.e,fr=lwCand(me,e,false,false).map(q=>({q,un:lwAt(q),th:P[q].adj.filter(x=>WORLD.pown[x]===e).reduce((a,x)=>a+gstr(lwEAt(x)),0)})).sort((a,b)=>b.th-a.th).slice(0,6),tg=lwCand(e,me,false,false).slice(0,8),why=lwAtkWhy();
+    h+=`<h3 class="sub">前線　脅威の大きい順</h3>${fr.length?fr.map(f=>`<div class="urow"><div class="grow"><b>${lwPName(f.q)}</b>${P[f.q].cap?' <span class="tag">首都</span>':''}<br><span class="sm ${f.un.length?'mut':'am'}">味方 ${f.un.length}個(戦力 ${f.un.reduce((a,g)=>a+g.hp,0)})　隣の敵の戦力 ${Math.round(f.th/5.5)}</span></div><button class="btn sm" onclick="A.wsel(${f.q})">選ぶ</button></div>`).join(''):'<p class="sm mut">敵と接するプロヴィンスはない。</p>'}
+    <h3 class="sub">攻め込める先</h3>${why?`<p class="sm mut">${why}</p>`:''}${tg.length?tg.map(q=>{const pr=P[q],own=pr.nat===me,city=WORLD.ST[pr.st].city===q,eu=lwEAt(q),pool=lwAtkPool(q);return `<div class="urow"><div class="grow"><b>${lwPName(q)}</b> <span class="tag">${own?'奪還':'敵地'}</span>${city?` <span class="tag">${pr.cap&&!own?'首都':'都市'}</span>`:''}<br><span class="sm mut">敵 ${eu.length}個${eu.length?`(戦力 ${eu.reduce((a,u)=>a+u.hp,0)})`:''}${city?'＋守備隊':''}　隣の味方 ${pool.length}個</span></div><button class="btn sm" ${why||!pool.length?'disabled':''} onclick="A.lwatk(${q})">進攻</button></div>`;}).join(''):'<p class="sm mut">攻め込めるプロヴィンスがない。</p>'}`;}
+  return h+'</section>';}
+// 地図に重ねる札：味方は青、前線の敵は赤。数字は部隊の数
+function lwCounters(g,v){if(!S||!S.w||!S.gnd||!WORLD.pown)return;const P=WORLD.P,me=ME(),L=S.lw,s=v.s,mine={},foe={};
+  for(const u of S.gnd)if(u.loc==='home'&&u.pv!=null&&P[u.pv])mine[u.pv]=(mine[u.pv]||0)+1;
+  if(L&&L.eu)for(const u of L.eu)if(P[u.pv]&&P[u.pv].adj.some(q=>WORLD.pown[q]===me))foe[u.pv]=(foe[u.pv]||0)+1;
+  const box=(p,n,c)=>{const x=(P[p].x+.5-v.x0)*s,y=(P[p].y+.5-v.y0)*s;if(x<-12||y<-12||x>v.cw+12||y>v.ch+12)return;
+    if(s<2.2){g.fillStyle=c;g.fillRect(x-2.5,y-2.5,5,5);g.strokeStyle='#fff';g.lineWidth=.8;g.strokeRect(x-2.5,y-2.5,5,5);return;}
+    const w=s<4?14:18,h=s<4?10:13;g.fillStyle=c;g.strokeStyle='#fff';g.lineWidth=1.2;g.fillRect(x-w/2,y-h/2,w,h);g.strokeRect(x-w/2,y-h/2,w,h);g.fillStyle='#fff';g.font=`bold ${s<4?9:11}px sans-serif`;g.textAlign='center';g.textBaseline='middle';g.fillText(String(n),x,y+.5);};
+  for(const p in mine)box(+p,mine[p],'#1f6fd0');for(const p in foe)box(+p,foe[p],'#c23028');}
+{const ov0=wOverlay;wOverlay=function(g,v){ov0(g,v);lwCounters(g,v);};}
+// 保存の前に、本土を離れた部隊の居場所を消し、本土に着いた部隊に居場所を与える
+{const sv0=save;save=function(){if(S&&S.w&&WORLD&&WORLD.pl===(S.cfg.planet||0))lwPos();sv0();};}
 /* ---------- 知らせ ---------- */
 function lwOffer(asked){const L=S.lw;if(!L)return;const e=L.e,T=lwTerms(),bad=T.k==='cede';
   modal(`<div class="alert ${bad?'r':'g'}">講和</div><h2>${asked?`${natN(e)}が交渉に応じた`:`${natN(e)}が講和を打診してきた`}</h2><p>条件：<b>${T.t}</b>。</p><p class="sm mut">${bad?'受け入れれば戦いは終わるが、中心都市を失った州は経済から外れたままになる。あとから奪還の戦いを起こすこともできる。':'受け入れれば、2年のあいだ国境は静かになる。'}</p><div class="mbtn"><button class="btn ${bad?'':'pri'}" data-m="y">受け入れる</button><button class="btn ${bad?'pri':''}" data-m="n">戦いを続ける</button></div>`,
@@ -3161,7 +3337,7 @@ function lwShow(){const L=S.lw;if(!L||S.over||!L.q||!L.q.length)return;const q=L
   if(q.k==='offer')return lwOffer(false);
   const pw=lwPow(),E=lwE(),cbs={hd:()=>{closeModal();ui.tab='gov';ui.sub.gov='hd';render();window.scrollTo(0,0);}};for(const s of LWST.slice(0,2))cbs['s_'+s[0]]=()=>{closeModal();L.st=s[0];save();render();};
   modal(`<div class="alert r">侵攻</div><h2>${NATS[e].f}軍が国境を越えた</h2><p>宣戦の通告はなかった。${natN(e)}軍は首都${NAT.cap}を目指して進んでくる。<b>首都が落ちれば、政府は降伏し、任期はそこで終わる。</b></p>
-  <dl class="kv2"><dt>敵の兵力(見積り)</dt><dd>${Math.round(E)}</dd><dt>我が防衛力</dt><dd>${Math.round(pw.def)}(本土の陸上部隊 ${pw.n}個)</dd></dl><p class="sm mut">敵は毎月、国境のプロヴィンスへ攻めかかってくる。そのつど、自ら指揮するか任せるかを選ぶ。こちらからも「国政 → 国防」か世界地図から、月に3回まで進攻できる。島の部隊を戻す、緊急動員、停戦といった手も国防にまとめてある。まず構えを決める。</p>
+  <dl class="kv2"><dt>敵の兵力(見積り)</dt><dd>${Math.round(E)}</dd><dt>我が防衛力</dt><dd>${Math.round(pw.def)}(本土の陸上部隊 ${pw.n}個)</dd></dl><p class="sm mut">敵の部隊は、隣のプロヴィンスへ攻めかかってくる。守るのは、そこにいる部隊と郷土防衛隊。「国政 → 国防」の地図で部隊を動かし、隣の敵地へ進攻する。配置は参謀に任せることもできる。島の部隊を戻す、緊急動員、停戦といった手も国防にまとめてある。まず構えを決める。</p>
   <div class="mbtn col">${LWST.slice(0,2).map((s,i)=>`<button class="btn ${i?'':'pri'}" data-m="s_${s[0]}">${s[1]}<small>${s[2]}</small></button>`).join('')}<button class="btn" data-m="hd">国防の画面を開く</button></div>`,cbs);}
 {const f0=polShow;polShow=function(){lwShow();f0();};}
 /* ---------- 国境危機の出来事と、不可侵条約 ---------- */
@@ -3177,16 +3353,14 @@ const lwMobWhy=()=>{const W=S.w,me=ME();return !(S.lw||W.hot.some(h=>(h.a===me||
 GV.hd=()=>{const W=S.w,L=S.lw,G=lwGeo(),pw=lwPow(),al=natAlive(),P=S.pol,con=P.law.con,mob=lwMobWhy(),ids=lwNb().concat(Object.keys(G.lost).map(Number)).filter((i,k,a)=>al[i]&&a.indexOf(i)===k),tOf=i=>(lwHot(i)||{t:0}).t;let h='';
   if(L){const e=L.e,E=lwE(),mo=S.month-L.m0,occ=lwOcc(),st=LWST.find(x=>x[0]===L.st)||LWST[0],eff=pw.def*st[3],mx=Math.max(E,eff,1),ask=L.askM!=null&&S.month-L.askM<3,gone=myStates().filter(s=>stHeld(s)===0);
     h+=`<section class="sec"><h2>本土の戦い</h2><p class="al r">${L.att?`${natN(e)}と交戦中`:`${natN(e)}軍が侵攻している`}(${mo}か月目)</p>${(L.bq&&L.bq.length)||(S.gpend&&S.gpend.home)?`<p class="al r">決着を待っている戦いがある。「翌月へ」を押すと対応を決められる</p>`:''}
-    <dl class="kv2"><dt>占領された土地</dt><dd class="${occ?'r':''}">${occ}／${G.orig}プロヴィンス${gone.length?`(${gone.map(stName).join('、')}を失った)`:''}</dd><dt>こちらが占領</dt><dd>${G.got}プロヴィンス</dd><dt>今月の前線</dt><dd>${L.mLost?`<span class="r">失った ${L.mLost}</span>`:''}${L.mLost&&L.mGain?'　':''}${L.mGain?`<span class="g">取った ${L.mGain}</span>`:''}${L.mLost||L.mGain?'':'動かず'}</dd><dt>敵の勢い</dt><dd>${Math.round(L.es*clamp(1-.02*occ,.72,1)*100)}%<span class="mut">(損害と、補給線の伸びで落ちる)</span></dd><dt>首都</dt><dd>${NAT.cap}<span class="mut">(落ちれば任期は終わる)</span></dd></dl>
+    <dl class="kv2"><dt>占領された土地</dt><dd class="${occ?'r':''}">${occ}／${G.orig}プロヴィンス${gone.length?`(${gone.map(stName).join('、')}を失った)`:''}</dd><dt>こちらが占領</dt><dd>${G.got}プロヴィンス</dd><dt>今月の前線</dt><dd>${L.mLost?`<span class="r">失った ${L.mLost}</span>`:''}${L.mLost&&L.mGain?'　':''}${L.mGain?`<span class="g">取った ${L.mGain}</span>`:''}${L.mLost||L.mGain?'':'動かず'}</dd><dt>敵の部隊</dt><dd>${L.eu?L.eu.length:0}個<span class="mut">(開戦時 ${L.en0||0}個。戦力は当初の${Math.round(L.es*100)}%)</span></dd><dt>首都</dt><dd>${NAT.cap}<span class="mut">(落ちれば任期は終わる)</span></dd></dl>
     <div class="st3"><div><label>我が防衛力 ${Math.round(eff)}</label>${bar(eff/mx*100,'b')}</div><div><label>敵の兵力 ${Math.round(E)}</label>${bar(E/mx*100,'r')}</div></div>
     <h3 class="sub">構え</h3>${LWST.map(s=>`<div class="lopt ${L.st===s[0]?'on':''}"><div class="uh"><b>${L.st===s[0]?'● ':''}${s[1]}</b><span class="loc">防衛力 ${sg(Math.round((s[3]-1)*100))}%・損害 ${sg(Math.round((s[4]-1)*100))}%</span></div><p class="sm mut">${s[2]}</p>${L.st===s[0]?'':`<button class="btn sm" onclick="A.lwst('${s[0]}')">この構えに改める</button>`}</div>`).join('')}
     <h3 class="sub">前線の戦い</h3><div class="chips"><button class="${L.auto?'':'on'}" onclick="A.lwauto(0)">そのつど自分で決める</button><button class="${L.auto?'on':''}" onclick="A.lwauto(1)">現地の指揮官に任せる</button></div><p class="sm mut">任せても、州の中心都市と首都の戦いは判断を求められる。</p>
-    <h3 class="sub">進攻　今月 ${lwAtkUsed()}／${LW_ATK}回</h3>${(()=>{const why=lwAtkWhy(),tg=lwCand(e,ME(),false,false).slice(0,6);if(!tg.length)return'<p class="sm mut">攻め込めるプロヴィンスがない。</p>';
-      return `<p class="sm mut">${why||`出せる部隊 ${lwAtkPool(S.month).length}個。世界地図(国政 → 情勢)でプロヴィンスを選んで攻めることもできる。`}</p>`+tg.map(p=>{const pr=WORLD.P[p],own=pr.nat===ME(),city=WORLD.ST[pr.st].city===p;return `<div class="urow"><div class="grow"><b>${lwPName(p)}</b> <span class="tag">${own?'奪還':'敵地'}</span>${city?` <span class="tag">${pr.cap&&!own?'首都':'都市'}</span>`:''}<br><span class="sm mut">${stName(WORLD.ST[pr.st])}・${TERN[pr.ter]||'平地'}</span></div><button class="btn sm" ${why?'disabled':''} onclick="A.lwatk(${p})">進攻</button></div>`;}).join('');})()}
     ${L.res&&L.res.length?`<h3 class="sub">最近の戦い</h3><p class="sm">${L.res.slice(0,6).map(r=>`<span class="${r.win?'g':'r'}">${r.t==='atk'?'攻':'守'}　${r.name}　${r.win?(r.t==='atk'?'奪取':'保持'):(r.t==='atk'?'失敗':'喪失')}</span>`).join('<br>')}</p>`:''}
     <h3 class="sub">講和</h3><p class="sm">いま講和すれば：${lwTerms().t}。</p><div class="brow"><button class="btn sm" ${P.pp>=30&&!ask?'':'disabled'} onclick="A.lwask()">${ask?'申し入れたばかり':P.pp<30?'政治力が足りない':'停戦を申し入れる(政治力 30)'}</button><button class="btn sm" onclick="A.nat(${e})">${natN(e)}を見る</button></div></section>`;}
-  h+=`<section class="sec"><h2>本土の防衛力</h2>${polBar()}<dl class="kv2"><dt>本土の陸上部隊</dt><dd>${Math.round(pw.field)}<span class="mut">(${pw.n}個)</span></dd><dt>郷土防衛隊</dt><dd>${Math.round(pw.guard)}<span class="mut">(兵役：${LAW.find(l=>l[0]==='con')[2][con][0]})</span></dd><dt>本土の飛行隊</dt><dd>${Math.round(pw.air)}</dd><dt>同盟と防衛協力</dt><dd>+${Math.round(pw.ally*100)}%</dd><dt>地形と陣地</dt><dd>+${Math.round((pw.ter-1)*100)}%</dd><dt>合計</dt><dd><b>${Math.round(pw.def)}</b></dd></dl>
-  <p class="mut sm">本土にいる陸上部隊、兵役の政策、基地と駐屯地、本土の飛行隊、同じ陣営の国と防衛協力が効く。島や艦にいる部隊は数に入らない。</p>
+  h+=lwMapSec()+`<section class="sec"><h2>本土の防衛力</h2>${polBar()}<dl class="kv2"><dt>本土の陸上部隊</dt><dd>${Math.round(pw.field)}<span class="mut">(${pw.n}個)</span></dd><dt>郷土防衛隊</dt><dd>${Math.round(pw.guard)}<span class="mut">(兵役：${LAW.find(l=>l[0]==='con')[2][con][0]})</span></dd><dt>本土の飛行隊</dt><dd>${Math.round(pw.air)}</dd><dt>同盟と防衛協力</dt><dd>+${Math.round(pw.ally*100)}%</dd><dt>地形と陣地</dt><dd>+${Math.round((pw.ter-1)*100)}%</dd><dt>合計</dt><dd><b>${Math.round(pw.def)}</b></dd></dl>
+  <p class="mut sm">相手が攻め込むかどうかを決める、本土全体の守りの厚さ。本土にいる陸上部隊、兵役の政策、基地と駐屯地、本土の飛行隊、同じ陣営の国と防衛協力が効く。島や艦にいる部隊は数に入らない。</p>
   <div class="brow"><button class="btn sm" onclick="A.sub('units','gnd');A.tab('units')">陸上部隊を見る</button><button class="btn sm" ${mob?'disabled':''} onclick="A.lwmob()">緊急動員(資金150・政治力20)</button></div>${mob?`<p class="sm mut">緊急動員：${mob}</p>`:`<p class="sm mut">緊急動員：予備役を招集し、普通科連隊を${2+con}個ただちに編成する。</p>`}</section>
   <section class="sec"><h2>陸の国境 ${ids.length}</h2>`;
   if(!ids.length)h+='<p class="mut sm">陸で接する国はない。本土が陸から攻め込まれることはない。</p>';
@@ -3206,8 +3380,13 @@ VIEW.gov=()=>subtabs('gov',[['world','情勢'],['dip','外交'],['hd','国防'],
     return a;};}
 Object.assign(A,{
   lwauto(v){const L=S.lw;if(!L)return;L.auto=v?1:0;save();render();},
-  lwatk(p){const L=S.lw,why=lwAtkWhy();if(!L)return;if(why)return toast(why);if(!lwCanAtk(p))return toast('ここへは攻め込めない。自国の土地に接する、相手の持つプロヴィンスを選ぶ');
-    ui.lwa={d:lwMkAtk(p),ids:lwAtkPool(S.month).slice(0,5).map(g=>g.id)};lwAtkModal();},
+  lwatk(p){const L=S.lw;if(!L)return;if(!lwCanAtk(p))return toast('ここへは攻め込めない。自国の土地に接する、相手の持つプロヴィンスを選ぶ');const why=lwAtkWhy(p);if(why)return toast(why);
+    ui.lwa={q:p,ids:lwAtkPool(p).slice(0,5).map(g=>g.id)};lwAtkModal();},
+  lwcall(p){if(WORLD.pown[p]!==ME()||S.gpend||(S.lw&&S.lw.bq&&S.lw.bq.length))return;ui.lwc={p,ids:[]};lwCallModal();},
+  lwunpin(p){for(const g of lwAt(p))delete g.pin;save();render();},
+  lwdep(v){if(!S.dep)S.dep={auto:1};S.dep.auto=v?1:0;save();render();},
+  lwredep(){if(S.gpend||(S.lw&&S.lw.bq&&S.lw.bq.length))return toast('先に、決着を待っている戦いを片づける');const n=lwDeploy();save();render();toast(n?`${n}個部隊を配置し直した`:'動かす部隊はなかった');},
+  lwzoom(){const c=WORLD.P[lwCapP()],m=mvGet('view');m.z=5;m.cx=c.x;m.cy=c.y;render();},
   lwst(k){const L=S.lw;if(!L||!LWST.some(s=>s[0]===k)||L.st===k)return;L.st=k;hlog(`本土の構えを「${LWST.find(s=>s[0]===k)[1]}」に改めた`,'');save();render();},
   lwask(){const L=S.lw,P=S.pol;if(!L||(L.bq&&L.bq.length)||S.gpend||mq.length||P.pp<30||(L.askM!=null&&S.month-L.askM<3))return;P.pp-=30;L.askM=S.month;const mo=S.month-L.m0,T=lwTerms(),p=clamp(.12+L.ex*.02+mo*.012+(L.es<.75?.2:0)+(T.k==='cede'?.3:0)+(T.k==='rep'?.15:0),.05,.92);
     if(Math.random()<p){save();render();lwOffer(true);}else{hlog(`${natN(L.e)}に停戦を申し入れたが、応じなかった`,'');save();render();toast('相手は交渉に応じなかった');}},
@@ -3398,6 +3577,8 @@ Object.assign(POLXN,{hdK:['本土の防衛力',100,'%'],ofK:['進攻の戦力',1
 const docK=b=>.4+.6*clamp((S.doc[b].m||0)/100,0,1);
 /* ---------- 貿易 ---------- */
 const TBUY={oil:11,steel:8,rare:12,food:7},TSELL={oil:9,steel:6,rare:9,food:5},TDEST={any:['誰にでも',1],fr:['友好国だけ',.85],bloc:['自陣営だけ',.75]};
+// 資源の値は惑星によって違う
+const tBuy=k=>TBUY[k]*PL().sit.price,tSell=k=>TSELL[k]*PL().sit.price;
 // 輸出先：その資源を産しない国のうち、方針に合う相手を関係のよい順に3か国まで
 function tradeBuyers(k,to){const W=S.w,me=ME(),al=natAlive(),pb=W.n[me].bloc;return W.n.map((n,i)=>i).filter(i=>i!==me&&al[i]&&!W.n[i].sanc&&!(S.lw&&S.lw.e===i)&&!(natRes(i)[k])&&(to==='any'?W.n[i].rel>-60:to==='fr'?W.n[i].rel>=10:pb?W.n[i].bloc===pb:(W.n[i].def||W.n[i].trd))).sort((a,b)=>W.n[b].rel-W.n[a].rel).slice(0,3);}
 /* ---------- 武器輸出 ---------- */
@@ -3425,9 +3606,9 @@ function econSum(add){if(!S.corp)return;for(const c of CORP)add(c[3],S.corp[c[0]
 // 資源の売り買い、備蓄、武器輸出、企業の成長。国庫に入る正味の額を返す
 function econMonth(rep,rb){econInit();const T=S.trade,W=S.w,A2=S.arms;let inc=0;T.log={exp:0,buy:0,arms:0};
   for(const x of RES){const k=x[0],c=T.res[k],b=rb[k];T.stock[k]=Math.max(0,T.stock[k]-(b.cov||0));
-    const cost=(c.buy||0)*rb.open*TBUY[k]*(rb.open<.99?1.3:1);if(cost>0&&S.eco.tre+inc<cost){c.buy=0;rep.push([`国庫が足りず、${x[1]}の買い付けを止めた`,'am']);}else{inc-=cost;T.log.buy+=cost;}
+    const cost=(c.buy||0)*rb.open*tBuy(k)*(rb.open<.99?1.3:1);if(cost>0&&S.eco.tre+inc<cost){c.buy=0;rep.push([`国庫が足りず、${x[1]}の買い付けを止めた`,'am']);}else{inc-=cost;T.log.buy+=cost;}
     const bs=tradeBuyers(k,c.to),sold=Math.min(b.sur*c.exp,bs.length);T.stock[k]=clamp(T.stock[k]+b.sur-sold+(b.ext||0),0,Math.max(c.stT,T.stock[k]));
-    if(sold>0){const v=sold*TSELL[k]*TDEST[c.to][1]*rb.open;inc+=v;T.log.exp+=v;bs.slice(0,Math.ceil(sold)).forEach(i=>relAdd(i,c.to==='any'?.25:.5));}}
+    if(sold>0){const v=sold*tSell(k)*TDEST[c.to][1]*rb.open;inc+=v;T.log.exp+=v;bs.slice(0,Math.ceil(sold)).forEach(i=>relAdd(i,c.to==='any'?.25:.5));}}
   // 武器輸出
   A2.offers=A2.offers.filter(o=>o.exp>S.month&&armsOK(o.to));
   for(const c of A2.list.slice()){const n=W.n[c.to],ok=natAlive()[c.to]&&!n.sanc&&!(S.lw&&S.lw.e===c.to);
@@ -3451,10 +3632,10 @@ GV.ind=()=>{econInit();const E=S.eco;let h=`<section class="sec"><h2>防衛産�
   return h+'<p class="sm mut">重点企業は1社だけ選べ、経験の伸びが1.5倍になる。</p></section>';};
 GV.trade=()=>{econInit();const T=S.trade,E=S.eco,rb=resBal(),A2=S.arms,W=S.w,num=(v,act,min,max,step)=>`<span class="stp"><button onclick="${act}(${Math.max(min,+(v-step).toFixed(1))})" ${v<=min?'disabled':''} aria-label="減らす">−</button><b>${v}</b><button onclick="${act}(${Math.min(max,+(v+step).toFixed(1))})" ${v>=max?'disabled':''} aria-label="増やす">＋</button></span>`;
   let h=`<section class="sec"><h2>貿易</h2>${polBar()}<dl class="kv2"><dt>国庫</dt><dd>${Math.round(E.tre).toLocaleString()}億円(月 ${sg(E.inc)})</dd><dt>先月の内訳</dt><dd>資源の輸出 +${Math.round(T.log.exp)}　武器の輸出 +${Math.round(T.log.arms)}　買い付け −${Math.round(T.log.buy)}</dd><dt>航路</dt><dd class="${rb.open<.99?'am':''}">${rb.open>=.99?'安全':`脅かされている(取引の${Math.round(rb.open*100)}%しか通らず、買い値が3割上がる)`}</dd></dl></section><section class="sec"><h2>資源</h2><p class="mut sm">足りない資源は、通商協定の相手から入るぶんに加えて、国庫で買い付けられる。余った資源は売るか、備蓄に回す。備蓄は、航路が閉じたときの不足を埋める。</p>`;
-  for(const x of RES){const k=x[0],c=T.res[k],b=rb[k],bs=tradeBuyers(k,c.to),sold=Math.min(b.sur*c.exp,bs.length),v=sold*TSELL[k]*TDEST[c.to][1]*rb.open;
+  for(const x of RES){const k=x[0],c=T.res[k],b=rb[k],bs=tradeBuyers(k,c.to),sold=Math.min(b.sur*c.exp,bs.length),v=sold*tSell(k)*TDEST[c.to][1]*rb.open;
     h+=`<div class="unit"><div class="uh"><b>${x[1]}</b><span class="loc ${b.def>0?'r':''}">${b.def>0?`不足 ${b.def}`:b.sur>0?`余り ${b.sur.toFixed(1)}`:'足りている'}</span></div>
     <p class="sm">産出 ${b.prod}　必要 ${b.need}　協定で輸入 ${b.imp}${b.buy?`　買い付け ${b.buy}`:''}${b.cov?`　備蓄から ${b.cov}`:''}<br><span class="mut">不足すると：${x[2]}に響く</span></p>
-    <div class="urow"><label>買い付け</label><div class="grow">${num(c.buy,`A.tbuyr.bind(null,'${k}')`,0,4,.5)}<span class="sm mut">　月${Math.round(c.buy*rb.open*TBUY[k]*(rb.open<.99?1.3:1))}億円</span></div></div>
+    <div class="urow"><label>買い付け</label><div class="grow">${num(c.buy,`A.tbuyr.bind(null,'${k}')`,0,4,.5)}<span class="sm mut">　月${Math.round(c.buy*rb.open*tBuy(k)*(rb.open<.99?1.3:1))}億円</span></div></div>
     <div class="urow"><label>備蓄</label><div class="grow"><b>${T.stock[k].toFixed(1)}</b><span class="sm mut">　目標 </span>${num(c.stT,`A.tstk.bind(null,'${k}')`,0,6,1)}</div></div>
     ${b.prod>0?`<div class="urow"><label>輸出</label><div class="chips" style="margin:0">${[[0,'売らない'],[.5,'半分'],[1,'すべて']].map(o=>`<button class="${c.exp===o[0]?'on':''}" onclick="A.texp('${k}',${o[0]})">${o[1]}</button>`).join('')}</div></div>
     <div class="urow"><label>売り先</label><div class="chips" style="margin:0">${Object.keys(TDEST).map(d=>`<button class="${c.to===d?'on':''}" onclick="A.tto('${k}','${d}')">${TDEST[d][0]}</button>`).join('')}</div></div>
@@ -3495,6 +3676,59 @@ Object.assign(A,{
   aask(){const A2=S.arms,P=S.pol;if(!A2.pol||P.pp<10||(A2.askM!=null&&S.month-A2.askM<2))return;P.pp-=10;A2.askM=S.month;const m=armsOffer(2);save();render();toast(m?`引き合いが${m}件届いた`:'いまは買い手が見つからなかった');},
   acan(id){const A2=S.arms,c=A2.list.find(x=>x.id===id);if(!c)return;confirmM(`${natN(c.to)}への輸出を打ち切る。相手国との関係が悪くなる。`,()=>{A2.list=A2.list.filter(x=>x!==c);relAdd(c.to,-8);hlog(`${natN(c.to)}への武器輸出を打ち切った`,'am');save();render();},'打ち切る');}
 });
+
+/* ================= 惑星を選ぶ画面と、惑星ごとの国の姿 ================= */
+// 地勢の国柄：その惑星での国土・隣国・地形から、国ごとにひとつ決まる。[名称, 説明, 効果]
+const GEOT={
+  isl:['島国','陸の国境がない。本土が陸から攻め込まれることはない',{intel:.04,rdDecay:.04}],
+  tiny:['小さな国','国土が小さく、身軽に動ける',{cost:.05,budg:.03}],
+  huge:['広大な国土','人は集まるが、国境が長く、維持の手間も大きい',{recruit:.12,upk:-.03}],
+  mtn:['山岳の国','山と丘に守られている',{gndPow:.08}],
+  des:['砂漠の国','砂と熱の中で、装備を保たせる術を知る',{rdDecay:.06,ammoC:.04}],
+  ice:['極寒の国','寒さに鍛えられ、人が辞めない',{attr:.05,dc:.04}],
+  wood:['森の国','森に隠れて戦う術を知る',{gndPow:.04,stealth:.02}],
+  land:['四方を囲まれた国','いくつもの国と国境を接し、隣国の動きに敏い',{gndPow:.05,intel:.04}],
+  sea:['海洋国家','国土のほとんどが海に面する',{rdRec:.08,spd:.02}],
+  plain:['沃野の国','平地が広く、人が多い',{recruit:.07}]
+};
+// その惑星での国の姿：プロヴィンスと州の数、広さの順位、陸で接する国、主な地形、資源、地勢の国柄
+function natGeo(i){const Wd=WORLD||genWorld();if(!Wd.geo){const n=NATS.length,o=NATS.map(()=>({prov:0,cells:0,coast:0,ter:[0,0,0,0,0,0,0,0],nb:new Set(),res:{},pop:0,st:0}));
+    for(const p of Wd.P){const g=o[p.nat];g.prov++;g.cells+=p.n;if(p.coast)g.coast++;g.ter[p.ter]+=p.n;for(const a of p.adj)if(Wd.P[a].nat!==p.nat)g.nb.add(Wd.P[a].nat);}
+    for(const s of Wd.ST){const g=o[s.nat];g.st++;g.pop+=s.pop;if(s.res)g.res[s.res]=(g.res[s.res]||0)+1;}
+    const byC=o.map((g,k)=>k).sort((a,b)=>o[b].cells-o[a].cells),byP=o.map((g,k)=>k).sort((a,b)=>o[b].pop-o[a].pop);
+    o.forEach((g,k)=>{g.rank=byC.indexOf(k)+1;g.prank=byP.indexOf(k)+1;g.nb=[...g.nb];const c=Math.max(1,g.cells),sh=t=>g.ter[t]/c;g.main=g.ter.indexOf(Math.max(...g.ter));
+      g.k=!g.nb.length?'isl':g.rank>n-8?'tiny':g.rank<=5?'huge':sh(4)+sh(5)>=.36?'mtn':sh(6)>=.4?'des':sh(7)>=.4?'ice':sh(2)+sh(3)>=.5?'wood':g.nb.length>=5?'land':g.coast/Math.max(1,g.prov)>=.6?'sea':'plain';g.t=GEOT[g.k];g.fx=g.t[2];});
+    Wd.geo=o;}
+  return Wd.geo[i]||Wd.geo[0];}
+const natGeoHTML=i=>{const g=natGeo(i),c=Math.max(1,g.cells),ter=g.ter.map((v,t)=>[v/c,t]).filter(x=>x[1]&&x[0]>=.12).sort((a,b)=>b[0]-a[0]).slice(0,3).map(x=>`${TERN[x[1]]} ${Math.round(x[0]*100)}%`).join('、');
+  return `<dt>国土</dt><dd>${g.prov}プロヴィンス・${g.st}州<span class="mut">(広さ ${NATS.length}か国中${g.rank}位、人口 ${g.prank}位)</span></dd><dt>陸で接する国</dt><dd>${g.nb.length?g.nb.length+'か国<span class="mut">('+g.nb.slice(0,5).map(k=>NATS[k].n).join('、')+(g.nb.length>5?' ほか':'')+')</span>':'なし'}</dd><dt>地形</dt><dd class="sm">${ter||'平地'}</dd>
+  <dt>資源</dt><dd class="sm">${RES.filter(r=>g.res[r[0]]).map(r=>`${r[1]} ${g.res[r[0]]}州`).join('、')||'<span class="am">採れる州がない</span>'}</dd><dt>地勢</dt><dd><b class="am">${g.t[0]}</b><br><span class="sm">${g.t[1]}。${fxText(g.fx)}</span></dd>`;};
+/* ---------- 惑星の条件を文にする ---------- */
+function plSitText(k){const p=PLN[k]||PLN[0],s=Object.assign({},PLS0,p.sit),o=[],pc=v=>(v>1?'+':'−')+Math.round(Math.abs(v-1)*100)+'%';
+  if(s.budget!==1)o.push(`防衛予算 ${pc(s.budget)}`);if(s.ten)o.push(`緊張度 ${s.ten>0?'+':'−'}${Math.abs(s.ten)}`);if(s.incF!==1)o.push(`海と空の事案 ${pc(s.incF)}`);if(s.eAggr!==1)o.push(`相手の攻撃性 ${pc(s.eAggr)}`);if(s.eGrow!==1)o.push(`相手の軍拡 ${pc(s.eGrow)}`);
+  if(s.rivK!==1)o.push(`対峙する国の国力 ${pc(s.rivK)}`);if(s.landK!==1)o.push(`陸の国境の緊張 ${pc(s.landK)}`);if(s.price!==1)o.push(`資源の値 ${pc(s.price)}`);return o;}
+const plDots=v=>'●'.repeat(v)+'○'.repeat(5-v);
+// いま作ってある世界の統計
+function plStat(){const Wd=WORLD;if(Wd.stat)return Wd.stat;let land=0;const tc=[0,0,0,0,0,0,0,0];for(let i=0;i<WN;i++)if(Wd.land[i]===1){land++;tc[Wd.ter[i]]++;}let isl=0,mx=0;for(let i=0;i<NATS.length;i++){const g=natGeo(i);if(!g.nb.length)isl++;if(g.prov>mx)mx=g.prov;}
+  return Wd.stat={sea:Math.round(100-land/WN*100),P:Wd.P.length,ST:Wd.ST.length,R:Wd.R.length,isl,mx,res:Math.round(Wd.ST.filter(s=>s.res).length/Wd.ST.length*100),ter:tc.map((v,t)=>[v/Math.max(1,land),t]).filter(x=>x[1]&&x[0]>=.1).sort((a,b)=>b[0]-a[0]).slice(0,4).map(x=>`${TERN[x[1]]} ${Math.round(x[0]*100)}%`).join('、')};}
+function showPlanet(){if(ui.pl==null||!PLN[ui.pl])ui.pl=WORLD&&PLN[WORLD.pl]?WORLD.pl:0;if(ui.pmode==null)ui.pmode='ter';const k=ui.pl,p=PLN[k];setPlanet(k,true);const g=plStat(),sit=plSitText(k),pp=Object.assign({},PLP0,p.pol);
+  const html=`<div class="alert">機動艦隊司令部</div><h2>惑星を選ぶ</h2><p class="sm mut">惑星ごとに、陸と海の広さ、気候、資源、世界の情勢が大きく違う。名前か、下の一覧をタップすると、その惑星の地図と情勢が出る。どの惑星にも、同じ45の国がある。</p>
+  <div class="sub plq">${PLN.map((x,i)=>`<button class="${i===k?'on':''}" onclick="A.plsel(${i})">${x.n}</button>`).join('')}</div>
+  <div class="plsel"><div class="uh"><b>惑星${p.n}</b><span class="loc">${p.tag}</span></div>${mapBox('loc','','loc')}<div class="chips"><button class="${ui.pmode==='ter'?'on':''}" onclick="A.plmode('ter')">地形</button><button class="${ui.pmode==='pol'?'on':''}" onclick="A.plmode('pol')">国</button></div><p class="sm">${p.d}</p><ul class="pts">${p.pts.map(x=>`<li>${x}</li>`).join('')}</ul>
+  <dl class="kv2"><dt>海</dt><dd>地表の${g.sea}%<span class="mut">(海域 ${g.R})</span></dd><dt>陸</dt><dd>${g.P.toLocaleString()}プロヴィンス・${g.ST}州</dd><dt>地形</dt><dd class="sm">${g.ter}</dd><dt>資源の採れる州</dt><dd>${g.res}%</dd><dt>陸の国境のない国</dt><dd>${g.isl}か国</dd><dt>いちばん大きな国</dt><dd>${g.mx}プロヴィンス</dd>
+  <dt>陣営</dt><dd>${pp.nb>=18?'ほぼすべての国が、ふたつの陣営のどちらかに属する':pp.nb<=8?`ふたつの陣営はどちらも${pp.nb}か国ほど。あとは非同盟`:`ふたつの陣営がそれぞれ${pp.nb}か国ほど`}</dd><dt>戦争</dt><dd>同時に${pp.maxWar}つまで${pp.war0?`<span class="r">　着任時に${pp.war0}つほど進行中</span>`:''}</dd>
+  <dt>自国への条件</dt><dd class="sm">${sit.length?sit.join('、'):'標準'}</dd></dl></div>
+  <h3 class="sub">惑星の一覧</h3><div class="pllist">${PLN.map((x,i)=>`<button class="${i===k?'on':''}" onclick="A.plsel(${i})"><span class="pn"><b>${x.n}</b><small>${x.tag}</small></span><span class="lv">${PLLV.map((l,j)=>`<i>${['海','資源','戦乱','富'][j]} ${plDots(x.lv[j])}</i>`).join('')}</span></button>`).join('')}</div>
+  <div class="mbtn"><button class="btn pri" data-m="go">惑星${p.n}で国を選ぶ</button><button class="btn" data-m="back">タイトルへ戻る</button></div>`;
+  if(mq.length&&mq[0].planet){mq[0].html=html;$('#mbox').innerHTML=tx(html);drawMaps();const on=document.querySelector('.plq .on');if(on&&on.parentNode)on.parentNode.scrollLeft=Math.max(0,on.offsetLeft-on.parentNode.offsetLeft-90);}
+  else{modal(html,{go:()=>{closeModal();ui.pmode=null;ui.nview='list';ui.wsc=null;ui.nsc=0;showNation();},back:()=>{closeModal();ui.pmode=null;showTitle();}});mq[mq.length-1].planet=1;}}
+Object.assign(A,{
+  // 地形を作り直すので、ひと呼吸おいてから描く
+  plsel(i){if(!PLN[i]||i===ui.pl)return;ui.pl=i;toast(`惑星${PLN[i].n}の地形を作っている`);setTimeout(()=>{if(mq.length&&mq[0].planet){showPlanet();$('#mbox').scrollTop=0;}},30);},
+  plmode(m){ui.pmode=m;const sc=$('#mbox').scrollTop;showPlanet();$('#mbox').scrollTop=sc;}
+});
+/* ---------- 情勢の画面に、惑星の名前と性格を出す ---------- */
+{const f0=GV.world;GV.world=()=>{const p=PLN[PLC]||PLN[0];return `<p class="sm mut plhd"><b>惑星${p.n}</b>　${p.tag}。${p.pts[0]}。</p>`+f0();};}
 
 /* ================= 戦闘 ================= */
 let B=null,raf=0,lastTs=0;
@@ -3989,15 +4223,15 @@ function startGround(mode,z,hb){const drill=mode==='drill';if(drill)mode='assaul
   if(drill)G.sup={gun:2,air:1,msl:1};
   else G.sup={gun:Math.min(3,ships.filter(u=>PT[u.type].cat==='ship'&&PT[u.type].val>=30&&u.hp>30).length),air:Math.min(3,Math.floor(ships.reduce((a,u)=>a+(PT[u.type].fcap?u.ftr:0),0)/4)+airStrikers(z).length),msl:Math.min(2,Math.floor(ships.reduce((a,u)=>a+(u.load.asm||0),0)/4))};
   // 本土の戦いでは、戦場に出ていない特科・ロケットの部隊が後方から撃つ
-  if(home){const used=new Set(mode==='assault'?gp.units:lwDefenders(gp).map(d=>d.ref));G.sup.gun=Math.min(3,S.gnd.filter(g=>g.loc==='home'&&gArt(g.type)&&g.hp>=4&&!used.has(g.id)).length);}
+  if(home)G.sup.gun=lwArtSup(gp.pid,mode==='assault'?gp.units:lwDefenders(gp).map(d=>d.ref));
   if(mode==='assault'){
     const emb=drill?[['amp',72],['amp',68],['inf',66],['art',64],['abn',66],['ah',64]].map((a,i)=>({id:-1-i,type:a[0],name:'演習 '+GT[a[0]].n,hp:10,tr:a[1]})):home?S.gnd.filter(g=>gp.units.includes(g.id)):landForce(z);
     for(const g of emb){const u=gmk('P',g.type,g.hp,{ref:g.id,name:g.name,tr:g.tr,tp:g.tp});G.u.push(u);G.wait.push(u);}
     G.wave=drill?2:home?3:Math.max(2,inZone(z).reduce((a,u)=>a+Math.ceil((PT[u.type].tcap||0)/2),0));
-    gplaceDef('E',il.egar.filter(e=>e.hp>0).map(e=>({type:e.t,hp:e.hp})));
+    gplaceDef('E',il.egar.filter(e=>e.hp>0).map(e=>({type:e.t,hp:e.hp,eref:e.eref})));
   }else{
     gplaceDef('P',home?lwDefenders(gp):garrison(z).map(gRef));
-    G.ewait=gp.force.map(e=>({type:e.t,hp:e.hp}));G.ewave=gp.L>=2.6?3:2;if(G.fhp.air>=50)G.sup.air=Math.min(3,G.sup.air+1);
+    G.ewait=gp.force.map(e=>({type:e.t,hp:e.hp,eref:e.eref}));G.ewave=gp.L>=2.6?3:2;if(G.fhp.air>=50)G.sup.air=Math.min(3,G.sup.air+1);
     gvis();genemyLand();}
   glog(mode==='assault'?(home?`${G.iname}へ進攻する。司令部を制圧せよ`:`${G.iname}への上陸作戦を開始。司令部を制圧せよ`):home?`${G.iname}に敵が迫る。司令部を守り抜け`:`${G.iname}に敵が上陸。司令部を守り抜け`,'b');
   if(mode==='assault')glog(home?`1ターンに戦場へ入れられるのは${G.wave}個部隊。黄色のマスから入る`:`1ターンに揚げられるのは${G.wave}個部隊。水陸機動連隊は上陸した番から動ける`,'');
@@ -4016,7 +4250,7 @@ function genemyLand(){if(!G.ewait.length)return;const dm=gdmap(G.hq,'inf');
   if(G.lz==null){const bs=G.beach.filter(i=>!gAt(i));if(!bs.length)return;G.lz=bs.map(i=>[i,dm[i]+R(0,3)]).sort((a,b)=>a[1]-b[1])[0][0];}
   let n=0;while(n<G.ewave&&G.ewait.length){const bs=G.beach.filter(i=>!gAt(i)).sort((a,b)=>gd2(a,G.lz)-gd2(b,G.lz));if(!bs.length)break;const x=G.ewait.shift(),ssm=G.home?null:galive('P').find(u=>u.type==='ssm')||(!G.drill&&baseLv(G.z,'ssm')>0?{name:'対艦ミサイル基地'}:null);
     if(ssm&&Math.random()<.35){x.hp-=RI(2,4);glog(`${ssm.name}が接岸前の揚陸艇を叩いた`,'g');if(x.hp<=0){G.lost.E++;glog('敵の1個部隊が上陸前に壊滅','g');continue;}}
-    const u=gmk('E',x.type,x.hp,{});u.x=bs[0]%GW;u.y=Math.floor(bs[0]/GW);u.on=true;u.spot=G.turn+1;G.u.push(u);n++;}
+    const u=gmk('E',x.type,x.hp,x.eref?{eref:x.eref}:{});u.x=bs[0]%GW;u.y=Math.floor(bs[0]/GW);u.on=true;u.spot=G.turn+1;G.u.push(u);n++;}
   if(n){glog(G.home?`敵 ${n}個部隊が戦場に着いた`:`敵 ${n}個部隊が砂浜に上陸`,'r');if(G.turn>1)gban(G.home?'敵の後続が到着':'敵の後続が上陸','r');}}
 function gtargets(k){const s=new Set();for(const e of galive('E'))if(gseen(e)&&(k!=='gun'||G.home||G.cd[gi(e)]<=3))s.add(gi(e));if(k==='msl')for(const i in G.fk)if(G.fown[i]==='E')s.add(+i);return s;}
 function gstrike(kind,i){const o=gAt(i),en=o&&o.side==='E'?o:null,k=G.fk[i],nm=gsn(kind);G.sup[kind]--;G.used.any=1;G.act=null;
@@ -4157,14 +4391,14 @@ function gdraw(){const g=G&&G.g;if(!g)return;const ts=G.ts,ox=G.ox,oy=G.oy,now=p
 function gfinish(res,why){if(G.over)return;G.over={res,why};G.busy=false;const win=res==='win',as=G.mode==='assault',z=G.z,pl=G.u.filter(u=>u.side==='P'),L=[];let dS=0,dT=0;
   const lostP=pl.filter(u=>u.hp<=0).length,lostE=G.lost.E,surv=G.u.filter(u=>u.side==='E'&&u.hp>0).map(u=>({t:u.type,hp:u.hp})).concat(G.ewait.map(e=>({t:e.type,hp:e.hp})));
   if(!G.drill){
-    for(const u of pl){const g=S.gnd.find(x=>x.id===u.ref);if(!g)continue;if(G.home)g.fx=S.month;if(u.hp<=0&&G.home){g.hp=1;g.tr=Math.max(20,g.tr-6);continue;}if(u.hp<=0){S.gnd=S.gnd.filter(x=>x!==g);S.enl.gnd.n=Math.max(0,S.enl.gnd.n-RI(40,90));continue;}
+    for(const u of pl){const g=S.gnd.find(x=>x.id===u.ref);if(!g)continue;if(G.home)g.fx=S.month;if(u.hp<=0&&G.home){g.rt=S.month;g.hp=1;g.tr=Math.max(20,g.tr-6);continue;}if(u.hp<=0){S.gnd=S.gnd.filter(x=>x!==g);S.enl.gnd.n=Math.max(0,S.enl.gnd.n-RI(40,90));continue;}
       g.hp=as&&!win&&u.on?Math.max(1,u.hp-1):u.hp;g.tr=Math.min(100,g.tr+(u.on?6:1));if(as&&win&&!G.home)g.loc='i'+z;}
     const il=G.home?null:S.isl[z];if(il)for(const k in G.fhp)il.fac[k]=G.fhp[k];
-    if(as&&G.home){const r=lwAtkEnd(win,why,G.gp);dS=r.dS;dT=r.dT;for(const l of r.L)L.push(l);const cap=lwCapEnd();if(cap)L.push(cap);}
+    if(as&&G.home){lwEWrite();const r=lwAtkEnd(win,why,G.gp);dS=r.dS;dT=r.dT;for(const l of r.L)L.push(l);const cap=lwCapEnd();if(cap)L.push(cap);}
     else if(as){if(win){liberate(z);S.stats.wins++;dS=8;dT=2;L.push(`${ISL[z]}を奪還した。上陸部隊はそのまま守備隊になる`);}
       else{il.egar=surv.length?surv:[{t:'inf',hp:1}];S.stats.loss++;dS=-4;dT=1;L.push(why==='time'?'攻めきれず、上陸部隊は艦へ引き揚げた':why==='retreat'?'上陸部隊は艦へ引き揚げた':'上陸部隊は壊滅した');hlog(`${ISL[z]}：上陸作戦は失敗`,'r');}}
     else{S.gpend=null;
-      if(G.home){const r=lwBatEnd(win,why,G.gp);dS=r.dS;dT=r.dT;for(const l of r.L)L.push(l);}
+      if(G.home){lwEWrite();const r=lwBatEnd(win,why,G.gp);dS=r.dS;dT=r.dT;for(const l of r.L)L.push(l);}
       else if(win){S.stats.wins++;dS=6;dT=-1;S.sectors[z].threat=Math.max(5,S.sectors[z].threat-15);L.push(`守備隊が${ISL[z]}を守り抜いた`);hlog(`${ISL[z]}：守備隊が上陸した敵を撃退`,'g');}
       else if(G.raid){S.stats.loss++;dS=-4;dT=2;L.push(raidLoss(z));}
       else{S.stats.loss++;occupy(z,G.L,surv);dS=-6;dT=3;L.push(why==='hq'?'司令部を奪われ、島は敵の手に落ちた':'守備隊は壊滅し、島は敵の手に落ちた');}}
@@ -4334,7 +4568,7 @@ function initDOM(){
 }
 initDOM();
 S=load();
-if(S){applyNation(S.cfg.nat,S.cfg.riv);applyEdits(S.ed);polLoad();render();if(S.over)showOver();else if(gpNext())groundPrompt();else if(S.pending)showIncident();}
+if(S){setPlanet(S.cfg.planet||0,true);applyNation(S.cfg.nat,S.cfg.riv);applyEdits(S.ed);polLoad();render();if(S.over)showOver();else if(gpNext())groundPrompt();else if(S.pending)showIncident();}
 else{newGame({});render();showTitle();}
 </script>
 </body>

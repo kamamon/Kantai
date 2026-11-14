@@ -130,3 +130,14 @@ svg.sil{vertical-align:middle;margin-right:5px}
 .tpal{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0}.tpal .btn{text-align:left}.tpal small,.urow .btn small,.brow .btn small{display:block;font-size:10.5px;opacity:.78;font-weight:normal}
 .tin{flex:1;min-width:0;background:#0b2233;border:1px solid var(--ln);color:#fff;padding:7px 8px;font-size:15px;border-radius:3px}
 .stp{display:inline-flex;align-items:center;gap:10px;vertical-align:middle}.stp button{width:34px;height:30px;background:var(--pn);border:1px solid var(--ln);border-radius:3px;color:#fff;font-size:16px}.stp button:disabled{opacity:.35}.stp b{min-width:26px;text-align:center}
+
+/* 惑星を選ぶ */
+.plsel{border:1px solid var(--ln);border-radius:4px;padding:8px 9px;margin:8px 0;background:var(--pn2)}
+.plsel .pts{margin:4px 0 8px 1.1em;padding:0;font-size:12.5px;line-height:1.6}
+.pllist{display:grid;gap:5px;margin:8px 0 12px}
+.pllist button{display:flex;flex-direction:column;gap:3px;background:var(--pn2);border:1px solid var(--ln);border-radius:3px;padding:7px 9px;color:var(--tx);text-align:left}
+.pllist button.on{background:#1d4e6b;border-color:#3b88ad;color:#fff}
+.pllist .pn b{font-size:14px;margin-right:8px}.pllist .pn small{color:var(--cy);font-size:12px}.pllist button.on .pn small{color:#cfe6f2}
+.pllist .lv{display:grid;grid-template-columns:repeat(4,auto);justify-content:start;gap:2px 9px;font-size:9.5px;color:var(--mut)}
+.plq{margin:6px 0 2px}.plsel .chips{margin:6px 0 4px}.pllist .lv i{font-style:normal;white-space:nowrap}.pllist button.on .lv{color:#cfe6f2}
+.plhd{margin:2px 0 8px}

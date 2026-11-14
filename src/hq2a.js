@@ -37,30 +37,31 @@ function showFiscal(f){const p=a=>Math.round(askChance(a)*100);
 /* ---------- タイトルとカスタムスタート ---------- */
 function begin(cfg){newGame(cfg);save();ui.tab='home';render();showHelp();}
 function showTitle(){const has=!!load();mq.length=0;
-  modal(`<div class="alert">惑星${PLANET}　機動艦隊司令部</div><h2 class="big">蒼海の盾</h2><p class="sm">海が地表の大半を占める惑星${PLANET}。45の国が陸と海を分け合い、ふたつの陣営に割れて睨み合っている。一国の守りと舵取りを預かり、撃たせず、撃たずに守り抜けるか。</p>${has?'<p class="sm mut">新しく始めると、いまの記録は上書きされる。</p>':''}<div class="mbtn">${has?`<button class="btn pri" data-m="c">続きから</button>`:''}<button class="btn ${has?'':'pri'}" data-m="n">国を選んで始める</button></div>`,
-  {c:()=>{closeModal();S=load();applyNation(S.cfg.nat,S.cfg.riv);applyEdits(S.ed);polLoad();_M=null;_PM=null;render();if(S.over)showOver();else if(gpNext())groundPrompt();else if(S.pending)showIncident();},n:()=>{closeModal();ui.cs=null;ui.nview='list';ui.wsc=null;ui.nsc=0;showNation();}});}
+  modal(`<div class="alert">機動艦隊司令部</div><h2 class="big">蒼海の盾</h2><p class="sm">45の国が陸と海を分け合い、陣営に割れて睨み合っている。舞台は${PLN.length}の惑星から選ぶ。海ばかりの星、海のほとんどない星、資源の尽きた星、戦争の絶えない星。一国の守りと舵取りを預かり、撃たせず、撃たずに守り抜けるか。</p>${has?'<p class="sm mut">新しく始めると、いまの記録は上書きされる。</p>':''}<div class="mbtn">${has?`<button class="btn pri" data-m="c">続きから</button>`:''}<button class="btn ${has?'':'pri'}" data-m="n">惑星と国を選んで始める</button></div>`,
+  {c:()=>{closeModal();S=load();setPlanet(S.cfg.planet||0,true);applyNation(S.cfg.nat,S.cfg.riv);applyEdits(S.ed);polLoad();_M=null;_PM=null;render();if(S.over)showOver();else if(gpNext())groundPrompt();else if(S.pending)showIncident();},n:()=>{closeModal();ui.cs=null;ui.nview='list';ui.wsc=null;ui.nsc=0;ui.pl=null;showPlanet();}});}
 // 国を選ぶ画面。20か国の名称群を見比べて、対峙する国も決める
 function showNation(){if(ui.nat==null)ui.nat=0;const info=ui.nview==='info',i=ui.nat,N=NATS[i],rv=ui.riv==null||ui.riv===i||!NATS[ui.riv]?N.rv:ui.riv,D=DSTY[N.ds],sv=TXL;let html;
   if(!info){
-    html=`<div class="alert">惑星${PLANET}</div><h2>国を選ぶ</h2><p class="sm mut">世界地図か下の一覧で国をタップすると、その国の情報が開く。地図は指で動かせて、＋－か2本指で拡大できる。</p>
+    html=`<div class="alert">惑星${PLANET}　${PLN[PLC].tag}</div><h2>国を選ぶ</h2><p class="sm mut">世界地図か下の一覧で国をタップすると、その国の情報が開く。地図は指で動かせて、＋－か2本指で拡大できる。国土の広さや隣の国は、惑星によって変わる。</p>
   ${mapBox('sel',`data-hi="${i}"`)}
   <div class="nlist">${NATS.map((x,k)=>`<button class="${k===i?'on':''}" onclick="A.nsel(${k})"><i class="flag" style="${flagCSS(x)}"></i>${x.n}</button>`).join('')}</div>
-  <div class="mbtn"><button class="btn" data-m="back">タイトルへ戻る</button></div>`;
+  <div class="mbtn"><button class="btn" data-m="pl">惑星を選び直す</button><button class="btn" data-m="back">タイトルへ戻る</button></div>`;
   }else{
     TXL=D.tx.concat(GSTY[N.gs].tx,RSTY[N.rk].tx);const nm=natNames(i),ex=k=>tx(PT[k].n)+'「'+nm[k].slice(0,2).join('」「')+'」',ppl=[0,1,2].map(()=>mkName(N)).join('、');
     html=`<div class="brow nnav"><button class="btn sm" onclick="A.nback()">← 国の選択に戻る</button><span class="grow"></span><button class="btn sm" onclick="A.nsel(${(i+NATS.length-1)%NATS.length})" aria-label="前の国">‹ 前</button><button class="btn sm" onclick="A.nsel(${(i+1)%NATS.length})" aria-label="次の国">次 ›</button></div>
   <div class="uh"><i class="flag big" style="${flagCSS(N)}"></i><b>${N.f}</b></div><p class="sm">${N.d}。</p>
-  ${mapBox('loc',`data-hi="${i}" data-ri="${rv}"`,'loc')}<p class="sm mut">白が${N.n}、赤が対峙する国。</p>
+  ${mapBox('loc',`data-hi="${i}" data-ri="${rv}"`,'loc')}<p class="sm mut">惑星${PLANET}での位置。白が${N.n}、赤が対峙する国。</p>
   <dl class="kv2"><dt>首都</dt><dd>${N.cap}</dd><dt>海軍</dt><dd>${N.n}${N.navy}</dd><dt>国柄</dt><dd><b class="am">${N.tr[0]}</b><br><span class="sm">${N.tr[1]}</span></dd>
+  ${natGeoHTML(i)}
   <dt>艦の名</dt><dd class="sm">${ex('cvl')}<br>${ex('ddg')}<br>${ex('dd')}<br>${ex('ss')}</dd><dt>人の名</dt><dd class="sm">${ppl}</dd><dt>階級</dt><dd class="sm">${RSTY[N.rk].rank.slice(3).join('・')}</dd>
   <dt>陸上部隊</dt><dd class="sm">${GTK.slice(0,4).map(k=>GT[k].n).join('、')} ほか</dd><dt>守る島</dt><dd class="sm">${[1,4,7].map((z,k)=>seaName(N,z)+'の'+N.isl[k]).join('、')}</dd><dt>海域</dt><dd class="sm">${[2,3,5,6].map(z=>seaName(N,z)).join('、')}</dd></dl>
   <h3 class="sub">装備</h3>${eqCards(N,natF(N))}
   <details class="lin"><summary>装備の世代(${EQSK.length}系列)</summary><p class="sm mut">「現用」から始めた場合の、この国の開始時の機種。得意な分野は1世代新しく、苦手な分野は1世代古い。</p>${(()=>{const e=eqStart(i,4);return eqTable(s=>e[s]);})()}</details>
   <div class="srow"><label>対峙する国</label><select onchange="A.nriv(+this.value)" aria-label="対峙する国">${NATS.map((x,k)=>k===i?'':`<option value="${k}" ${k===rv?'selected':''}>${x.f}${k===N.rv?'(宿敵)':''}</option>`).join('')}</select></div>
   <div class="mbtn"><button class="btn pri" data-m="go">${N.n}で着任する(標準の設定)</button><button class="btn" data-m="k">カスタムスタート</button><button class="btn" data-m="nb">国の選択に戻る</button></div>`;}
-  const out=tx(html);TXL=sv;const pick1=()=>({nat:i,riv:rv,nation:N.f,fleetName:D.hq});
+  const out=tx(html);TXL=sv;const pick1=()=>({nat:i,riv:rv,nation:N.f,fleetName:D.hq,planet:PLC});
   if(mq.length&&mq[0].nat){mq[0].html=html;mq[0].cbs.cur=pick1;}
-  else{modal(html,{cur:pick1,go:()=>{const c=mq[0].cbs.cur();closeModal();begin(c);},k:()=>{const c=mq[0].cbs.cur();closeModal();ui.cs=Object.assign(ui.cs||JSON.parse(JSON.stringify(DEFCFG)),c);showSetup();},nb:()=>A.nback(),back:()=>{closeModal();showTitle();}});mq[mq.length-1].nat=1;}
+  else{modal(html,{cur:pick1,go:()=>{const c=mq[0].cbs.cur();closeModal();begin(c);},k:()=>{const c=mq[0].cbs.cur();closeModal();ui.cs=Object.assign(ui.cs||JSON.parse(JSON.stringify(DEFCFG)),c);showSetup();},nb:()=>A.nback(),pl:()=>{closeModal();showPlanet();},back:()=>{closeModal();showTitle();}});mq[mq.length-1].nat=1;}
   $('#mbox').innerHTML=out;drawMaps();}
 function showSetup(){const c=ui.cs,f=c.fleet;
   const st=(k,lbl,step,min,max,unit)=>`<div class="srow"><label>${lbl}</label><div class="stp"><button onclick="A.cs('${k}',${-step},${min},${max})" aria-label="${lbl}を減らす">－</button><span>${c[k].toLocaleString()}${unit||''}</span><button onclick="A.cs('${k}',${step},${min},${max})" aria-label="${lbl}を増やす">＋</button></div></div>`;
@@ -71,7 +72,8 @@ function showSetup(){const c=ui.cs,f=c.fleet;
   const html=`<div class="alert">カスタムスタート</div><h2>任期の条件を決める</h2><div class="brow">${PRESET.map((p,i)=>`<button class="btn sm" onclick="A.csp(${i})">${p[0]}</button>`).join('')}</div>
   <h3 class="sub">国</h3>
   <div class="srow"><label><i class="flag" style="${flagCSS(NATS[c.nat])}"></i> ${NATS[c.nat].n}</label><button class="btn sm" onclick="A.csnat()">国を選び直す</button></div>
-  <p class="sm mut">対峙する国：${NATS[c.riv==null?NATS[c.nat].rv:c.riv].f}　国柄：${NATS[c.nat].tr[0]}</p>
+  <p class="sm mut">対峙する国：${NATS[c.riv==null?NATS[c.nat].rv:c.riv].f}　国柄：${NATS[c.nat].tr[0]}　地勢：${natGeo(c.nat).t[0]}</p>
+  <p class="sm mut">惑星：${PLN[PLC].n}(${PLN[PLC].tag})${plSitText(PLC).length?`。この惑星の条件が、下で決めた値にさらに掛かる：${plSitText(PLC).join('、')}`:''}</p>
   <h3 class="sub">名前</h3>
   <div class="srow"><label>司令官</label><input value="${esc(c.cmdr)}" placeholder="(任意)" oninput="ui.cs.cmdr=this.value" maxlength="16" aria-label="司令官の名前"></div>
   <div class="srow"><label>国名</label><input value="${esc(c.nation)}" oninput="ui.cs.nation=this.value" maxlength="12" aria-label="国名"></div>

@@ -90,15 +90,15 @@ function startGround(mode,z,hb){const drill=mode==='drill';if(drill)mode='assaul
   if(drill)G.sup={gun:2,air:1,msl:1};
   else G.sup={gun:Math.min(3,ships.filter(u=>PT[u.type].cat==='ship'&&PT[u.type].val>=30&&u.hp>30).length),air:Math.min(3,Math.floor(ships.reduce((a,u)=>a+(PT[u.type].fcap?u.ftr:0),0)/4)+airStrikers(z).length),msl:Math.min(2,Math.floor(ships.reduce((a,u)=>a+(u.load.asm||0),0)/4))};
   // 本土の戦いでは、戦場に出ていない特科・ロケットの部隊が後方から撃つ
-  if(home){const used=new Set(mode==='assault'?gp.units:lwDefenders(gp).map(d=>d.ref));G.sup.gun=Math.min(3,S.gnd.filter(g=>g.loc==='home'&&gArt(g.type)&&g.hp>=4&&!used.has(g.id)).length);}
+  if(home)G.sup.gun=lwArtSup(gp.pid,mode==='assault'?gp.units:lwDefenders(gp).map(d=>d.ref));
   if(mode==='assault'){
     const emb=drill?[['amp',72],['amp',68],['inf',66],['art',64],['abn',66],['ah',64]].map((a,i)=>({id:-1-i,type:a[0],name:'演習 '+GT[a[0]].n,hp:10,tr:a[1]})):home?S.gnd.filter(g=>gp.units.includes(g.id)):landForce(z);
     for(const g of emb){const u=gmk('P',g.type,g.hp,{ref:g.id,name:g.name,tr:g.tr,tp:g.tp});G.u.push(u);G.wait.push(u);}
     G.wave=drill?2:home?3:Math.max(2,inZone(z).reduce((a,u)=>a+Math.ceil((PT[u.type].tcap||0)/2),0));
-    gplaceDef('E',il.egar.filter(e=>e.hp>0).map(e=>({type:e.t,hp:e.hp})));
+    gplaceDef('E',il.egar.filter(e=>e.hp>0).map(e=>({type:e.t,hp:e.hp,eref:e.eref})));
   }else{
     gplaceDef('P',home?lwDefenders(gp):garrison(z).map(gRef));
-    G.ewait=gp.force.map(e=>({type:e.t,hp:e.hp}));G.ewave=gp.L>=2.6?3:2;if(G.fhp.air>=50)G.sup.air=Math.min(3,G.sup.air+1);
+    G.ewait=gp.force.map(e=>({type:e.t,hp:e.hp,eref:e.eref}));G.ewave=gp.L>=2.6?3:2;if(G.fhp.air>=50)G.sup.air=Math.min(3,G.sup.air+1);
     gvis();genemyLand();}
   glog(mode==='assault'?(home?`${G.iname}へ進攻する。司令部を制圧せよ`:`${G.iname}への上陸作戦を開始。司令部を制圧せよ`):home?`${G.iname}に敵が迫る。司令部を守り抜け`:`${G.iname}に敵が上陸。司令部を守り抜け`,'b');
   if(mode==='assault')glog(home?`1ターンに戦場へ入れられるのは${G.wave}個部隊。黄色のマスから入る`:`1ターンに揚げられるのは${G.wave}個部隊。水陸機動連隊は上陸した番から動ける`,'');
@@ -117,7 +117,7 @@ function genemyLand(){if(!G.ewait.length)return;const dm=gdmap(G.hq,'inf');
   if(G.lz==null){const bs=G.beach.filter(i=>!gAt(i));if(!bs.length)return;G.lz=bs.map(i=>[i,dm[i]+R(0,3)]).sort((a,b)=>a[1]-b[1])[0][0];}
   let n=0;while(n<G.ewave&&G.ewait.length){const bs=G.beach.filter(i=>!gAt(i)).sort((a,b)=>gd2(a,G.lz)-gd2(b,G.lz));if(!bs.length)break;const x=G.ewait.shift(),ssm=G.home?null:galive('P').find(u=>u.type==='ssm')||(!G.drill&&baseLv(G.z,'ssm')>0?{name:'対艦ミサイル基地'}:null);
     if(ssm&&Math.random()<.35){x.hp-=RI(2,4);glog(`${ssm.name}が接岸前の揚陸艇を叩いた`,'g');if(x.hp<=0){G.lost.E++;glog('敵の1個部隊が上陸前に壊滅','g');continue;}}
-    const u=gmk('E',x.type,x.hp,{});u.x=bs[0]%GW;u.y=Math.floor(bs[0]/GW);u.on=true;u.spot=G.turn+1;G.u.push(u);n++;}
+    const u=gmk('E',x.type,x.hp,x.eref?{eref:x.eref}:{});u.x=bs[0]%GW;u.y=Math.floor(bs[0]/GW);u.on=true;u.spot=G.turn+1;G.u.push(u);n++;}
   if(n){glog(G.home?`敵 ${n}個部隊が戦場に着いた`:`敵 ${n}個部隊が砂浜に上陸`,'r');if(G.turn>1)gban(G.home?'敵の後続が到着':'敵の後続が上陸','r');}}
 function gtargets(k){const s=new Set();for(const e of galive('E'))if(gseen(e)&&(k!=='gun'||G.home||G.cd[gi(e)]<=3))s.add(gi(e));if(k==='msl')for(const i in G.fk)if(G.fown[i]==='E')s.add(+i);return s;}
 function gstrike(kind,i){const o=gAt(i),en=o&&o.side==='E'?o:null,k=G.fk[i],nm=gsn(kind);G.sup[kind]--;G.used.any=1;G.act=null;
@@ -258,14 +258,14 @@ function gdraw(){const g=G&&G.g;if(!g)return;const ts=G.ts,ox=G.ox,oy=G.oy,now=p
 function gfinish(res,why){if(G.over)return;G.over={res,why};G.busy=false;const win=res==='win',as=G.mode==='assault',z=G.z,pl=G.u.filter(u=>u.side==='P'),L=[];let dS=0,dT=0;
   const lostP=pl.filter(u=>u.hp<=0).length,lostE=G.lost.E,surv=G.u.filter(u=>u.side==='E'&&u.hp>0).map(u=>({t:u.type,hp:u.hp})).concat(G.ewait.map(e=>({t:e.type,hp:e.hp})));
   if(!G.drill){
-    for(const u of pl){const g=S.gnd.find(x=>x.id===u.ref);if(!g)continue;if(G.home)g.fx=S.month;if(u.hp<=0&&G.home){g.hp=1;g.tr=Math.max(20,g.tr-6);continue;}if(u.hp<=0){S.gnd=S.gnd.filter(x=>x!==g);S.enl.gnd.n=Math.max(0,S.enl.gnd.n-RI(40,90));continue;}
+    for(const u of pl){const g=S.gnd.find(x=>x.id===u.ref);if(!g)continue;if(G.home)g.fx=S.month;if(u.hp<=0&&G.home){g.rt=S.month;g.hp=1;g.tr=Math.max(20,g.tr-6);continue;}if(u.hp<=0){S.gnd=S.gnd.filter(x=>x!==g);S.enl.gnd.n=Math.max(0,S.enl.gnd.n-RI(40,90));continue;}
       g.hp=as&&!win&&u.on?Math.max(1,u.hp-1):u.hp;g.tr=Math.min(100,g.tr+(u.on?6:1));if(as&&win&&!G.home)g.loc='i'+z;}
     const il=G.home?null:S.isl[z];if(il)for(const k in G.fhp)il.fac[k]=G.fhp[k];
-    if(as&&G.home){const r=lwAtkEnd(win,why,G.gp);dS=r.dS;dT=r.dT;for(const l of r.L)L.push(l);const cap=lwCapEnd();if(cap)L.push(cap);}
+    if(as&&G.home){lwEWrite();const r=lwAtkEnd(win,why,G.gp);dS=r.dS;dT=r.dT;for(const l of r.L)L.push(l);const cap=lwCapEnd();if(cap)L.push(cap);}
     else if(as){if(win){liberate(z);S.stats.wins++;dS=8;dT=2;L.push(`${ISL[z]}を奪還した。上陸部隊はそのまま守備隊になる`);}
       else{il.egar=surv.length?surv:[{t:'inf',hp:1}];S.stats.loss++;dS=-4;dT=1;L.push(why==='time'?'攻めきれず、上陸部隊は艦へ引き揚げた':why==='retreat'?'上陸部隊は艦へ引き揚げた':'上陸部隊は壊滅した');hlog(`${ISL[z]}：上陸作戦は失敗`,'r');}}
     else{S.gpend=null;
-      if(G.home){const r=lwBatEnd(win,why,G.gp);dS=r.dS;dT=r.dT;for(const l of r.L)L.push(l);}
+      if(G.home){lwEWrite();const r=lwBatEnd(win,why,G.gp);dS=r.dS;dT=r.dT;for(const l of r.L)L.push(l);}
       else if(win){S.stats.wins++;dS=6;dT=-1;S.sectors[z].threat=Math.max(5,S.sectors[z].threat-15);L.push(`守備隊が${ISL[z]}を守り抜いた`);hlog(`${ISL[z]}：守備隊が上陸した敵を撃退`,'g');}
       else if(G.raid){S.stats.loss++;dS=-4;dT=2;L.push(raidLoss(z));}
       else{S.stats.loss++;occupy(z,G.L,surv);dS=-6;dT=3;L.push(why==='hq'?'司令部を奪われ、島は敵の手に落ちた':'守備隊は壊滅し、島は敵の手に落ちた');}}

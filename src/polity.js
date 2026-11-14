@@ -20,18 +20,21 @@ const inWar=i=>S.w.wars.find(w=>w.a===i||w.d===i)||null;
 const relAdd=(i,v)=>{const n=S.w.n[i];if(i===ME())return;n.rel=clamp(n.rel+v,-100,100);n.rb=clamp((n.rb||0)+v*.8,-60,60);};
 function worldApply(){const Wd=WORLD||genWorld();for(let p=0;p<Wd.P.length;p++)Wd.pown[p]=Wd.P[p].nat;if(S&&S.w)for(const p in S.w.own)Wd.pown[p]=S.w.own[p];Wd.ver=(Wd.ver||0)+1;NMASK.length=0;}
 const provTake=(p,o)=>{provSet(p,o);if(WORLD.P[p].nat===o)delete S.w.own[p];else S.w.own[p]=o;};
-function worldInit(){const Wd=WORLD||genWorld(),me=ME(),rv=RVN(),r=rng32(7001+me*131+rv*17),d=(a,b)=>Math.hypot(Wd.nat[a].x-Wd.nat[b].x,Wd.nat[a].y-Wd.nat[b].y);
-  const ord=NATS.map((N,i)=>i).filter(i=>i!==me&&i!==rv).map(i=>[d(i,me)/(d(i,me)+d(i,rv)+1e-6)+(r()-.5)*.36,i]).sort((a,b)=>a[0]-b[0]).map(x=>x[1]),bl={};ord.forEach((i,k)=>{bl[i]=k<12?1:k>=ord.length-12?2:0;});
+function worldInit(){const Wd=WORLD||genWorld(),PP=PL().pol,PS=PL().sit,me=ME(),rv=RVN(),r=rng32(7001+me*131+rv*17),rg=rng32(9203+me*17+rv*5),d=(a,b)=>Math.hypot(Wd.nat[a].x-Wd.nat[b].x,Wd.nat[a].y-Wd.nat[b].y);
+  const ord=NATS.map((N,i)=>i).filter(i=>i!==me&&i!==rv).map(i=>[d(i,me)/(d(i,me)+d(i,rv)+1e-6)+(r()-.5)*.36,i]).sort((a,b)=>a[0]-b[0]).map(x=>x[1]),bl={};ord.forEach((i,k)=>{bl[i]=k<PP.nb?1:k>=ord.length-PP.nb?2:0;});
   const n=NATS.map((N,i)=>{const g=Math.floor(r()*6),bloc=i===me?0:i===rv?2:bl[i];
     const rel=i===me?100:i===rv?-60:Math.round((bloc===1?20:bloc===2?-22:0)+(r()-.5)*36);
-    return{rel,rb:0,bloc,gov:bloc===2&&r()<.6?3+Math.floor(r()*2):g,ldr:mkName(N),stab:Math.round(45+r()*40),mil:+(.8+r()*.5).toFixed(2),imp:0,trd:0,def:0,sanc:0,aid:0};});
-  S.w={n,own:{},wars:[],news:[],hot:[],ver:1,seq:0,rivK:1,bn:''};
+    const g1=bloc===2&&r()<.6?3+Math.floor(r()*2):g;return{rel,rb:0,bloc,gov:PP.govK&&rg()<PP.govP?PP.govK[Math.floor(rg()*PP.govK.length)]:g1,ldr:mkName(N),stab:clamp(Math.round(45+r()*40)+PP.stab,8,95),mil:+(.8+r()*.5+PP.mil).toFixed(2),imp:0,trd:0,def:0,sanc:0,aid:0};});
+  S.w={n,own:{},wars:[],news:[],hot:[],ver:1,seq:0,rivK:PS.rivK,bn:''};
   const seen={};for(const p of Wd.P)for(const a of p.adj){const q=Wd.P[a];if(q.nat<=p.nat||p.nat===me||q.nat===me)continue;const k=p.nat+'_'+q.nat;if(seen[k])continue;seen[k]=1;const A=n[p.nat],B=n[q.nat],opp=A.bloc&&B.bloc&&A.bloc!==B.bloc;
-    if(opp||r()<.22)S.w.hot.push({a:p.nat,b:q.nat,t:Math.round((opp?35:18)+r()*25)});}
+    if(opp||r()<PP.hotP)S.w.hot.push({a:p.nat,b:q.nat,t:Math.round((opp?35:18)+r()*25)+PP.hot0});}
   // はじめから、関係のよい国のいくつかとは通商がある
   {const mine={};for(const st of Wd.nat[me].st)if(Wd.ST[st].res)mine[Wd.ST[st].res]=1;const sc=i=>n[i].rel+Object.keys(natRes0(i)).filter(k=>!mine[k]).length*25;
-    n.map((x,i)=>i).filter(i=>i!==me&&i!==rv&&n[i].rel>=0).sort((a,b)=>sc(b)-sc(a)).slice(0,4).forEach(i=>{n[i].trd=1;});}
-  wNews(`${NAT.f}と${RIV.f}の対立が深まる。${BLOC[1].n}と${BLOC[2].n}は互いに相手の出方をうかがっている`,'am');}
+    n.map((x,i)=>i).filter(i=>i!==me&&i!==rv&&n[i].rel>=0).sort((a,b)=>sc(b)-sc(a)).slice(0,PS.tradeN).forEach(i=>{n[i].trd=1;});}
+  // 戦乱の惑星では、着任の時点でいくつもの戦争が続いている
+  if(PP.war0){const busy={},pw=natPw();for(const h of S.w.hot.slice().sort((x,y)=>y.t-x.t)){if(S.w.wars.length>=PP.war0)break;if(h.a===rv||h.b===rv||busy[h.a]||busy[h.b])continue;busy[h.a]=busy[h.b]=1;
+      const a=pw[h.a]>=pw[h.b]?h.a:h.b,d=a===h.a?h.b:h.a;S.w.wars.push({id:++S.w.seq,a,d,m0:-1-Math.floor(r()*5),ex:Math.floor(r()*6)});h.t=100;wNews(`${NATS[a].f}と${NATS[d].f}の戦争が続いている`,'r');}}
+  wNews(PP.nb<=8?`${NAT.f}と${RIV.f}の対立が深まる。陣営はどちらも小さく、多くの国がどこにも属していない`:PP.nb>=18?`${NAT.f}と${RIV.f}の対立が深まる。世界は${BLOC[1].n}と${BLOC[2].n}に二分されている`:`${NAT.f}と${RIV.f}の対立が深まる。${BLOC[1].n}と${BLOC[2].n}は互いに相手の出方をうかがっている`,'am');}
 function warStart(a,d,rep){const W=S.w,me=ME(),rv=RVN();W.wars.push({id:++W.seq,a,d,m0:S.month,ex:0});W.n[a].stab=clamp(W.n[a].stab+4,5,95);
   const t=`${NATS[a].f}が${NATS[d].f}に侵攻した`;wNews(t,'r');rep.push(['世界：'+t,'r']);
   if(a===rv||d===rv)rep.push([`${RIV.n}は戦争に兵力を割いている。こちらへの圧力は弱まる見込み`,'g']);
@@ -56,23 +59,23 @@ function warStep(w,rep,pw){const Wd=WORLD,P=Wd.P,ow=Wd.pown,W=S.w,a=w.a,d=w.d,mo
   if(k>0)push(d,a,k);else if(k<0)push(a,d,-k);W.ver++;w.ex+=1+Math.abs(k)*.3;W.n[d].stab=clamp(W.n[d].stab-1,5,95);W.n[a].stab=clamp(W.n[a].stab-.6,5,95);
   if(w.cap!=null)return warEnd(w,w.cap,w.cap===a?d:a,'cap',rep);
   if(natCnt(d)<=2&&d!==rv)return warEnd(w,a,d,'cap',rep);if(natCnt(a)<=2&&a!==rv)return warEnd(w,d,a,'cap',rep);
-  if(mo>=9&&Math.random()<(mo-8)*.05+w.ex*.004)warEnd(w,null,null,'peace',rep);}
+  if(mo>=9&&Math.random()<((mo-8)*.05+w.ex*.004)*PL().pol.peaceK)warEnd(w,null,null,'peace',rep);}
 function coup(i,rep){const W=S.w,n=W.n[i],rv=RVN(),old=n.gov;n.gov=old>=3?pick([0,2]):pick([3,4]);n.ldr=mkName(NATS[i]);n.stab=55;if(n.nap>S.month){n.nap=0;wNews(`${natN(i)}の新政権が、${NAT.n}との不可侵条約を破棄した`,'r');rep.push([`${natN(i)}の新政権が不可侵条約を破棄した`,'r']);}
   const t=n.gov===4?`${NATS[i].f}で軍が政権を掌握。${n.ldr}${GOVL[4]}が全権を握った`:n.gov===3?`${NATS[i].f}で政変。一党支配の体制に移った`:`${NATS[i].f}で政権が倒れ、選挙による政府が生まれた`;wNews(t,i===rv?'r':'am');
   if(i===rv){const dT=n.gov>=3?8:-10;S.tension=clamp(S.tension+dT,0,100);rep.push([`${RIV.n}で政変。${dT>0?'強硬派が実権を握り、緊張が高まった':'新政府は対話を口にしている'}`,dT>0?'r':'g']);relAdd(i,dT>0?-8:12);}
   else{if(Math.random()<.4)n.bloc=n.gov>=3?(Math.random()<.6?2:0):(Math.random()<.6?1:0);if(Math.random()<.5&&!S.pol.evq&&Math.abs(n.rel)<60)S.pol.evq={k:'coup',x:i};}}
-function worldMonth(rep){const W=S.w,me=ME(),rv=RVN(),al=natAlive(),pw=natPw(),pb=W.n[me].bloc,X=polSum();
+function worldMonth(rep){const W=S.w,PP=PL().pol,me=ME(),rv=RVN(),al=natAlive(),pw=natPw(),pb=W.n[me].bloc,X=polSum();
   W.n.forEach((n,i)=>{if(i===me||!al[i])return;const base=(i===rv?-60:0)+(pb&&n.bloc===pb?38:pb===1&&n.bloc===2?-28:pb===3&&n.bloc===2?-14:pb===0&&n.bloc===1?10:pb===0&&n.bloc===2?-12:0)+(n.trd?12:0)+(n.def?18:0)-(n.sanc?45:0);
     n.rel=clamp(n.rel+(base+(n.rb||0)-n.rel)*.04+(n.imp>0?2.5*(1+(X.relG||0)):0),-100,100);if(n.imp>0)n.imp--;n.rb=(n.rb||0)*.97;
     n.stab=clamp(n.stab+R(-2.5,2.5)+(50-n.stab)*.03-(n.sanc?.8:0),5,95);});
   if(W.n[rv].sanc)W.rivK=Math.max(.85,W.rivK-.004);
   for(const w of W.wars.slice())if(!w.pl)warStep(w,rep,pw);
   for(const h of W.hot){if(h.a===me||h.b===me)continue;const A=W.n[h.a],B=W.n[h.b];if(!al[h.a]||!al[h.b]||inWar(h.a)||inWar(h.b))continue;
-    h.t=clamp(h.t+R(-3,3.6)+(A.bloc&&B.bloc&&A.bloc!==B.bloc?.5:0)+(A.gov===4||B.gov===4?.4:0)-(h.calm>S.month?3:0),0,100);
+    h.t=clamp(h.t+R(-3,3.6)+PP.drift+(A.bloc&&B.bloc&&A.bloc!==B.bloc?.5:0)+(A.gov===4||B.gov===4?.4:0)-(h.calm>S.month?3:0),0,100);
     if(h.t>70&&!h.n1&&Math.random()<.5){h.n1=1;wNews(`${natN(h.a)}と${natN(h.b)}の国境で衝突。双方が相手を非難している`,'am');}
-    if(h.t>=85&&W.wars.length<3&&S.month>=6&&Math.random()<.25){const att=pw[h.a]*R(.8,1.25)>=pw[h.b]?h.a:h.b;warStart(att,att===h.a?h.b:h.a,rep);}}
+    if(h.t>=85&&W.wars.length<PP.maxWar&&S.month>=(PP.war0?1:6)&&Math.random()<.25*PP.warP){const att=pw[h.a]*R(.8,1.25)>=pw[h.b]?h.a:h.b;warStart(att,att===h.a?h.b:h.a,rep);}}
   lwMonth(rep);
-  W.n.forEach((n,i)=>{if(i!==me&&al[i]&&!inWar(i)&&n.stab<42&&Math.random()<(45-n.stab)/700)coup(i,rep);});
+  W.n.forEach((n,i)=>{if(i!==me&&al[i]&&!inWar(i)&&n.stab<42&&Math.random()<(45-n.stab)/700*PP.coupP)coup(i,rep);});
   if(Math.random()<.6){const ids=W.n.map((n,i)=>i).filter(i=>al[i]&&i!==me),a=pick(ids),b=pick(ids.filter(i=>i!==a)),A=natN(a),Bn=natN(b),bl=W.n[a].bloc;
     wNews(pick([`${A}と${Bn}が海上で合同演習を実施`,`${A}が新型艦の進水を発表`,`${A}の${W.n[a].ldr}${GOVL[W.n[a].gov]}が${Bn}を訪問`,`${A}で反政府デモ。数万人が首都に集まった`,`${A}が国防費の増額を決定`,`${A}と${Bn}が通商協定に署名`,
       bl?`${blocN(bl)}の首脳会議が閉幕。結束を確認`:`${A}は非同盟の立場を改めて表明`,`${A}の沖で不審船。${Bn}の関与が疑われている`,`${A}が長射程ミサイルの発射試験に成功と発表`,`${A}で大規模な停電。サイバー攻撃との見方も`]),'');}

@@ -47,6 +47,8 @@ function autoFleets(){const mkF=(n,zone,role)=>{const f={id:++S.fid,n,zone,dest:
   syncSectors();}
 function newGame(c){c=c||{};const C=Object.assign({},DEFCFG,c);C.fleet=Object.assign({},DEFCFG.fleet,c.fleet||{});C.gnd=Object.assign({},DEFCFG.gnd,c.gnd||{});C.air=Object.assign({},DEFCFG.air,c.air||{});_M=null;_PM=null;
   // 国を決め、その国の名称群に切り替えてから部隊を作る
+  // 惑星を決め、その惑星の情勢を設定に掛ける(一度だけ)
+  C.planet=PLN[C.planet]?C.planet:0;setPlanet(C.planet,true);if(!C.plx){const PS=PL().sit;C.eAggr=+(C.eAggr*PS.eAggr).toFixed(3);C.incF=+(C.incF*PS.incF).toFixed(3);C.eGrow=+(C.eGrow*PS.eGrow).toFixed(3);C.budget=Math.round(C.budget*PS.budget/10)*10;C.tension=clamp(C.tension+PS.ten,0,95);C.plx=1;}
   C.nat=NATS[C.nat]?C.nat:0;if(!NATS[C.riv]||C.riv===C.nat)C.riv=NATS[C.nat].rv;applyNation(C.nat,C.riv);if(c.nation==null)C.nation=NAT.f;if(c.fleetName==null)C.fleetName=DSTY[NAT.ds].hq;
   S={v:3,cfg:C,month:0,fy:0,funds:C.funds,budget:C.budget,support:C.support,tension:C.tension,bud:BITEM.map(()=>2),units:[],used:[],seq:0,pool:{ftr:0,aew:0},
     stock:{sam:48,asm:24,aam:32,torp:16},orders:[],debts:[],ledger:[],ext:0,pers:{morale:62,pipe:[],auto:true,pol:'auto',rep:[],sp:0,resv:0,resvEnd:0},off:[],enl:{},

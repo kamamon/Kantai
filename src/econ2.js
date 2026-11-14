@@ -23,6 +23,8 @@ Object.assign(POLXN,{hdK:['本土の防衛力',100,'%'],ofK:['進攻の戦力',1
 const docK=b=>.4+.6*clamp((S.doc[b].m||0)/100,0,1);
 /* ---------- 貿易 ---------- */
 const TBUY={oil:11,steel:8,rare:12,food:7},TSELL={oil:9,steel:6,rare:9,food:5},TDEST={any:['誰にでも',1],fr:['友好国だけ',.85],bloc:['自陣営だけ',.75]};
+// 資源の値は惑星によって違う
+const tBuy=k=>TBUY[k]*PL().sit.price,tSell=k=>TSELL[k]*PL().sit.price;
 // 輸出先：その資源を産しない国のうち、方針に合う相手を関係のよい順に3か国まで
 function tradeBuyers(k,to){const W=S.w,me=ME(),al=natAlive(),pb=W.n[me].bloc;return W.n.map((n,i)=>i).filter(i=>i!==me&&al[i]&&!W.n[i].sanc&&!(S.lw&&S.lw.e===i)&&!(natRes(i)[k])&&(to==='any'?W.n[i].rel>-60:to==='fr'?W.n[i].rel>=10:pb?W.n[i].bloc===pb:(W.n[i].def||W.n[i].trd))).sort((a,b)=>W.n[b].rel-W.n[a].rel).slice(0,3);}
 /* ---------- 武器輸出 ---------- */
@@ -50,9 +52,9 @@ function econSum(add){if(!S.corp)return;for(const c of CORP)add(c[3],S.corp[c[0]
 // 資源の売り買い、備蓄、武器輸出、企業の成長。国庫に入る正味の額を返す
 function econMonth(rep,rb){econInit();const T=S.trade,W=S.w,A2=S.arms;let inc=0;T.log={exp:0,buy:0,arms:0};
   for(const x of RES){const k=x[0],c=T.res[k],b=rb[k];T.stock[k]=Math.max(0,T.stock[k]-(b.cov||0));
-    const cost=(c.buy||0)*rb.open*TBUY[k]*(rb.open<.99?1.3:1);if(cost>0&&S.eco.tre+inc<cost){c.buy=0;rep.push([`国庫が足りず、${x[1]}の買い付けを止めた`,'am']);}else{inc-=cost;T.log.buy+=cost;}
+    const cost=(c.buy||0)*rb.open*tBuy(k)*(rb.open<.99?1.3:1);if(cost>0&&S.eco.tre+inc<cost){c.buy=0;rep.push([`国庫が足りず、${x[1]}の買い付けを止めた`,'am']);}else{inc-=cost;T.log.buy+=cost;}
     const bs=tradeBuyers(k,c.to),sold=Math.min(b.sur*c.exp,bs.length);T.stock[k]=clamp(T.stock[k]+b.sur-sold+(b.ext||0),0,Math.max(c.stT,T.stock[k]));
-    if(sold>0){const v=sold*TSELL[k]*TDEST[c.to][1]*rb.open;inc+=v;T.log.exp+=v;bs.slice(0,Math.ceil(sold)).forEach(i=>relAdd(i,c.to==='any'?.25:.5));}}
+    if(sold>0){const v=sold*tSell(k)*TDEST[c.to][1]*rb.open;inc+=v;T.log.exp+=v;bs.slice(0,Math.ceil(sold)).forEach(i=>relAdd(i,c.to==='any'?.25:.5));}}
   // 武器輸出
   A2.offers=A2.offers.filter(o=>o.exp>S.month&&armsOK(o.to));
   for(const c of A2.list.slice()){const n=W.n[c.to],ok=natAlive()[c.to]&&!n.sanc&&!(S.lw&&S.lw.e===c.to);
@@ -76,10 +78,10 @@ GV.ind=()=>{econInit();const E=S.eco;let h=`<section class="sec"><h2>防衛産�
   return h+'<p class="sm mut">重点企業は1社だけ選べ、経験の伸びが1.5倍になる。</p></section>';};
 GV.trade=()=>{econInit();const T=S.trade,E=S.eco,rb=resBal(),A2=S.arms,W=S.w,num=(v,act,min,max,step)=>`<span class="stp"><button onclick="${act}(${Math.max(min,+(v-step).toFixed(1))})" ${v<=min?'disabled':''} aria-label="減らす">−</button><b>${v}</b><button onclick="${act}(${Math.min(max,+(v+step).toFixed(1))})" ${v>=max?'disabled':''} aria-label="増やす">＋</button></span>`;
   let h=`<section class="sec"><h2>貿易</h2>${polBar()}<dl class="kv2"><dt>国庫</dt><dd>${Math.round(E.tre).toLocaleString()}億円(月 ${sg(E.inc)})</dd><dt>先月の内訳</dt><dd>資源の輸出 +${Math.round(T.log.exp)}　武器の輸出 +${Math.round(T.log.arms)}　買い付け −${Math.round(T.log.buy)}</dd><dt>航路</dt><dd class="${rb.open<.99?'am':''}">${rb.open>=.99?'安全':`脅かされている(取引の${Math.round(rb.open*100)}%しか通らず、買い値が3割上がる)`}</dd></dl></section><section class="sec"><h2>資源</h2><p class="mut sm">足りない資源は、通商協定の相手から入るぶんに加えて、国庫で買い付けられる。余った資源は売るか、備蓄に回す。備蓄は、航路が閉じたときの不足を埋める。</p>`;
-  for(const x of RES){const k=x[0],c=T.res[k],b=rb[k],bs=tradeBuyers(k,c.to),sold=Math.min(b.sur*c.exp,bs.length),v=sold*TSELL[k]*TDEST[c.to][1]*rb.open;
+  for(const x of RES){const k=x[0],c=T.res[k],b=rb[k],bs=tradeBuyers(k,c.to),sold=Math.min(b.sur*c.exp,bs.length),v=sold*tSell(k)*TDEST[c.to][1]*rb.open;
     h+=`<div class="unit"><div class="uh"><b>${x[1]}</b><span class="loc ${b.def>0?'r':''}">${b.def>0?`不足 ${b.def}`:b.sur>0?`余り ${b.sur.toFixed(1)}`:'足りている'}</span></div>
     <p class="sm">産出 ${b.prod}　必要 ${b.need}　協定で輸入 ${b.imp}${b.buy?`　買い付け ${b.buy}`:''}${b.cov?`　備蓄から ${b.cov}`:''}<br><span class="mut">不足すると：${x[2]}に響く</span></p>
-    <div class="urow"><label>買い付け</label><div class="grow">${num(c.buy,`A.tbuyr.bind(null,'${k}')`,0,4,.5)}<span class="sm mut">　月${Math.round(c.buy*rb.open*TBUY[k]*(rb.open<.99?1.3:1))}億円</span></div></div>
+    <div class="urow"><label>買い付け</label><div class="grow">${num(c.buy,`A.tbuyr.bind(null,'${k}')`,0,4,.5)}<span class="sm mut">　月${Math.round(c.buy*rb.open*tBuy(k)*(rb.open<.99?1.3:1))}億円</span></div></div>
     <div class="urow"><label>備蓄</label><div class="grow"><b>${T.stock[k].toFixed(1)}</b><span class="sm mut">　目標 </span>${num(c.stT,`A.tstk.bind(null,'${k}')`,0,6,1)}</div></div>
     ${b.prod>0?`<div class="urow"><label>輸出</label><div class="chips" style="margin:0">${[[0,'売らない'],[.5,'半分'],[1,'すべて']].map(o=>`<button class="${c.exp===o[0]?'on':''}" onclick="A.texp('${k}',${o[0]})">${o[1]}</button>`).join('')}</div></div>
     <div class="urow"><label>売り先</label><div class="chips" style="margin:0">${Object.keys(TDEST).map(d=>`<button class="${c.to===d?'on':''}" onclick="A.tto('${k}','${d}')">${TDEST[d][0]}</button>`).join('')}</div></div>
